@@ -19,8 +19,12 @@
 //! let mut engine = RegoEngine::new();
 //! engine.add_policy_from_file("policies/authz.rego")?;
 //! engine.set_input_json(&serde_json::json!({
-//!     "caller": { "type": "user", "roles": ["admin"] },
-//!     "action": "read"
+//!     "caller": { "type": "user", "user_id": "123", "roles": ["admin"] },
+//!     "service": "users-service",
+//!     "operation_id": "getUser",
+//!     "method": "GET",
+//!     "path": "/users/456",
+//!     "context": { "target_user_id": "456" }
 //! }))?;
 //!
 //! let allowed = engine.eval_bool("data.authz.allow")?;

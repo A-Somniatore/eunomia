@@ -1,8 +1,27 @@
 # Eunomia – Development Roadmap
 
-> **Version**: 1.0.0  
+> **Version**: 1.1.0  
 > **Created**: 2026-01-04  
+> **Last Updated**: 2026-01-04  
 > **Target Completion**: Week 20 (MVP)
+
+---
+
+## Key Decisions
+
+| Decision | Impact |
+|----------|--------|
+| [ADR-004](../../docs/decisions/004-regorus-for-rego-parsing.md) | Use Regorus for Rego parsing and evaluation |
+| [ADR-002](../../docs/decisions/002-opa-for-authorization.md) | OPA/Rego as the policy language |
+| [ADR-003](../../docs/decisions/003-push-based-policies.md) | Hybrid push/pull policy distribution |
+
+**PolicyInput Schema (from `themis-platform-types`):**
+- `caller` (CallerIdentity: spiffe, user, api_key, anonymous)
+- `service`, `operation_id` (from Themis contract)
+- `method`, `path`, `headers`, `timestamp`, `environment`
+- `context` (Map for resource attributes, extracted parameters)
+
+**Note**: Policies should use `input.operation_id` and `input.context`, NOT `input.action` or `input.resource`.
 
 ---
 
