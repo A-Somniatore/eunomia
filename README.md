@@ -65,10 +65,10 @@ Eunomia is a Git-backed OPA/Rego policy management system that provides:
 
 ### Bundle Distribution
 
-- Push-based policy updates via gRPC
+- Hybrid push/pull policy distribution via gRPC
 - Signed bundles for integrity verification
 - Atomic updates across service clusters
-- Hybrid push/pull fallback support
+- Local caching for resilient operation
 
 ### Observability
 
