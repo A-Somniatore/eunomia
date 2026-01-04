@@ -25,12 +25,12 @@ pub struct ValidateArgs {
 }
 
 /// Runs the validate command.
-pub async fn run(args: ValidateArgs) -> Result<()> {
+pub fn run(args: &ValidateArgs) -> Result<()> {
     info!(path = ?args.path, "Validating policies");
 
     println!("Eunomia Policy Validator");
     println!("========================");
-    println!("Path: {:?}", args.path);
+    println!("Path: {}", args.path.display());
     println!();
 
     let parser = Parser::new();
@@ -42,7 +42,7 @@ pub async fn run(args: ValidateArgs) -> Result<()> {
     } else if args.path.is_dir() {
         validate_directory(&args.path, &parser, &analyzer, args.verbose)?;
     } else {
-        anyhow::bail!("Path does not exist: {:?}", args.path);
+        anyhow::bail!("Path does not exist: {}", args.path.display());
     }
 
     println!("\n✓ All policies validated successfully");
@@ -58,7 +58,7 @@ fn validate_file(
     let policy = parser.parse_file(path)?;
 
     if verbose {
-        println!("Validating: {:?}", path);
+        println!("Validating: {}", path.display());
         println!("  Package: {}", policy.package_name);
     }
 
@@ -89,7 +89,7 @@ fn validate_directory(
 
     for entry in walkdir(path)? {
         let entry_path = entry?;
-        if entry_path.extension().map_or(false, |e| e == "rego") {
+        if entry_path.extension().is_some_and(|e| e == "rego") {
             match validate_file(&entry_path, parser, analyzer, verbose) {
                 Ok(()) => count += 1,
                 Err(e) => errors.push((entry_path, e)),
@@ -100,19 +100,19 @@ fn validate_directory(
     if !errors.is_empty() {
         println!("\nErrors:");
         for (path, error) in &errors {
-            println!("✗ {}: {}", path.display(), error);
+            println!("✗ {}: {error}", path.display());
         }
         anyhow::bail!("{} validation errors", errors.len());
     }
 
-    println!("\nValidated {} policies", count);
+    println!("\nValidated {count} policies");
     Ok(())
 }
 
 /// Simple directory walker (placeholder - would use walkdir crate in production).
 fn walkdir(path: &PathBuf) -> Result<impl Iterator<Item = Result<PathBuf>>> {
     let entries: Vec<_> = std::fs::read_dir(path)?
-        .filter_map(|e| e.ok())
+        .filter_map(std::result::Result::ok)
         .map(|e| Ok(e.path()))
         .collect();
 

@@ -2,6 +2,7 @@
 //!
 //! This module provides formatters for test results.
 
+use std::fmt::Write as FmtWrite;
 use std::io::{self, Write};
 
 use crate::runner::{TestResult, TestResults};
@@ -9,6 +10,10 @@ use crate::runner::{TestResult, TestResults};
 /// Trait for reporting test results.
 pub trait Reporter {
     /// Reports the results of a test run.
+    ///
+    /// # Errors
+    ///
+    /// Returns an IO error if writing to output fails.
     fn report(&self, results: &TestResults) -> io::Result<()>;
 }
 
@@ -24,7 +29,7 @@ pub struct ConsoleReporter {
 impl ConsoleReporter {
     /// Creates a new console reporter.
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             use_colors: true,
             verbose: false,
@@ -67,12 +72,12 @@ impl ConsoleReporter {
         );
 
         if let Some(error) = &result.error {
-            line.push_str(&format!("\n    Error: {}", error));
+            let _ = write!(line, "\n    Error: {error}");
         }
 
         if let (Some(expected), Some(actual)) = (&result.expected, &result.actual) {
-            line.push_str(&format!("\n    Expected: {}", expected));
-            line.push_str(&format!("\n    Actual: {}", actual));
+            let _ = write!(line, "\n    Expected: {expected}");
+            let _ = write!(line, "\n    Actual: {actual}");
         }
 
         line
@@ -156,9 +161,9 @@ impl Reporter for JsonReporter {
         } else {
             serde_json::to_string(results)
         }
-        .map_err(|e| io::Error::new(io::ErrorKind::Other, e))?;
+        .map_err(io::Error::other)?;
 
-        writeln!(stdout, "{}", json)?;
+        writeln!(stdout, "{json}")?;
 
         Ok(())
     }

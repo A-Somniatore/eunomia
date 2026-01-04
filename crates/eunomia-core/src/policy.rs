@@ -27,9 +27,9 @@ use serde::{Deserialize, Serialize};
 ///     "#,
 /// );
 /// ```
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Policy {
-    /// The Rego package name (e.g., "users_service.authz").
+    /// The Rego package name (e.g., `users_service.authz`).
     pub package_name: String,
 
     /// Raw Rego source code.
@@ -140,7 +140,7 @@ impl Policy {
     /// ```
     #[must_use]
     pub fn service_name(&self) -> Option<&str> {
-        self.package_name.split('.').next().filter(|s| {
+        self.package_name.split('.').next().filter(|_| {
             // Only return if there's more than one part
             self.package_name.contains('.')
         })

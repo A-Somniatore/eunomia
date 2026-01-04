@@ -42,7 +42,7 @@ pub struct BuildArgs {
 }
 
 /// Runs the build command.
-pub async fn run(args: BuildArgs) -> Result<()> {
+pub fn run(args: BuildArgs) -> Result<()> {
     info!(path = ?args.path, version = %args.version, "Building policy bundle");
 
     let bundle_name = args.name.unwrap_or_else(|| {
@@ -55,10 +55,10 @@ pub async fn run(args: BuildArgs) -> Result<()> {
 
     println!("Eunomia Bundle Builder");
     println!("======================");
-    println!("Path: {:?}", args.path);
-    println!("Name: {}", bundle_name);
+    println!("Path: {}", args.path.display());
+    println!("Name: {bundle_name}");
     println!("Version: {}", args.version);
-    println!("Output: {:?}", args.output);
+    println!("Output: {}", args.output.display());
     println!();
 
     // TODO: Implement actual policy loading from directory

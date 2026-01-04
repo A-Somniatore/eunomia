@@ -4,7 +4,6 @@
 //! and distributable policy bundle.
 
 use std::collections::HashMap;
-use std::path::PathBuf;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -24,7 +23,7 @@ use serde::{Deserialize, Serialize};
 ///     .add_policy("users_service.authz", "package users_service.authz")
 ///     .build();
 /// ```
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct Bundle {
     /// Bundle name (typically the service name).
     pub name: String,
@@ -59,7 +58,7 @@ pub struct Bundle {
 }
 
 /// Metadata about a bundle.
-#[derive(Debug, Clone, PartialEq, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub struct BundleManifest {
     /// Revision number (increments with each build).
     pub revision: u64,
@@ -100,7 +99,7 @@ impl Bundle {
 
     /// Returns true if this bundle is signed.
     #[must_use]
-    pub fn is_signed(&self) -> bool {
+    pub const fn is_signed(&self) -> bool {
         self.signature.is_some()
     }
 

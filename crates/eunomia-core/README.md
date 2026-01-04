@@ -10,7 +10,7 @@ This crate provides the foundational data structures used throughout Eunomia:
 - **Bundle** - Compiled policy bundle for distribution to Archimedes
 - **AuthorizationDecision** - The result of evaluating a policy
 - **PolicyInput** - Input schema for authorization requests
-- **CallerIdentity** - Caller identity types (SPIFFE, User, ApiKey, Anonymous)
+- **CallerIdentity** - Caller identity types (SPIFFE, User, `ApiKey`, Anonymous)
 
 ## Usage
 

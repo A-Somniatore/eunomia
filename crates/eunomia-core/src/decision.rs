@@ -21,7 +21,7 @@ use serde::{Deserialize, Serialize};
 /// let denied = AuthorizationDecision::deny("insufficient permissions", "users_service.authz");
 /// assert!(!denied.allowed);
 /// ```
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AuthorizationDecision {
     /// Whether the request is allowed.
     pub allowed: bool,

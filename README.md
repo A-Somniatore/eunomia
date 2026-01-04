@@ -17,6 +17,7 @@ Eunomia is a Git-backed OPA/Rego policy management system that provides:
 - [Specification](docs/spec.md)
 - [Roadmap](docs/roadmap.md)
 - [Contributing](CONTRIBUTING.md)
+- [Integration Specification](../docs/integration/integration-spec.md) – Shared schemas with Archimedes/Themis
 - [Themis Platform](../)
 
 ## Architecture Overview

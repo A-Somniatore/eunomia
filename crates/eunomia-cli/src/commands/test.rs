@@ -37,7 +37,7 @@ pub struct TestArgs {
 }
 
 /// Runs the test command.
-pub async fn run(args: TestArgs) -> Result<()> {
+pub fn run(args: &TestArgs) -> Result<()> {
     info!(path = ?args.path, "Running policy tests");
 
     let config = TestConfig::new()
@@ -45,14 +45,14 @@ pub async fn run(args: TestArgs) -> Result<()> {
         .with_parallel(args.parallel)
         .with_workers(args.workers);
 
-    let runner = TestRunner::new(config);
+    let _runner = TestRunner::new(config);
 
     // TODO: Implement actual test discovery and execution
     // For now, this is a placeholder that shows the CLI structure
     
     println!("Eunomia Test Runner");
     println!("==================");
-    println!("Path: {:?}", args.path);
+    println!("Path: {}", args.path.display());
     println!("Fail fast: {}", args.fail_fast);
     println!("Parallel: {}", args.parallel);
     println!();

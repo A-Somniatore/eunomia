@@ -18,7 +18,7 @@ pub struct Optimizer {
 impl Optimizer {
     /// Creates a new optimizer with default settings.
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             strip_comments: false,
             minimize_whitespace: false,
@@ -53,11 +53,11 @@ impl Optimizer {
         let mut source = policy.source.clone();
 
         if self.strip_comments {
-            source = self.strip_comments_from_source(&source);
+            source = Self::strip_comments_from_source(&source);
         }
 
         if self.minimize_whitespace {
-            source = self.minimize_whitespace_in_source(&source);
+            source = Self::minimize_whitespace_in_source(&source);
         }
 
         Policy {
@@ -71,7 +71,7 @@ impl Optimizer {
     }
 
     /// Removes comments from source code.
-    fn strip_comments_from_source(&self, source: &str) -> String {
+    fn strip_comments_from_source(source: &str) -> String {
         let mut result = Vec::new();
         let mut in_metadata = false;
 
@@ -110,7 +110,7 @@ impl Optimizer {
     }
 
     /// Minimizes whitespace in source code.
-    fn minimize_whitespace_in_source(&self, source: &str) -> String {
+    fn minimize_whitespace_in_source(source: &str) -> String {
         let mut result = Vec::new();
         let mut prev_empty = false;
 

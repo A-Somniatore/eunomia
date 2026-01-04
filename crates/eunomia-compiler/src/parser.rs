@@ -32,7 +32,7 @@ pub struct Parser {
 impl Parser {
     /// Creates a new parser with default settings.
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             extract_metadata: true,
         }
@@ -80,15 +80,15 @@ impl Parser {
     ///
     /// Returns an error if the source cannot be parsed.
     pub fn parse_source(&self, source: &str, file_name: &str) -> Result<Policy> {
-        let package_name = self.extract_package(source, file_name)?;
+        let package_name = Self::extract_package(source, file_name)?;
 
         let mut policy = Policy::new(package_name, source);
 
         if self.extract_metadata {
-            if let Some(description) = self.extract_description(source) {
+            if let Some(description) = Self::extract_description(source) {
                 policy = policy.with_description(description);
             }
-            let authors = self.extract_authors(source);
+            let authors = Self::extract_authors(source);
             if !authors.is_empty() {
                 policy = policy.with_authors(authors);
             }
@@ -98,7 +98,7 @@ impl Parser {
     }
 
     /// Extracts the package name from Rego source.
-    fn extract_package(&self, source: &str, file_name: &str) -> Result<String> {
+    fn extract_package(source: &str, file_name: &str) -> Result<String> {
         for (line_num, line) in source.lines().enumerate() {
             let trimmed = line.trim();
 
@@ -132,7 +132,7 @@ impl Parser {
     }
 
     /// Extracts description from METADATA comment.
-    fn extract_description(&self, source: &str) -> Option<String> {
+    fn extract_description(source: &str) -> Option<String> {
         let mut in_metadata = false;
         let mut found_description = false;
 
@@ -171,7 +171,7 @@ impl Parser {
     }
 
     /// Extracts authors from METADATA comment.
-    fn extract_authors(&self, source: &str) -> Vec<String> {
+    fn extract_authors(source: &str) -> Vec<String> {
         let mut in_metadata = false;
         let mut in_authors = false;
         let mut authors = Vec::new();

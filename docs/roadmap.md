@@ -14,18 +14,55 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 | Phase                       | Duration | Weeks | Description                               |
 | --------------------------- | -------- | ----- | ----------------------------------------- |
-| E1: Foundation              | 4 weeks  | 1-4   | Core types, Rego parsing, validation      |
+| E0: Shared Types            | 1 week   | 1     | Integrate `themis-platform-types`         |
+| E1: Foundation              | 3 weeks  | 2-4   | Core types, Rego parsing, validation      |
 | E2: Testing Framework       | 4 weeks  | 5-8   | Test runner, fixtures, bundle compilation |
 | E3: Registry & Distribution | 4 weeks  | 9-12  | Registry client, push distribution        |
 | E4: Archimedes Integration  | 4 weeks  | 17-20 | Full integration with Archimedes OPA      |
 
-**Total**: ~16 weeks of active development (with gap for Archimedes catch-up)
+**Total**: ~16 weeks of active development (with gap weeks 13-16 for Archimedes catch-up)
+
+### Cross-Component Timeline Alignment
+
+```
+         Week: 1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19  20
+ Themis:      [T0][---T1---][--T2--][------T3------][--T4--][--T5--]
+ Eunomia:     [E0][---E1---][------E2------][------E3------]        (gap)        [------E4------]
+ Archimedes:  [A0][---A1---][----------A2----------][----------A3----------][A4][------A5------]
+```
+
+**Key Coordination Points**:
+- Week 1: All components depend on `themis-platform-types` (created by Themis)
+- Week 12: Themis artifacts available for Archimedes validation
+- Week 12: Eunomia bundles available for Archimedes OPA
+- Weeks 13-16: Eunomia team can support Archimedes integration or work on stretch goals
+- Week 17-20: Full end-to-end integration testing
 
 ---
 
-## Phase E1: Foundation (Weeks 1-4)
+## Phase E0: Shared Platform Types (Week 1) ⭐ COORDINATION
 
-### Week 1: Project Setup
+> **Note**: The `themis-platform-types` crate is created by Themis team in Week 1.
+> Eunomia integrates it to ensure schema compatibility.
+
+### Week 1: Integrate Shared Types
+
+- [ ] Add `themis-platform-types` dependency to `eunomia-core`
+- [ ] Migrate `CallerIdentity` to use shared definition
+- [ ] Migrate `PolicyInput` to use shared definition
+- [ ] Migrate `PolicyDecision` to use shared definition
+- [ ] Update existing code to use shared types
+- [ ] Verify JSON serialization matches spec
+
+### Phase E0 Milestone
+
+**Criteria**: Eunomia uses `themis-platform-types` for all shared types
+
+---
+
+## Phase E1: Foundation (Weeks 2-4)
+
+### Week 2: Project Setup & Core Types
 
 - [x] Create `eunomia` repository structure
   > **Completed 2026-01-04**: Created workspace root with Cargo.toml
@@ -48,17 +85,29 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > - `AuthorizationDecision` type
   > - `PolicyInput` schema with builder
   > - `CallerIdentity` types (SPIFFE, User, ApiKey, Anonymous)
+  >
+  > **Note**: These will be migrated to `themis-platform-types` in Week 1
 - [x] Write initial documentation
   > **Completed 2026-01-04**: Added rustdoc for all public APIs, README for eunomia-core
-
-### Week 2: Core Types
-
-- [ ] Implement `Policy` model
-- [ ] Implement `Bundle` model
-- [ ] Implement `AuthorizationDecision` type
-- [ ] Implement `PolicyInput` schema
-- [ ] Implement `CallerIdentity` types (SPIFFE, User, ApiKey, Anonymous)
-- [ ] Write serialization tests
+- [x] Add property-based testing with proptest
+  > **Completed 2026-01-04**: Added comprehensive proptest tests for:
+  >
+  > - `CallerIdentity` serialization roundtrips
+  > - `PolicyInput` serialization roundtrips
+  > - `AuthorizationDecision` consistency
+  > - `Bundle` construction and serialization
+  > - `Policy` is_test detection
+  >
+  > Tests cover edge cases with random valid inputs
+- [x] Implement validation framework
+  > **Completed 2026-01-04**: Added `validation` module with:
+  >
+  > - `ValidationError` and `ValidationErrorKind` types
+  > - `ValidationErrors` collection
+  > - `Validate` trait for type validation
+  > - Comprehensive unit tests for validation
+- [x] Fix all Clippy warnings (pedantic, nursery)
+  > **Completed 2026-01-04**: All crates pass `cargo clippy -- -D warnings`
 
 ### Week 3: Rego Parsing
 

@@ -36,7 +36,7 @@ use serde::{Deserialize, Serialize};
 /// // Anonymous identity
 /// let anonymous = CallerIdentity::anonymous();
 /// ```
-#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Default, Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "snake_case")]
 pub enum CallerIdentity {
     /// Internal service identity using SPIFFE.
@@ -61,9 +61,9 @@ pub enum CallerIdentity {
         user_id: String,
         /// Roles assigned to the user.
         roles: Vec<String>,
-        /// Optional organization/tenant identifier.
+        /// Optional tenant identifier (for multi-tenant systems).
         #[serde(skip_serializing_if = "Option::is_none")]
-        organization_id: Option<String>,
+        tenant_id: Option<String>,
     },
 
     /// API key identity.
@@ -81,6 +81,7 @@ pub enum CallerIdentity {
     ///
     /// Used when no authentication is provided.
     #[serde(rename = "anonymous")]
+    #[default]
     Anonymous,
 }
 
@@ -136,39 +137,39 @@ impl CallerIdentity {
         Self::User {
             user_id: user_id.into(),
             roles,
-            organization_id: None,
+            tenant_id: None,
         }
     }
 
-    /// Creates a new user identity with an organization.
+    /// Creates a new user identity with a tenant.
     ///
     /// # Arguments
     ///
     /// * `user_id` - Unique user identifier
     /// * `roles` - Roles assigned to the user
-    /// * `organization_id` - Organization/tenant identifier
+    /// * `tenant_id` - Tenant identifier (for multi-tenant systems)
     ///
     /// # Examples
     ///
     /// ```rust
     /// use eunomia_core::CallerIdentity;
     ///
-    /// let user = CallerIdentity::user_with_org(
+    /// let user = CallerIdentity::user_with_tenant(
     ///     "user-123",
     ///     vec!["editor".to_string()],
-    ///     "org-456",
+    ///     "tenant-456",
     /// );
     /// ```
     #[must_use]
-    pub fn user_with_org(
+    pub fn user_with_tenant(
         user_id: impl Into<String>,
         roles: Vec<String>,
-        organization_id: impl Into<String>,
+        tenant_id: impl Into<String>,
     ) -> Self {
         Self::User {
             user_id: user_id.into(),
             roles,
-            organization_id: Some(organization_id.into()),
+            tenant_id: Some(tenant_id.into()),
         }
     }
 
@@ -247,12 +248,6 @@ impl CallerIdentity {
     }
 }
 
-impl Default for CallerIdentity {
-    fn default() -> Self {
-        Self::Anonymous
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -287,30 +282,30 @@ mod tests {
             CallerIdentity::User {
                 user_id,
                 roles,
-                organization_id,
+                tenant_id,
             } => {
                 assert_eq!(user_id, "user-123");
                 assert_eq!(roles, vec!["admin"]);
-                assert!(organization_id.is_none());
+                assert!(tenant_id.is_none());
             }
             _ => panic!("Expected User variant"),
         }
     }
 
     #[test]
-    fn test_user_with_org_identity_creation() {
+    fn test_user_with_tenant_identity_creation() {
         let identity =
-            CallerIdentity::user_with_org("user-123", vec!["editor".to_string()], "org-456");
+            CallerIdentity::user_with_tenant("user-123", vec!["editor".to_string()], "tenant-456");
 
         match identity {
             CallerIdentity::User {
                 user_id,
                 roles,
-                organization_id,
+                tenant_id,
             } => {
                 assert_eq!(user_id, "user-123");
                 assert_eq!(roles, vec!["editor"]);
-                assert_eq!(organization_id, Some("org-456".to_string()));
+                assert_eq!(tenant_id, Some("tenant-456".to_string()));
             }
             _ => panic!("Expected User variant"),
         }

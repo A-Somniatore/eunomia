@@ -192,7 +192,7 @@ impl Bundler {
         }
 
         // Add roots based on service name
-        builder = builder.add_root(&self.name.replace('-', "_"));
+        builder = builder.add_root(self.name.replace('-', "_"));
 
         Ok(builder.build())
     }

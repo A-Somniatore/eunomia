@@ -2,13 +2,12 @@
 //!
 //! This module provides the test execution engine.
 
-use std::path::Path;
 use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info, warn};
 
-use crate::error::{Result, TestError};
+use crate::error::Result;
 use crate::fixtures::TestFixture;
 
 /// Configuration for the test runner.
@@ -166,7 +165,7 @@ impl TestResults {
 
     /// Returns the total number of tests.
     #[must_use]
-    pub fn total(&self) -> usize {
+    pub const fn total(&self) -> usize {
         self.results.len()
     }
 
@@ -200,7 +199,7 @@ pub struct TestRunner {
 impl TestRunner {
     /// Creates a new test runner with the given configuration.
     #[must_use]
-    pub fn new(config: TestConfig) -> Self {
+    pub const fn new(config: TestConfig) -> Self {
         Self { config }
     }
 
@@ -232,6 +231,10 @@ impl TestRunner {
     }
 
     /// Runs all fixtures in a set against a policy.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if test execution fails.
     pub fn run_fixture_set(
         &self,
         fixtures: &[TestFixture],

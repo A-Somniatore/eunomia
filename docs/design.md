@@ -332,14 +332,19 @@ pub struct PolicyInput {
     /// Request path
     pub path: String,
 
-    /// Request headers (filtered)
+    /// Request headers (filtered, authorization headers stripped)
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
     pub headers: HashMap<String, String>,
 
-    /// Current timestamp
-    pub timestamp: DateTime<Utc>,
+    /// Request timestamp (ISO 8601)
+    pub timestamp: String,
 
-    /// Environment (production, staging, etc.)
+    /// Environment (production, staging, development)
     pub environment: String,
+
+    /// Additional context (extensible)
+    #[serde(default, skip_serializing_if = "HashMap::is_empty")]
+    pub context: HashMap<String, serde_json::Value>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -363,8 +368,9 @@ pub enum CallerIdentity {
         user_id: String,
         /// User roles
         roles: Vec<String>,
-        /// Organization/tenant
-        organization_id: Option<String>,
+        /// Tenant ID (for multi-tenant systems)
+        #[serde(skip_serializing_if = "Option::is_none")]
+        tenant_id: Option<String>,
     },
 
     /// API key

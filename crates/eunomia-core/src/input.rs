@@ -28,7 +28,7 @@ use crate::CallerIdentity;
 ///     .path("/users/user-123")
 ///     .build();
 /// ```
-#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PolicyInput {
     /// The caller's identity.
     pub caller: CallerIdentity,
@@ -143,7 +143,7 @@ impl PolicyInputBuilder {
 
     /// Sets the request timestamp.
     #[must_use]
-    pub fn timestamp(mut self, timestamp: DateTime<Utc>) -> Self {
+    pub const fn timestamp(mut self, timestamp: DateTime<Utc>) -> Self {
         self.timestamp = Some(timestamp);
         self
     }
@@ -159,7 +159,7 @@ impl PolicyInputBuilder {
     ///
     /// # Panics
     ///
-    /// Panics if required fields (caller, service, operation_id, method, path)
+    /// Panics if required fields (caller, service, `operation_id`, method, path)
     /// are not set.
     #[must_use]
     pub fn build(self) -> PolicyInput {

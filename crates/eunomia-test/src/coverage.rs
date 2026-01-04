@@ -50,6 +50,7 @@ impl CoverageReport {
     }
 
     /// Recalculates total coverage.
+    #[allow(clippy::cast_precision_loss)]
     fn recalculate_total(&mut self) {
         if self.total_lines > 0 {
             self.total_coverage = (self.covered_lines as f64 / self.total_lines as f64) * 100.0;
@@ -93,6 +94,7 @@ impl FileCoverage {
     }
 
     /// Recalculates coverage percentage.
+    #[allow(clippy::cast_precision_loss)]
     fn recalculate_percent(&mut self) {
         if self.total_lines > 0 {
             self.coverage_percent =

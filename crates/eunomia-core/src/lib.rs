@@ -9,7 +9,7 @@
 //! - [`Bundle`] - Compiled policy bundle for distribution
 //! - [`AuthorizationDecision`] - Result of policy evaluation
 //! - [`PolicyInput`] - Input schema for authorization requests
-//! - [`CallerIdentity`] - Identity types (SPIFFE, User, ApiKey, Anonymous)
+//! - [`CallerIdentity`] - Identity types (SPIFFE, User, `ApiKey`, Anonymous)
 //!
 //! ## Example
 //!
@@ -34,6 +34,10 @@ pub mod error;
 pub mod identity;
 pub mod input;
 pub mod policy;
+pub mod validation;
+
+#[cfg(test)]
+mod proptest_tests;
 
 // Re-export main types at crate root
 pub use bundle::Bundle;
@@ -42,3 +46,4 @@ pub use error::{Error, Result};
 pub use identity::CallerIdentity;
 pub use input::PolicyInput;
 pub use policy::Policy;
+pub use validation::{Validate, ValidationError};

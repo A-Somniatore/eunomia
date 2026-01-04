@@ -45,7 +45,7 @@ pub struct AnalysisWarning {
 impl Analyzer {
     /// Creates a new analyzer with default settings.
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             require_default: true,
             warn_missing_tests: true,
@@ -147,8 +147,7 @@ impl Analyzer {
             let test_package = format!("{}_test", policy.package_name);
             result.warnings.push(AnalysisWarning {
                 message: format!(
-                    "No corresponding test file found. Expected package: {}",
-                    test_package
+                    "No corresponding test file found. Expected package: {test_package}"
                 ),
                 line: None,
             });
