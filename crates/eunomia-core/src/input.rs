@@ -188,9 +188,11 @@ impl PolicyInputBuilder {
         let service = self.service.ok_or_else(|| crate::Error::InvalidInput {
             reason: "service is required".to_string(),
         })?;
-        let operation_id = self.operation_id.ok_or_else(|| crate::Error::InvalidInput {
-            reason: "operation_id is required".to_string(),
-        })?;
+        let operation_id = self
+            .operation_id
+            .ok_or_else(|| crate::Error::InvalidInput {
+                reason: "operation_id is required".to_string(),
+            })?;
         let method = self.method.ok_or_else(|| crate::Error::InvalidInput {
             reason: "method is required".to_string(),
         })?;
@@ -247,8 +249,14 @@ mod tests {
             .build();
 
         assert_eq!(input.headers.len(), 2);
-        assert_eq!(input.headers.get("x-request-id"), Some(&"req-123".to_string()));
-        assert_eq!(input.headers.get("x-trace-id"), Some(&"trace-456".to_string()));
+        assert_eq!(
+            input.headers.get("x-request-id"),
+            Some(&"req-123".to_string())
+        );
+        assert_eq!(
+            input.headers.get("x-trace-id"),
+            Some(&"trace-456".to_string())
+        );
     }
 
     #[test]
@@ -313,7 +321,11 @@ mod tests {
             .operation_id("getUser")
             .method("GET")
             .path("/users/user-123")
-            .timestamp(DateTime::parse_from_rfc3339("2026-01-04T12:00:00Z").unwrap().with_timezone(&Utc))
+            .timestamp(
+                DateTime::parse_from_rfc3339("2026-01-04T12:00:00Z")
+                    .unwrap()
+                    .with_timezone(&Utc),
+            )
             .build();
 
         let json = serde_json::to_string(&input).unwrap();

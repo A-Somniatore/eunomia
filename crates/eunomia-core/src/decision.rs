@@ -157,16 +157,15 @@ mod tests {
 
     #[test]
     fn test_decision_with_version() {
-        let decision = AuthorizationDecision::allow("granted", "test")
-            .with_version("1.2.3");
+        let decision = AuthorizationDecision::allow("granted", "test").with_version("1.2.3");
 
         assert_eq!(decision.policy_version, Some("1.2.3".to_string()));
     }
 
     #[test]
     fn test_decision_with_evaluation_time() {
-        let decision = AuthorizationDecision::allow("granted", "test")
-            .with_evaluation_time(1_000_000);
+        let decision =
+            AuthorizationDecision::allow("granted", "test").with_evaluation_time(1_000_000);
 
         assert_eq!(decision.evaluation_time_ns, Some(1_000_000));
     }

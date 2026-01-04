@@ -2167,8 +2167,9 @@ Stoa displays:
 
 ### Resolved
 
-- ✅ **Policy language**: OPA/Rego
-- ✅ **Distribution model**: Hybrid push/pull (push primary, pull fallback)
+- ✅ **Policy language**: OPA/Rego - ADR-002
+- ✅ **Rego parsing**: Use `regorus` crate (pure Rust) - ADR-004
+- ✅ **Distribution model**: Hybrid push/pull (push primary, pull fallback) - ADR-003
 - ✅ **State storage**: PostgreSQL for deployment state
 - ✅ **Policy versioning**: Semantic versioning (SemVer 2.0.0)
 - ✅ **Canary duration**: Default 5 minutes, configurable per deployment
@@ -2176,14 +2177,16 @@ Stoa displays:
 
 ### Under Discussion
 
-- 🟡 **Multi-cluster support**: How to manage policies across multiple Kubernetes clusters?
-- 🟡 **Policy inheritance**: Can services inherit from base policies?
-- 🟡 **External data**: How to integrate external data (user roles from IdP)?
+- 🟡 **Multi-cluster support**: Design in gap weeks (13-16), implement post-MVP
+- 🟡 **Policy inheritance**: Prototype in gap weeks, defer full implementation
+- 🟡 **External data**: Research IdP integration in gap weeks
 
 ### To Be Decided
 
 - 🔴 **Cache encryption key management**: How to rotate cache encryption keys?
 - 🔴 **Cross-region replication**: How to handle policy distribution across regions?
+
+> 📝 **Note**: Gap weeks (13-16) designated for researching yellow/red items.
 
 ---
 

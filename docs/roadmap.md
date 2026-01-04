@@ -32,6 +32,7 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 ```
 
 **Key Coordination Points**:
+
 - Week 1: All components depend on `themis-platform-types` (created by Themis)
 - Week 12: Themis artifacts available for Archimedes validation
 - Week 12: Eunomia bundles available for Archimedes OPA
@@ -47,16 +48,25 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 ### Week 1: Integrate Shared Types
 
+> ✅ **Update (2026-01-04)**: `themis-platform-types` crate is now available!
+> Local type implementations in `eunomia-core` are ready for migration.
+
 - [ ] Add `themis-platform-types` dependency to `eunomia-core`
+  > ⏳ **Ready**: Shared crate available, migration pending
 - [ ] Migrate `CallerIdentity` to use shared definition
+  > ⏳ **Ready**: Local implementation matches spec, ready for migration
 - [ ] Migrate `PolicyInput` to use shared definition
+  > ⏳ **Ready**: Local implementation matches spec, ready for migration
 - [ ] Migrate `PolicyDecision` to use shared definition
+  > ⏳ **Ready**: Local implementation matches spec, ready for migration
 - [ ] Update existing code to use shared types
 - [ ] Verify JSON serialization matches spec
 
 ### Phase E0 Milestone
 
 **Criteria**: Eunomia uses `themis-platform-types` for all shared types
+
+> ⏳ **Status**: Local implementations complete. Migration to shared crate pending.
 
 ---
 
@@ -111,7 +121,11 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 ### Week 3: Rego Parsing
 
-- [ ] Integrate Rego parser (OPA library or WASM)
+> 📝 **Decision**: Using `regorus` crate (pure Rust OPA implementation).
+> See [ADR-004](../../../docs/decisions/004-regorus-for-rego-parsing.md) for rationale.
+
+- [ ] Integrate Rego parser using `regorus` crate
+- [ ] **Spike: Validate regorus capabilities** against our policy patterns
 - [ ] Implement policy file loading
 - [ ] Add static analysis for common errors
 - [ ] Validate policy structure
@@ -220,7 +234,21 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 ## Phase E4: Archimedes Integration (Weeks 17-20)
 
-_Note: Weeks 13-16 are gap time while Archimedes completes its OPA integration_
+### Gap Weeks (13-16): Stretch Goals & Support
+
+> **Note**: While Archimedes completes OPA integration, Eunomia team works on:
+
+**Week 13-14: Documentation & Examples**
+- [ ] Create comprehensive policy authoring guide
+- [ ] Build example policy repository with common patterns
+- [ ] Document testing best practices
+- [ ] Create policy migration guide for existing services
+
+**Week 15-16: Stretch Goals (if time permits)**
+- [ ] Design multi-cluster policy distribution (for future)
+- [ ] Prototype policy inheritance patterns
+- [ ] Research external data integration (IdP roles)
+- [ ] Support Archimedes team with OPA integration questions
 
 ### Week 17: Push Integration
 

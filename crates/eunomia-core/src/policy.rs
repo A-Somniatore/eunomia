@@ -202,7 +202,10 @@ mod tests {
             .with_author("other@example.com");
 
         assert_eq!(policy.description, Some("Test policy".to_string()));
-        assert_eq!(policy.authors, vec!["team@example.com", "other@example.com"]);
+        assert_eq!(
+            policy.authors,
+            vec!["team@example.com", "other@example.com"]
+        );
     }
 
     #[test]
@@ -228,18 +231,10 @@ mod tests {
 
     #[test]
     fn test_is_test_by_file_path() {
-        let policy = Policy::with_file_path(
-            "users_service.authz",
-            "",
-            "policies/authz_test.rego",
-        );
+        let policy = Policy::with_file_path("users_service.authz", "", "policies/authz_test.rego");
         assert!(policy.is_test());
 
-        let policy = Policy::with_file_path(
-            "users_service.authz",
-            "",
-            "policies/authz.rego",
-        );
+        let policy = Policy::with_file_path("users_service.authz", "", "policies/authz.rego");
         assert!(!policy.is_test());
     }
 
