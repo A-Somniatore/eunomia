@@ -9,18 +9,20 @@
 
 ## Key Decisions
 
-| Decision | Impact |
-|----------|--------|
+| Decision                                                        | Impact                                      |
+| --------------------------------------------------------------- | ------------------------------------------- |
 | [ADR-004](../../docs/decisions/004-regorus-for-rego-parsing.md) | Use Regorus for Rego parsing and evaluation |
-| [ADR-002](../../docs/decisions/002-opa-for-authorization.md) | OPA/Rego as the policy language |
-| [ADR-003](../../docs/decisions/003-push-based-policies.md) | Hybrid push/pull policy distribution |
-| [ADR-007](../../docs/decisions/007-apache-2-license.md) | Apache 2.0 license |
+| [ADR-002](../../docs/decisions/002-opa-for-authorization.md)    | OPA/Rego as the policy language             |
+| [ADR-003](../../docs/decisions/003-push-based-policies.md)      | Hybrid push/pull policy distribution        |
+| [ADR-007](../../docs/decisions/007-apache-2-license.md)         | Apache 2.0 license                          |
 
 **Resolved Open Questions:**
+
 - ✅ **Cache encryption key management**: Use K8s Secrets + external-secrets-operator for rotation
 - ✅ **Cross-region replication**: OCI registry geo-replication, single-region control plane for MVP
 
 **PolicyInput Schema (from `themis-platform-types`):**
+
 - `caller` (CallerIdentity: spiffe, user, api_key, anonymous)
 - `service`, `operation_id` (from Themis contract)
 - `method`, `path`, `headers`, `timestamp`, `environment`
@@ -156,6 +158,7 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > **Completed**: `RegoEngine::add_policy_from_file()` with PolicyInfo tracking
 - [x] Add static analysis for common errors
   > **Completed**: Created `Linter` with security and style rules:
+  >
   > - `security/default-deny`: Require default allow := false
   > - `security/no-hardcoded-secrets`: Detect hardcoded credentials
   > - `security/no-wildcard-allow`: Warn on unconditional allow
@@ -164,11 +167,13 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > **Completed**: Created `PolicyValidator` combining syntax, analysis, and linting
 - [x] Test with sample policies
   > **Completed**: Created example policies for users-service and orders-service
+  >
   > - Demonstrates user, SPIFFE, API key authorization patterns
-  > - Includes comprehensive test files (*_test.rego)
+  > - Includes comprehensive test files (\*\_test.rego)
   > - Added common/authz.rego with reusable helpers
 - [x] Document policy file conventions
   > **Completed**: Added Section 13 to spec.md with:
+  >
   > - Directory structure conventions
   > - Package naming conventions
   > - METADATA comment format
@@ -180,18 +185,41 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 ### Week 4: Policy Validation
 
-- [ ] Implement policy syntax checking
-- [ ] Add semantic validation
-- [ ] Create mock operationId support (for testing without Themis)
-- [ ] Implement validation error reporting
-- [ ] Add structured error messages
+- [x] Implement policy syntax checking
+  > **Completed**: `PolicyValidator` handles syntax checking via `RegoEngine`
+- [x] Add semantic validation
+  > **Completed**: Created `SemanticValidator` in `semantic.rs`:
+  > - Deep policy analysis beyond syntax checking
+  > - `SemanticIssue`, `SemanticSeverity`, `SemanticCategory` types
+  > - Operation ID validation against service contracts
+  > - Unused rule detection to identify dead code
+  > - Deprecated input field detection
+  > - Rule reference checking
+- [x] Create mock operationId support (for testing without Themis)
+  > **Completed**: Created `MockServiceContract`:
+  > - Define service contracts with operation IDs
+  > - Validate policies against expected operations
+  > - Predefined contracts: `users_service_contract()`, `orders_service_contract()`
+  > - `InputSchema` for validating authorization input structure
+- [x] Implement validation error reporting
+  > **Completed**: `SemanticIssue` provides structured reporting with:
+  > - Severity levels (Error, Warning, Info)
+  > - Category classification (OperationId, Unused, Deprecated, Schema, Reference)
+  > - Rule names, descriptions, and suggestions
+- [x] Add structured error messages
+  > **Completed**: All validation errors include:
+  > - Clear descriptions of what's wrong
+  > - Context about affected policies/rules
+  > - Suggestions for how to fix issues
 
 ### Phase E1 Milestone
 
 **Criteria**: Rego policies can be parsed, validated, and loaded
 
-> ⏳ **Status**: Week 2 complete, Week 3 complete, Week 4 in progress.
-> Rego parsing working with regorus, validation framework ready.
+> ✅ **Status**: Phase E1 Complete!
+> - Week 2 complete: Project setup, core types, validation framework
+> - Week 3 complete: Rego parsing with regorus, linting rules
+> - Week 4 complete: Semantic validation with mock contracts
 
 ---
 
@@ -288,12 +316,14 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 > **Note**: While Archimedes completes OPA integration, Eunomia team works on:
 
 **Week 13-14: Documentation & Examples**
+
 - [ ] Create comprehensive policy authoring guide
 - [ ] Build example policy repository with common patterns
 - [ ] Document testing best practices
 - [ ] Create policy migration guide for existing services
 
 **Week 15-16: Stretch Goals (if time permits)**
+
 - [ ] Design multi-cluster policy distribution (for future)
 - [ ] Prototype policy inheritance patterns
 - [ ] Research external data integration (IdP roles)

@@ -110,10 +110,7 @@ impl EvalResult {
         match self {
             Self::Bool(b) => Value::Bool(*b),
             Self::String(s) => Value::String(s.clone()),
-            Self::Number(n) => {
-                serde_json::Number::from_f64(*n)
-                    .map_or(Value::Null, Value::Number)
-            }
+            Self::Number(n) => serde_json::Number::from_f64(*n).map_or(Value::Null, Value::Number),
             Self::Array(arr) => Value::Array(arr.clone()),
             Self::Object(obj) => obj.clone(),
             Self::Undefined => Value::Null,
@@ -554,9 +551,7 @@ fn regorus_to_json(value: &regorus::Value) -> Value {
                 .or_else(|| n.as_u64().map(|u| Value::Number(u.into())))
                 .unwrap_or_else(|| Value::Number(0.into()))
         }
-        regorus::Value::Array(arr) => {
-            Value::Array(arr.iter().map(regorus_to_json).collect())
-        }
+        regorus::Value::Array(arr) => Value::Array(arr.iter().map(regorus_to_json).collect()),
         regorus::Value::Object(obj) => {
             let map: serde_json::Map<String, Value> = obj
                 .iter()
@@ -564,9 +559,7 @@ fn regorus_to_json(value: &regorus::Value) -> Value {
                 .collect();
             Value::Object(map)
         }
-        regorus::Value::Set(set) => {
-            Value::Array(set.iter().map(regorus_to_json).collect())
-        }
+        regorus::Value::Set(set) => Value::Array(set.iter().map(regorus_to_json).collect()),
     }
 }
 
@@ -698,10 +691,19 @@ test_guest_denied if {
 
     #[test]
     fn test_extract_rule_name() {
-        assert_eq!(extract_rule_name("allow := true"), Some("allow".to_string()));
+        assert_eq!(
+            extract_rule_name("allow := true"),
+            Some("allow".to_string())
+        );
         assert_eq!(extract_rule_name("allow = true"), Some("allow".to_string()));
-        assert_eq!(extract_rule_name("allow if { true }"), Some("allow".to_string()));
-        assert_eq!(extract_rule_name("allow { true }"), Some("allow".to_string()));
+        assert_eq!(
+            extract_rule_name("allow if { true }"),
+            Some("allow".to_string())
+        );
+        assert_eq!(
+            extract_rule_name("allow { true }"),
+            Some("allow".to_string())
+        );
         assert_eq!(
             extract_rule_name("default allow := false"),
             Some("allow".to_string())

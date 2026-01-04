@@ -180,7 +180,12 @@ eunomia/
 │   │       ├── parser.rs         # Rego parsing
 │   │       ├── analyzer.rs       # Static analysis
 │   │       ├── optimizer.rs      # Policy optimization
-│   │       └── bundler.rs        # Bundle creation
+│   │       ├── bundler.rs        # Bundle creation
+│   │       ├── validator.rs      # Policy validation
+│   │       ├── lint.rs           # Policy linting rules
+│   │       ├── engine.rs         # Rego engine wrapper
+│   │       ├── semantic.rs       # Semantic validation
+│   │       └── error.rs          # Error types
 │   │
 │   ├── eunomia-test/             # Testing framework
 │   │   ├── Cargo.toml
@@ -587,6 +592,91 @@ blocked if {
 }
 ```
 
+### 6.4 Semantic Validation
+
+Beyond syntax checking, Eunomia provides semantic validation to catch logical issues in policies.
+
+#### SemanticValidator
+
+The `SemanticValidator` performs deep policy analysis:
+
+```rust
+use eunomia_compiler::{SemanticValidator, MockServiceContract};
+
+// Create validator with mock service contracts
+let mut validator = SemanticValidator::new();
+
+// Register service contracts for validation
+let contract = MockServiceContract::new("users-service")
+    .add_operation("getUser")
+    .add_operation("listUsers")
+    .add_operation("createUser")
+    .add_operation("updateUser")
+    .add_operation("deleteUser");
+
+validator.add_contract(contract);
+
+// Or use predefined contracts
+validator.add_contract(MockServiceContract::users_service_contract());
+validator.add_contract(MockServiceContract::orders_service_contract());
+
+// Validate a policy
+let issues = validator.validate(&parsed_policy)?;
+
+for issue in &issues {
+    println!("[{}] {}: {}", issue.severity, issue.category, issue.description);
+    if let Some(suggestion) = &issue.suggestion {
+        println!("  Suggestion: {}", suggestion);
+    }
+}
+```
+
+#### Validation Categories
+
+| Category | Description |
+|----------|-------------|
+| `OperationId` | Unknown operation IDs referenced in policy |
+| `Unused` | Rules defined but never used |
+| `Deprecated` | Usage of deprecated input fields |
+| `Schema` | Input structure violations |
+| `Reference` | Missing rule or data references |
+
+#### InputSchema Validation
+
+Policies should use the standard Themis input schema:
+
+```rust
+use eunomia_compiler::InputSchema;
+
+// Standard Themis authorization input
+let schema = InputSchema::themis_standard();
+
+// Includes: caller, service, operation_id, method, path, 
+//           headers, timestamp, environment, context
+
+// Check if a policy uses deprecated fields
+let deprecated = schema.get_deprecated_fields();
+// Returns: ["action", "resource"]
+```
+
+#### Mock Service Contracts
+
+For testing policies without Themis, define mock contracts:
+
+```rust
+use eunomia_compiler::MockServiceContract;
+
+// Define operations a service supports
+let contract = MockServiceContract::new("orders-service")
+    .add_operation("createOrder")
+    .add_operation("getOrder")
+    .add_operation("cancelOrder")
+    .add_operation("fulfillOrder");
+
+// Validator will warn if policy references 
+// operations not in any registered contract
+```
+
 ---
 
 ## 7. Policy Lifecycle
@@ -677,15 +767,15 @@ Examples:
 
 ### 7b.2 Version Bump Rules
 
-| Change Type | Version Bump | Example |
-|-------------|--------------|---------|
-| Remove permission (more restrictive) | MAJOR | User can no longer access endpoint |
-| Change authorization logic semantics | MAJOR | Different decision for same input |
-| Add new permission (more permissive) | MINOR | New role can access endpoint |
-| Add new policy for new operation | MINOR | Policy for new `operationId` |
-| Fix bug without changing semantics | PATCH | Typo in role name |
-| Performance optimization | PATCH | Rule reordering |
-| Documentation updates | PATCH | Comments, metadata |
+| Change Type                          | Version Bump | Example                            |
+| ------------------------------------ | ------------ | ---------------------------------- |
+| Remove permission (more restrictive) | MAJOR        | User can no longer access endpoint |
+| Change authorization logic semantics | MAJOR        | Different decision for same input  |
+| Add new permission (more permissive) | MINOR        | New role can access endpoint       |
+| Add new policy for new operation     | MINOR        | Policy for new `operationId`       |
+| Fix bug without changing semantics   | PATCH        | Typo in role name                  |
+| Performance optimization             | PATCH        | Rule reordering                    |
+| Documentation updates                | PATCH        | Comments, metadata                 |
 
 ### 7b.3 Version Configuration
 
@@ -716,10 +806,10 @@ Archimedes can specify version constraints for policy loading:
 pub struct PolicyVersionConstraint {
     /// Minimum required version (inclusive)
     pub min_version: Option<Version>,
-    
+
     /// Maximum allowed version (exclusive for major)
     pub max_version: Option<Version>,
-    
+
     /// Exact version pin (overrides min/max)
     pub exact_version: Option<Version>,
 }
@@ -730,25 +820,25 @@ impl PolicyVersionConstraint {
         // Supports: "1.2.3", ">=1.2.0", "^1.2.0", "~1.2.0", ">=1.0.0,<2.0.0"
         // ...
     }
-    
+
     /// Check if version satisfies constraint
     pub fn satisfies(&self, version: &Version) -> bool {
         if let Some(exact) = &self.exact_version {
             return version == exact;
         }
-        
+
         if let Some(min) = &self.min_version {
             if version < min {
                 return false;
             }
         }
-        
+
         if let Some(max) = &self.max_version {
             if version >= max {
                 return false;
             }
         }
-        
+
         true
     }
 }
@@ -1006,6 +1096,7 @@ impl PolicyDistributor {
 ### 9.3 Pull Distribution (Fallback)
 
 Archimedes instances can pull policies in these scenarios:
+
 - **Startup**: Load policy from registry before control plane connection established
 - **Push failure**: If control plane is unreachable
 - **Recovery**: After outage, sync to latest version
@@ -1024,33 +1115,33 @@ impl PolicyPuller {
     pub async fn pull_latest(&self, service: &str) -> Result<Bundle, PullError> {
         // 1. Query registry for latest version
         let latest_version = self.registry.get_latest_version(service).await?;
-        
+
         // 2. Check if we already have this version cached
         if let Some(cached) = self.cache.get(service, &latest_version).await? {
             tracing::debug!(service, version = %latest_version, "using cached policy");
             return Ok(cached);
         }
-        
+
         // 3. Download bundle
         let bundle = self.registry.fetch_bundle(service, &latest_version).await?;
-        
+
         // 4. Verify signature
         bundle.verify_signature(&self.config.signing_keys)?;
-        
+
         // 5. Cache for future use
         self.cache.store(service, &bundle).await?;
-        
+
         tracing::info!(service, version = %latest_version, "pulled and cached policy");
         Ok(bundle)
     }
-    
+
     /// Background sync task
     pub async fn background_sync(&self, service: &str, interval: Duration) {
         let mut ticker = tokio::time::interval(interval);
-        
+
         loop {
             ticker.tick().await;
-            
+
             match self.pull_latest(service).await {
                 Ok(bundle) => {
                     // Notify policy loader of potential update
@@ -1077,25 +1168,25 @@ pub async fn load_policy(service: &str, config: &PolicyConfig) -> Result<Policy,
     if let Some(policy) = PUSHED_POLICIES.get(service) {
         return Ok(policy.clone());
     }
-    
+
     // 2. Try to pull from registry
     match puller.pull_latest(service).await {
         Ok(bundle) => return Ok(bundle.into_policy()),
         Err(e) => tracing::warn!(error = %e, "pull failed, trying cache"),
     }
-    
+
     // 3. Fall back to local cache (SQLite)
     if let Some(cached) = cache.get_latest_cached(service).await? {
         tracing::warn!(service, "using stale cached policy");
         return Ok(cached);
     }
-    
+
     // 4. Fall back to embedded default (if configured)
     if let Some(default) = config.default_policy.as_ref() {
         tracing::error!(service, "using default deny-all policy");
         return Ok(default.clone());
     }
-    
+
     Err(PolicyError::NoPolicyAvailable(service.to_string()))
 }
 ```
@@ -1285,20 +1376,20 @@ pub struct PolicyCache {
 impl PolicyCache {
     pub async fn new(cache_path: &Path) -> Result<Self, CacheError> {
         let db = SqlitePool::connect(&format!("sqlite:{}", cache_path.display())).await?;
-        
+
         // Run migrations
         sqlx::migrate!("./migrations/policy_cache").run(&db).await?;
-        
+
         Ok(Self {
             db,
             encryption_key: Self::derive_key()?,
         })
     }
-    
+
     /// Store a policy bundle in cache
     pub async fn store(&self, service: &str, bundle: &Bundle) -> Result<(), CacheError> {
         let encrypted = self.encrypt_bundle(bundle)?;
-        
+
         sqlx::query!(
             r#"
             INSERT OR REPLACE INTO policy_cache (
@@ -1314,10 +1405,10 @@ impl PolicyCache {
         )
         .execute(&self.db)
         .await?;
-        
+
         Ok(())
     }
-    
+
     /// Get cached policy, checking expiration
     pub async fn get(&self, service: &str, version: &str) -> Result<Option<Bundle>, CacheError> {
         let row = sqlx::query!(
@@ -1331,7 +1422,7 @@ impl PolicyCache {
         )
         .fetch_optional(&self.db)
         .await?;
-        
+
         match row {
             Some(r) => {
                 let bundle = self.decrypt_bundle(&r.bundle_data)?;
@@ -1340,7 +1431,7 @@ impl PolicyCache {
             None => Ok(None),
         }
     }
-    
+
     /// Get latest cached version (fallback when registry unavailable)
     pub async fn get_latest_cached(&self, service: &str) -> Result<Option<Bundle>, CacheError> {
         let row = sqlx::query!(
@@ -1354,7 +1445,7 @@ impl PolicyCache {
         )
         .fetch_optional(&self.db)
         .await?;
-        
+
         match row {
             Some(r) => {
                 let bundle = self.decrypt_bundle(&r.bundle_data)?;
@@ -1379,7 +1470,7 @@ CREATE TABLE IF NOT EXISTS policy_cache (
     checksum TEXT NOT NULL,
     cached_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     expires_at TIMESTAMP NOT NULL,
-    
+
     UNIQUE(service, version)
 );
 
@@ -1409,19 +1500,19 @@ impl PolicyHealthCheck {
     /// Check policy health status
     pub async fn check(&self, service: &str) -> PolicyHealth {
         let mut health = PolicyHealth::default();
-        
+
         // 1. Check if we have a loaded policy
         if let Some(loaded) = self.get_loaded_policy(service) {
             health.loaded = true;
             health.loaded_version = Some(loaded.version.clone());
         }
-        
+
         // 2. Check registry connectivity
         match self.registry.get_latest_version(service).await {
             Ok(latest) => {
                 health.registry_available = true;
                 health.latest_version = Some(latest.clone());
-                
+
                 // Check if we're behind
                 if let Some(ref loaded) = health.loaded_version {
                     health.up_to_date = loaded == &latest;
@@ -1432,13 +1523,13 @@ impl PolicyHealthCheck {
                 health.registry_error = Some(e.to_string());
             }
         }
-        
+
         // 3. Check cache status
         if let Ok(Some(cached)) = self.cache.get_latest_cached(service).await {
             health.cached = true;
             health.cached_version = Some(cached.manifest.version.clone());
         }
-        
+
         // 4. Determine overall status
         health.status = if health.loaded && health.up_to_date {
             HealthStatus::Healthy
@@ -1447,7 +1538,7 @@ impl PolicyHealthCheck {
         } else {
             HealthStatus::Unhealthy
         };
-        
+
         health
     }
 }
@@ -1474,13 +1565,13 @@ pub struct PolicyHealth {
 pub enum DegradationLevel {
     /// Normal operation - using pushed/pulled latest policy
     Normal,
-    
+
     /// Using cached policy (registry temporarily unavailable)
     CachedFallback,
-    
+
     /// Using stale cached policy (expired but still valid)
     StaleFallback,
-    
+
     /// Using embedded default policy (deny-all)
     DefaultFallback,
 }
@@ -1489,7 +1580,7 @@ impl DegradationLevel {
     pub fn should_alert(&self) -> bool {
         matches!(self, Self::StaleFallback | Self::DefaultFallback)
     }
-    
+
     pub fn metric_label(&self) -> &'static str {
         match self {
             Self::Normal => "normal",

@@ -264,11 +264,13 @@ package users_service.authz
 ```
 
 Required fields:
+
 - `title`: Human-readable policy name
 - `description`: What the policy does
 - `scope`: One of `service`, `library`, or `test`
 
 Optional fields:
+
 - `authors`: List of authors or teams
 - `related_resources`: URLs to documentation
 
@@ -334,6 +336,7 @@ allow if {
 ### 13.7 Test Conventions
 
 Test files must:
+
 - Have `_test.rego` suffix
 - Use package name ending in `_test`
 - Follow naming pattern `test_<scenario>`:
@@ -363,16 +366,16 @@ Authorization input follows this structure:
 {
   "caller": {
     "type": "user|spiffe|api_key",
-    "user_id": "user-123",           
-    "roles": ["admin", "user"],       
-    "service_name": "orders-service", 
-    "trust_domain": "example.com",    
-    "scopes": ["users:read"]          
+    "user_id": "user-123",
+    "roles": ["admin", "user"],
+    "service_name": "orders-service",
+    "trust_domain": "example.com",
+    "scopes": ["users:read"]
   },
   "operation_id": "getUser",
   "method": "GET",
   "path": "/users/123",
-  "resource": {                       
+  "resource": {
     "owner_id": "user-123",
     "status": "pending"
   },
@@ -385,6 +388,7 @@ Authorization input follows this structure:
 ```
 
 Caller types:
+
 - `user`: Human user with `user_id` and `roles`
 - `spiffe`: Service identity with `service_name` and `trust_domain`
 - `api_key`: Programmatic access with `scopes`
@@ -393,12 +397,12 @@ Caller types:
 
 All policies are validated against these rules:
 
-| Rule ID | Severity | Description |
-|---------|----------|-------------|
-| `security/default-deny` | Error | Policies must have `default allow := false` |
-| `security/no-hardcoded-secrets` | Error | No hardcoded passwords, tokens, or keys |
-| `security/no-wildcard-allow` | Warning | Avoid unconditional allow rules |
-| `style/explicit-imports` | Hint | Prefer explicit imports |
+| Rule ID                         | Severity | Description                                 |
+| ------------------------------- | -------- | ------------------------------------------- |
+| `security/default-deny`         | Error    | Policies must have `default allow := false` |
+| `security/no-hardcoded-secrets` | Error    | No hardcoded passwords, tokens, or keys     |
+| `security/no-wildcard-allow`    | Warning  | Avoid unconditional allow rules             |
+| `style/explicit-imports`        | Hint     | Prefer explicit imports                     |
 
 Use the Eunomia CLI or API to validate policies:
 
