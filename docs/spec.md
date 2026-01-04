@@ -103,10 +103,12 @@ Compiled bundles must be immutable.
 
 ## 7. Policy Distribution Model
 
-### 7.1 Push-Based Distribution
+### 7.1 Hybrid Push/Pull Distribution
 
-- Eunomia pushes compiled policy bundles to Archimedes
-- Distribution is **push-based**, not pull-based
+- Eunomia uses a **hybrid push/pull** model for maximum reliability
+- **Primary (Push)**: Control plane pushes bundles to Archimedes instances
+- **Fallback (Pull)**: Services can pull from OCI registry on startup or if push fails
+- **Local Cache**: SQLite cache for resilient offline operation
 
 ### 7.2 Control Plane Interface
 
@@ -202,7 +204,7 @@ Eunomia emits metrics for:
 ### 12.2 Integration Tests
 
 - Policy bundle compilation
-- Push-based distribution to Archimedes
+- Hybrid push/pull distribution to Archimedes
 - Runtime authorization decisions
 
 ### 12.3 Failure Mode Tests

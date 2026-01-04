@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-**Eunomia** is the authorization policy platform for the Themis ecosystem. It provides Git-backed OPA/Rego policy management, testing frameworks, bundle compilation, and push-based distribution to Archimedes services.
+**Eunomia** is the authorization policy platform for the Themis ecosystem. It provides Git-backed OPA/Rego policy management, testing frameworks, bundle compilation, and hybrid push/pull distribution to Archimedes services.
 
 ## Technology Stack
 
