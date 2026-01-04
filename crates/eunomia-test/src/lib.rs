@@ -12,21 +12,30 @@
 //! ## Example
 //!
 //! ```rust,ignore
-//! use eunomia_test::{TestRunner, TestConfig};
+//! use eunomia_test::{TestRunner, TestConfig, TestDiscovery};
 //!
+//! // Discover tests in a directory
+//! let discovery = TestDiscovery::new();
+//! let suite = discovery.discover("policies/")?;
+//!
+//! println!("Found {} tests", suite.test_count());
+//!
+//! // Run tests
 //! let runner = TestRunner::new(TestConfig::default());
-//! let results = runner.run_directory("policies/")?;
+//! let results = runner.run_suite(&suite)?;
 //!
 //! println!("Passed: {}, Failed: {}", results.passed(), results.failed());
 //! ```
 
 pub mod coverage;
+pub mod discovery;
 pub mod error;
 pub mod fixtures;
 pub mod reporter;
 pub mod runner;
 
-pub use error::{TestError, Result};
+pub use discovery::{DiscoveredTest, DiscoveryConfig, FixtureFormat, TestDiscovery, TestSuite};
+pub use error::{Result, TestError};
 pub use fixtures::TestFixture;
-pub use reporter::{Reporter, ConsoleReporter};
-pub use runner::{TestRunner, TestConfig, TestResult, TestResults};
+pub use reporter::{ConsoleReporter, Reporter};
+pub use runner::{TestConfig, TestResult, TestResults, TestRunner};

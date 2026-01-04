@@ -46,6 +46,7 @@ chrono = { version = "0.4", features = ["serde"] }
 
 # Testing
 proptest = "1.0"
+tempfile = "3.15"
 
 # Workspace crates
 eunomia-core = { path = "crates/eunomia-core" }

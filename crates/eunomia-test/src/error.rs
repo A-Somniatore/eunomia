@@ -19,12 +19,30 @@ pub enum TestError {
         source: std::io::Error,
     },
 
+    /// I/O error with path context.
+    #[error("I/O error for {path}: {source}")]
+    Io {
+        /// Path involved in the operation.
+        path: PathBuf,
+        /// Underlying I/O error.
+        #[source]
+        source: std::io::Error,
+    },
+
     /// Failed to parse test fixtures.
     #[error("Failed to parse test fixtures: {message}")]
     FixtureParseError {
         /// Error message.
         message: String,
     },
+
+    /// Parse error (general).
+    #[error("Parse error: {0}")]
+    Parse(String),
+
+    /// Discovery error.
+    #[error("Test discovery failed: {0}")]
+    Discovery(String),
 
     /// Test execution failed.
     #[error("Test execution failed: {message}")]
