@@ -47,6 +47,7 @@ pub mod error;
 pub mod lint;
 pub mod optimizer;
 pub mod parser;
+pub mod validator;
 
 pub use analyzer::Analyzer;
 pub use bundler::Bundler;
@@ -54,3 +55,7 @@ pub use engine::{EvalResult, PolicyInfo, RegoEngine, TestRule};
 pub use error::{CompilerError, Result};
 pub use lint::{LintRule, LintViolation, Linter, RuleCategory, Severity};
 pub use parser::Parser;
+pub use validator::{
+    validate_file, validate_source, IssueCategory, IssueSeverity, PolicyValidator,
+    ValidationIssue, ValidationReport, ValidatorConfig,
+};

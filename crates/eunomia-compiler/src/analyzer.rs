@@ -19,7 +19,7 @@ pub struct Analyzer {
 }
 
 /// Result of analyzing a policy.
-#[derive(Debug, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct AnalysisResult {
     /// Warnings found during analysis.
     pub warnings: Vec<AnalysisWarning>,
