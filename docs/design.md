@@ -2181,12 +2181,12 @@ Stoa displays:
 - 🟡 **Policy inheritance**: Prototype in gap weeks, defer full implementation
 - 🟡 **External data**: Research IdP integration in gap weeks
 
-### To Be Decided
+### Resolved (Gap Week Research)
 
-- 🔴 **Cache encryption key management**: How to rotate cache encryption keys?
-- 🔴 **Cross-region replication**: How to handle policy distribution across regions?
+- ✅ **Cache encryption key management**: Use Kubernetes Secrets with external-secrets-operator for rotation. Bundle encryption uses per-environment keys stored in Vault/K8s Secrets. Key rotation triggers bundle re-encryption and re-push (automated via control plane).
+- ✅ **Cross-region replication**: Use OCI registry geo-replication for bundle distribution. Each region pulls from nearest registry replica. Control plane is single-region with read replicas. Multi-region active-active is post-MVP.
 
-> 📝 **Note**: Gap weeks (13-16) designated for researching yellow/red items.
+> 📝 **Note**: Gap weeks (13-16) used for prototyping yellow items.
 
 ---
 

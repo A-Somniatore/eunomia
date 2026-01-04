@@ -18,6 +18,12 @@
 
 ## Development Guidelines
 
+### Terminal Commands
+
+- **Never use `2>&1`** for redirecting stderr - let errors display naturally
+- Prefer simple commands without complex shell redirections
+- Use `cargo` commands directly without output redirection
+
 ### Code Formatting
 
 - Use `rustfmt` with default settings

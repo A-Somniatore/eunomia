@@ -14,6 +14,11 @@
 | [ADR-004](../../docs/decisions/004-regorus-for-rego-parsing.md) | Use Regorus for Rego parsing and evaluation |
 | [ADR-002](../../docs/decisions/002-opa-for-authorization.md) | OPA/Rego as the policy language |
 | [ADR-003](../../docs/decisions/003-push-based-policies.md) | Hybrid push/pull policy distribution |
+| [ADR-007](../../docs/decisions/007-apache-2-license.md) | Apache 2.0 license |
+
+**Resolved Open Questions:**
+- ✅ **Cache encryption key management**: Use K8s Secrets + external-secrets-operator for rotation
+- ✅ **Cross-region replication**: OCI registry geo-replication, single-region control plane for MVP
 
 **PolicyInput Schema (from `themis-platform-types`):**
 - `caller` (CallerIdentity: spiffe, user, api_key, anonymous)

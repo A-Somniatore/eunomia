@@ -110,7 +110,7 @@ eunomia/
 
 ## License
 
-[License to be determined]
+Apache License 2.0 - See [ADR-007](../docs/decisions/007-apache-2-license.md) for rationale.
 
 ## Contributing
 
