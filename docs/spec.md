@@ -211,3 +211,197 @@ Eunomia emits metrics for:
 
 - Invalid policy rejection
 - Partial update rollback
+
+---
+
+## 13. Policy File Conventions
+
+### 13.1 Directory Structure
+
+Policies are organized per service with a standard layout:
+
+```
+policies/
+├── common/                     # Shared utilities and base rules
+│   ├── authz.rego             # Reusable authorization helpers
+│   └── authz_test.rego        # Tests for common utilities
+├── users-service/             # Service-specific policies
+│   ├── authz.rego             # Authorization rules
+│   └── authz_test.rego        # Policy tests
+└── orders-service/
+    ├── authz.rego
+    └── authz_test.rego
+```
+
+### 13.2 Package Naming
+
+Packages follow the convention `<service_name>.authz`:
+
+```rego
+package users_service.authz
+```
+
+Common/shared libraries use `common.<library_name>`:
+
+```rego
+package common.authz
+```
+
+### 13.3 Policy Metadata
+
+Every policy file MUST include a METADATA comment block:
+
+```rego
+# METADATA
+# title: Users Service Authorization Policy
+# description: Authorization rules for the users-service
+# authors:
+#   - Team Name
+# scope: service|library|test
+# related_resources:
+#   - https://docs.example.com/policies
+package users_service.authz
+```
+
+Required fields:
+- `title`: Human-readable policy name
+- `description`: What the policy does
+- `scope`: One of `service`, `library`, or `test`
+
+Optional fields:
+- `authors`: List of authors or teams
+- `related_resources`: URLs to documentation
+
+### 13.4 Import Conventions
+
+Use explicit imports with `future.keywords`:
+
+```rego
+import future.keywords.if
+import future.keywords.in
+import future.keywords.contains
+
+# For importing shared libraries
+import data.common.authz as base
+```
+
+### 13.5 Default Deny Pattern
+
+All authorization policies MUST use the default deny pattern:
+
+```rego
+# Default deny - requests denied unless explicitly allowed
+default allow := false
+
+# Allow rules define exceptions
+allow if {
+    # conditions
+}
+```
+
+Never use `default allow := true`.
+
+### 13.6 Rule Organization
+
+Organize rules in consistent sections:
+
+```rego
+# =============================================================================
+# Admin Access
+# =============================================================================
+
+allow if {
+    is_admin
+}
+
+# =============================================================================
+# User Self-Service
+# =============================================================================
+
+allow if {
+    # user-specific rules
+}
+
+# =============================================================================
+# Service-to-Service Access
+# =============================================================================
+
+allow if {
+    # SPIFFE-based rules
+}
+```
+
+### 13.7 Test Conventions
+
+Test files must:
+- Have `_test.rego` suffix
+- Use package name ending in `_test`
+- Follow naming pattern `test_<scenario>`:
+
+```rego
+package users_service.authz_test
+
+test_admin_can_access_anything if {
+    authz.allow with input as {
+        "caller": {"type": "user", "roles": ["admin"]}
+    }
+}
+
+test_user_cannot_access_admin_endpoint if {
+    not authz.allow with input as {
+        "caller": {"type": "user", "roles": ["user"]},
+        "operation_id": "deleteUser"
+    }
+}
+```
+
+### 13.8 Input Schema
+
+Authorization input follows this structure:
+
+```json
+{
+  "caller": {
+    "type": "user|spiffe|api_key",
+    "user_id": "user-123",           
+    "roles": ["admin", "user"],       
+    "service_name": "orders-service", 
+    "trust_domain": "example.com",    
+    "scopes": ["users:read"]          
+  },
+  "operation_id": "getUser",
+  "method": "GET",
+  "path": "/users/123",
+  "resource": {                       
+    "owner_id": "user-123",
+    "status": "pending"
+  },
+  "time": {
+    "timestamp": "2024-01-01T00:00:00Z",
+    "hour": 14,
+    "day_of_week": "monday"
+  }
+}
+```
+
+Caller types:
+- `user`: Human user with `user_id` and `roles`
+- `spiffe`: Service identity with `service_name` and `trust_domain`
+- `api_key`: Programmatic access with `scopes`
+
+### 13.9 Linting Rules
+
+All policies are validated against these rules:
+
+| Rule ID | Severity | Description |
+|---------|----------|-------------|
+| `security/default-deny` | Error | Policies must have `default allow := false` |
+| `security/no-hardcoded-secrets` | Error | No hardcoded passwords, tokens, or keys |
+| `security/no-wildcard-allow` | Warning | Avoid unconditional allow rules |
+| `style/explicit-imports` | Hint | Prefer explicit imports |
+
+Use the Eunomia CLI or API to validate policies:
+
+```bash
+eunomia validate policies/users-service/authz.rego
+```

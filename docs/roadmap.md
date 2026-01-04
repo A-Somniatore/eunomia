@@ -143,13 +143,35 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 > 📝 **Decision**: Using `regorus` crate (pure Rust OPA implementation).
 > See [ADR-004](../../../docs/decisions/004-regorus-for-rego-parsing.md) for rationale.
 
-- [ ] Integrate Rego parser using `regorus` crate
-- [ ] **Spike: Validate regorus capabilities** against our policy patterns
-- [ ] Implement policy file loading
-- [ ] Add static analysis for common errors
-- [ ] Validate policy structure
-- [ ] Test with sample policies
-- [ ] Document policy file conventions
+- [x] Integrate Rego parser using `regorus` crate
+  > **Completed**: Added `regorus = "0.3"` dependency, created `RegoEngine` wrapper
+- [x] **Spike: Validate regorus capabilities** against our policy patterns
+  > **Completed**: Tested with sample policies, works well with our patterns
+- [x] Implement policy file loading
+  > **Completed**: `RegoEngine::add_policy_from_file()` with PolicyInfo tracking
+- [x] Add static analysis for common errors
+  > **Completed**: Created `Linter` with security and style rules:
+  > - `security/default-deny`: Require default allow := false
+  > - `security/no-hardcoded-secrets`: Detect hardcoded credentials
+  > - `security/no-wildcard-allow`: Warn on unconditional allow
+  > - `style/explicit-imports`: Recommend explicit imports
+- [x] Validate policy structure
+  > **Completed**: Created `PolicyValidator` combining syntax, analysis, and linting
+- [x] Test with sample policies
+  > **Completed**: Created example policies for users-service and orders-service
+  > - Demonstrates user, SPIFFE, API key authorization patterns
+  > - Includes comprehensive test files (*_test.rego)
+  > - Added common/authz.rego with reusable helpers
+- [x] Document policy file conventions
+  > **Completed**: Added Section 13 to spec.md with:
+  > - Directory structure conventions
+  > - Package naming conventions
+  > - METADATA comment format
+  > - Import conventions
+  > - Default deny pattern requirements
+  > - Test file conventions
+  > - Input schema documentation
+  > - Linting rules documentation
 
 ### Week 4: Policy Validation
 
@@ -162,6 +184,9 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 ### Phase E1 Milestone
 
 **Criteria**: Rego policies can be parsed, validated, and loaded
+
+> ⏳ **Status**: Week 2 complete, Week 3 complete, Week 4 in progress.
+> Rego parsing working with regorus, validation framework ready.
 
 ---
 
