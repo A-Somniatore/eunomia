@@ -357,10 +357,7 @@ impl TestDiscovery {
 
         // Extract package name
         let package = extract_package(&source).ok_or_else(|| {
-            TestError::Parse(format!(
-                "Missing package declaration in {}",
-                path.display()
-            ))
+            TestError::Parse(format!("Missing package declaration in {}", path.display()))
         })?;
 
         // Find corresponding policy file
@@ -464,10 +461,7 @@ fn extract_test_rules(
         if trimmed.starts_with('#') {
             // Look for description comments like: # Test that admin users can access
             let comment = trimmed.trim_start_matches('#').trim();
-            if !comment.is_empty()
-                && !comment.starts_with("METADATA")
-                && !comment.contains(':')
-            {
+            if !comment.is_empty() && !comment.starts_with("METADATA") && !comment.contains(':') {
                 current_description = Some(comment.to_string());
             }
             continue;
@@ -495,10 +489,7 @@ fn extract_test_rules(
 /// Extracts a test rule name from a line.
 fn extract_test_rule_name(line: &str) -> Option<String> {
     // Skip imports, package declarations, etc.
-    if line.starts_with("import")
-        || line.starts_with("package")
-        || line.starts_with("default")
-    {
+    if line.starts_with("import") || line.starts_with("package") || line.starts_with("default") {
         return None;
     }
 

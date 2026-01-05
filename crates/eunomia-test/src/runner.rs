@@ -262,11 +262,11 @@ impl TestRunner {
             let name = path.to_string_lossy().to_string();
             debug!(file = %name, "Loading policy file");
 
-            engine.add_policy(&name, source).map_err(|e| {
-                TestError::ExecutionError {
+            engine
+                .add_policy(&name, source)
+                .map_err(|e| TestError::ExecutionError {
                     message: format!("Failed to load policy {name}: {e}"),
-                }
-            })?;
+                })?;
         }
 
         // Run each test
@@ -308,22 +308,14 @@ impl TestRunner {
                     TestResult::pass(&test.name, duration)
                 } else {
                     debug!(test = %test.name, duration = ?duration, "Test failed");
-                    TestResult::fail(
-                        &test.name,
-                        duration,
-                        "Test rule evaluated to false",
-                    )
-                    .with_comparison("true", "false")
+                    TestResult::fail(&test.name, duration, "Test rule evaluated to false")
+                        .with_comparison("true", "false")
                 }
             }
             Err(e) => {
                 let duration = start.elapsed();
                 warn!(test = %test.name, error = %e, "Test execution error");
-                TestResult::fail(
-                    &test.name,
-                    duration,
-                    format!("Evaluation error: {e}"),
-                )
+                TestResult::fail(&test.name, duration, format!("Evaluation error: {e}"))
             }
         }
     }
@@ -341,7 +333,11 @@ impl TestRunner {
         // Create engine and load policy
         let mut engine = RegoEngine::new();
         if let Err(e) = engine.add_policy("test", policy_source) {
-            return TestResult::fail(&name, start.elapsed(), format!("Failed to load policy: {e}"));
+            return TestResult::fail(
+                &name,
+                start.elapsed(),
+                format!("Failed to load policy: {e}"),
+            );
         }
 
         // Set input from fixture
@@ -360,10 +356,7 @@ impl TestRunner {
                 } else {
                     info!(test = %name, duration = ?duration, "Test failed - mismatch");
                     TestResult::fail(&name, duration, "Allow decision mismatch")
-                        .with_comparison(
-                            fixture.expected_allowed.to_string(),
-                            allowed.to_string(),
-                        )
+                        .with_comparison(fixture.expected_allowed.to_string(), allowed.to_string())
                 }
             }
             Err(e) => {
@@ -470,7 +463,11 @@ mod tests {
         let mut results = TestResults::new();
         results.add(TestResult::pass("test1", Duration::from_millis(10)));
         results.add(TestResult::pass("test2", Duration::from_millis(20)));
-        results.add(TestResult::fail("test3", Duration::from_millis(30), "error"));
+        results.add(TestResult::fail(
+            "test3",
+            Duration::from_millis(30),
+            "error",
+        ));
 
         assert_eq!(results.total(), 3);
         assert_eq!(results.passed(), 2);

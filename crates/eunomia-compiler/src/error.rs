@@ -78,9 +78,6 @@ mod tests {
         let err = CompilerError::MissingPackage {
             file: "test.rego".to_string(),
         };
-        assert_eq!(
-            err.to_string(),
-            "Missing package declaration in test.rego"
-        );
+        assert_eq!(err.to_string(), "Missing package declaration in test.rego");
     }
 }

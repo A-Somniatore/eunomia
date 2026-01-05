@@ -7,10 +7,10 @@ use std::path::Path;
 use eunomia_core::{Bundle, Policy};
 use tracing::info;
 
-use crate::error::{CompilerError, Result};
-use crate::parser::Parser;
 use crate::analyzer::Analyzer;
+use crate::error::{CompilerError, Result};
 use crate::optimizer::Optimizer;
+use crate::parser::Parser;
 
 /// Compiles Rego policies into distributable bundles.
 ///
@@ -168,14 +168,16 @@ impl Bundler {
             .with_minimize_whitespace(self.optimize);
 
         let policies: Vec<Policy> = if self.optimize {
-            self.policies.iter().map(|p| optimizer.optimize(p)).collect()
+            self.policies
+                .iter()
+                .map(|p| optimizer.optimize(p))
+                .collect()
         } else {
             self.policies
         };
 
         // Build the bundle
-        let mut builder = Bundle::builder(&self.name)
-            .version(&version);
+        let mut builder = Bundle::builder(&self.name).version(&version);
 
         if let Some(commit) = self.git_commit {
             builder = builder.git_commit(commit);
@@ -223,10 +225,7 @@ mod tests {
 
     #[test]
     fn test_bundler_with_git_commit() {
-        let policy = Policy::new(
-            "test.authz",
-            "package test.authz\ndefault allow := false",
-        );
+        let policy = Policy::new("test.authz", "package test.authz\ndefault allow := false");
 
         let bundle = Bundler::new("test")
             .version("1.0.0")
@@ -240,14 +239,9 @@ mod tests {
 
     #[test]
     fn test_bundler_missing_version() {
-        let policy = Policy::new(
-            "test.authz",
-            "package test.authz\ndefault allow := false",
-        );
+        let policy = Policy::new("test.authz", "package test.authz\ndefault allow := false");
 
-        let result = Bundler::new("test")
-            .add_policy(policy)
-            .compile();
+        let result = Bundler::new("test").add_policy(policy).compile();
 
         assert!(result.is_err());
         let err = result.unwrap_err();
@@ -256,9 +250,7 @@ mod tests {
 
     #[test]
     fn test_bundler_no_policies() {
-        let result = Bundler::new("test")
-            .version("1.0.0")
-            .compile();
+        let result = Bundler::new("test").version("1.0.0").compile();
 
         assert!(result.is_err());
     }
@@ -267,7 +259,7 @@ mod tests {
     fn test_bundler_validation_fails() {
         let policy = Policy::new(
             "test.authz",
-            "package test.authz\nallow if { true }",  // Missing default
+            "package test.authz\nallow if { true }", // Missing default
         );
 
         let result = Bundler::new("test")
@@ -282,7 +274,7 @@ mod tests {
     fn test_bundler_skip_validation() {
         let policy = Policy::new(
             "test.authz",
-            "package test.authz\nallow if { true }",  // Missing default
+            "package test.authz\nallow if { true }", // Missing default
         );
 
         let result = Bundler::new("test")
@@ -296,10 +288,7 @@ mod tests {
 
     #[test]
     fn test_bundler_with_data_file() {
-        let policy = Policy::new(
-            "test.authz",
-            "package test.authz\ndefault allow := false",
-        );
+        let policy = Policy::new("test.authz", "package test.authz\ndefault allow := false");
 
         let bundle = Bundler::new("test")
             .version("1.0.0")

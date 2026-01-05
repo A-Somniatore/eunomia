@@ -84,7 +84,10 @@ mod tests {
         let err = TestError::ExecutionError {
             message: "OPA evaluation failed".to_string(),
         };
-        assert_eq!(err.to_string(), "Test execution failed: OPA evaluation failed");
+        assert_eq!(
+            err.to_string(),
+            "Test execution failed: OPA evaluation failed"
+        );
     }
 
     #[test]

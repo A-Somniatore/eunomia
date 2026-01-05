@@ -9,9 +9,9 @@ use crate::{AuthorizationDecision, Bundle, CallerIdentity, Policy, PolicyInput};
 /// Strategy for generating valid SPIFFE IDs.
 fn spiffe_id_strategy() -> impl Strategy<Value = String> {
     (
-        "[a-z][a-z0-9-]{2,20}\\.[a-z]{2,6}",  // trust domain
-        "[a-z][a-z0-9-]{2,20}",                // namespace
-        "[a-z][a-z0-9-]{2,30}",                // service
+        "[a-z][a-z0-9-]{2,20}\\.[a-z]{2,6}", // trust domain
+        "[a-z][a-z0-9-]{2,20}",              // namespace
+        "[a-z][a-z0-9-]{2,30}",              // service
     )
         .prop_map(|(domain, ns, svc)| format!("spiffe://{}/ns/{}/sa/{}", domain, ns, svc))
 }
@@ -330,7 +330,10 @@ mod additional_tests {
         let bundle = Bundle::builder("complex-service")
             .version("2.0.0")
             .git_commit("abc123def456")
-            .add_policy("complex.authz", "package complex.authz\ndefault allow := false")
+            .add_policy(
+                "complex.authz",
+                "package complex.authz\ndefault allow := false",
+            )
             .add_policy("complex.roles", "package complex.roles\nadmin := true")
             .add_data_file("data/roles.json", r#"{"admin": ["read", "write"]}"#)
             .add_data_file("data/config.json", r#"{"enabled": true}"#)

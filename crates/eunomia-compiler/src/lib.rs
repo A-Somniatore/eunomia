@@ -67,6 +67,6 @@ pub use semantic::{
     SemanticValidator,
 };
 pub use validator::{
-    validate_file, validate_source, IssueCategory, IssueSeverity, PolicyValidator,
-    ValidationIssue, ValidationReport, ValidatorConfig,
+    validate_file, validate_source, IssueCategory, IssueSeverity, PolicyValidator, ValidationIssue,
+    ValidationReport, ValidatorConfig,
 };

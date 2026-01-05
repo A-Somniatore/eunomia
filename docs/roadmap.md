@@ -238,12 +238,54 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 ### Week 5: Test Runner
 
-- [ ] Implement test case discovery
-- [ ] Parse `*_test.rego` files
-- [ ] Execute OPA eval for tests
-- [ ] Collect pass/fail results
-- [ ] Generate test report (console output)
-- [ ] Add `eunomia test` CLI command
+- [x] Implement test case discovery
+  > **Completed**: Created `TestDiscovery` with:
+  > - Recursive directory scanning for `*_test.rego` files
+  > - Package name extraction from test files
+  > - Test rule detection (`test_*` prefixed rules)
+  > - Associated policy file discovery
+  > - Fixture file discovery (JSON/YAML)
+  > - `DiscoveryConfig` for customization (patterns, recursion)
+- [x] Parse `*_test.rego` files
+  > **Completed**: `TestDiscovery` parses test files to extract:
+  > - Package names
+  > - Test rule names
+  > - Source file paths
+  > - Associates tests with `DiscoveredTest` and `TestSuite`
+- [x] Execute OPA eval for tests
+  > **Completed**: `TestRunner::run_suite()` executes tests using `RegoEngine`:
+  > - Loads policy files into engine
+  > - Evaluates each test rule
+  > - Reports pass/fail with detailed errors
+  > - Supports fail-fast mode
+  > - Handles native Rego tests (self-contained)
+- [x] Collect pass/fail results
+  > **Completed**: `TestResults` aggregates test outcomes:
+  > - `passed()` / `failed()` counts
+  > - `all_passed()` check
+  > - `failures()` iterator for detailed errors
+  > - Duration tracking per test
+- [x] Generate test report (console output)
+  > **Completed**: `ConsoleReporter` with:
+  > - Color-coded pass/fail output
+  > - Test duration display
+  > - Error message formatting
+  > - Summary with pass/fail counts
+- [x] Add `eunomia test` CLI command
+  > **Completed**: Full CLI implementation with:
+  > - Test discovery from directory
+  > - Fail-fast mode (`-f`)
+  > - Parallel execution flag (`-p`)
+  > - Verbose output (`-v`)
+  > - No-color mode (`--no-color`)
+  > - Filter option (`--filter`)
+  > - Note: Native Rego tests with imports require loading dependencies (Week 6)
+
+### Known Limitation (Week 5)
+
+The test runner currently evaluates test files in isolation. Tests that use `import` statements
+(like `import data.authz`) will fail because the imported modules aren't loaded. This will be
+addressed in Week 6 with policy data file support and proper dependency loading.
 
 ### Week 6: Test Fixtures
 

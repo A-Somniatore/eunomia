@@ -439,7 +439,9 @@ allow if {
         let linter = Linter::new();
         let violations = linter.lint(source, "test.rego");
 
-        assert!(violations.iter().any(|v| v.rule_id == "security/default-deny"));
+        assert!(violations
+            .iter()
+            .any(|v| v.rule_id == "security/default-deny"));
     }
 
     #[test]
@@ -453,8 +455,9 @@ default allow := true
         let linter = Linter::new();
         let violations = linter.lint(source, "test.rego");
 
-        assert!(violations.iter().any(|v| v.rule_id == "security/default-deny"
-            && v.message.contains("insecure")));
+        assert!(violations
+            .iter()
+            .any(|v| v.rule_id == "security/default-deny" && v.message.contains("insecure")));
     }
 
     #[test]
@@ -474,7 +477,9 @@ allow if {
         let linter = Linter::new();
         let violations = linter.lint(source, "test.rego");
 
-        assert!(!violations.iter().any(|v| v.rule_id == "security/default-deny"));
+        assert!(!violations
+            .iter()
+            .any(|v| v.rule_id == "security/default-deny"));
     }
 
     #[test]

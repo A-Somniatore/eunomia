@@ -52,7 +52,11 @@ impl ConsoleReporter {
 
     /// Formats a passing test line.
     fn format_pass(&self, result: &TestResult) -> String {
-        let checkmark = if self.use_colors { "\x1b[32m✓\x1b[0m" } else { "✓" };
+        let checkmark = if self.use_colors {
+            "\x1b[32m✓\x1b[0m"
+        } else {
+            "✓"
+        };
         format!(
             "{} {} ({:.2}ms)",
             checkmark,
@@ -63,7 +67,11 @@ impl ConsoleReporter {
 
     /// Formats a failing test line.
     fn format_fail(&self, result: &TestResult) -> String {
-        let cross = if self.use_colors { "\x1b[31m✗\x1b[0m" } else { "✗" };
+        let cross = if self.use_colors {
+            "\x1b[31m✗\x1b[0m"
+        } else {
+            "✗"
+        };
         let mut line = format!(
             "{} {} ({:.2}ms)",
             cross,
@@ -176,7 +184,10 @@ mod tests {
 
     fn sample_results() -> TestResults {
         let mut results = TestResults::new();
-        results.add(TestResult::pass("test_admin_access", Duration::from_millis(5)));
+        results.add(TestResult::pass(
+            "test_admin_access",
+            Duration::from_millis(5),
+        ));
         results.add(TestResult::pass("test_user_read", Duration::from_millis(3)));
         results.add(TestResult::fail(
             "test_anonymous_denied",

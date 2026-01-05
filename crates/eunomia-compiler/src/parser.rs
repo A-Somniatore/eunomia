@@ -265,8 +265,14 @@ default allow := false
         let policy = parser.parse_source(source, "test.rego").unwrap();
 
         assert_eq!(policy.package_name, "test.authz");
-        assert_eq!(policy.description, Some("A test authorization policy".to_string()));
-        assert_eq!(policy.authors, vec!["team@example.com", "other@example.com"]);
+        assert_eq!(
+            policy.description,
+            Some("A test authorization policy".to_string())
+        );
+        assert_eq!(
+            policy.authors,
+            vec!["team@example.com", "other@example.com"]
+        );
     }
 
     #[test]

@@ -37,7 +37,11 @@ impl ValidationError {
     ///     ValidationErrorKind::Format,
     /// );
     /// ```
-    pub fn new(field: impl Into<String>, message: impl Into<String>, kind: ValidationErrorKind) -> Self {
+    pub fn new(
+        field: impl Into<String>,
+        message: impl Into<String>,
+        kind: ValidationErrorKind,
+    ) -> Self {
         Self {
             field: field.into(),
             message: message.into(),
@@ -341,7 +345,7 @@ mod tests {
         let mut errors = ValidationErrors::new();
         errors.add(ValidationError::required("field1"));
         errors.add(ValidationError::format("field2", "bad format"));
-        
+
         assert!(!errors.is_empty());
         assert_eq!(errors.len(), 2);
     }
@@ -356,7 +360,7 @@ mod tests {
     fn test_validation_errors_into_result_err() {
         let mut errors = ValidationErrors::new();
         errors.add(ValidationError::required("field"));
-        
+
         let result = errors.into_result();
         assert!(result.is_err());
         assert_eq!(result.unwrap_err().field, "field");
@@ -366,10 +370,10 @@ mod tests {
     fn test_validation_errors_merge() {
         let mut errors1 = ValidationErrors::new();
         errors1.add(ValidationError::required("field1"));
-        
+
         let mut errors2 = ValidationErrors::new();
         errors2.add(ValidationError::format("field2", "bad"));
-        
+
         errors1.merge(errors2);
         assert_eq!(errors1.len(), 2);
     }
@@ -379,7 +383,7 @@ mod tests {
         let mut errors = ValidationErrors::new();
         errors.add(ValidationError::required("a"));
         errors.add(ValidationError::required("b"));
-        
+
         let fields: Vec<_> = errors.iter().map(|e| e.field.as_str()).collect();
         assert_eq!(fields, vec!["a", "b"]);
     }
@@ -390,7 +394,7 @@ mod tests {
             ValidationError::required("a"),
             ValidationError::required("b"),
         ];
-        
+
         let errors: ValidationErrors = error_vec.into_iter().collect();
         assert_eq!(errors.len(), 2);
     }
@@ -406,7 +410,7 @@ mod tests {
     fn test_validation_errors_display_single() {
         let mut errors = ValidationErrors::new();
         errors.add(ValidationError::required("field"));
-        
+
         let display = format!("{errors}");
         assert!(display.contains("field"));
         assert!(!display.contains("validation errors:"));
@@ -417,7 +421,7 @@ mod tests {
         let mut errors = ValidationErrors::new();
         errors.add(ValidationError::required("field1"));
         errors.add(ValidationError::format("field2", "bad"));
-        
+
         let display = format!("{errors}");
         assert!(display.contains("2 validation errors"));
         assert!(display.contains("field1"));
@@ -442,11 +446,11 @@ mod tests {
     impl Validate for TestStruct {
         fn validate(&self) -> Result<(), ValidationErrors> {
             let mut errors = ValidationErrors::new();
-            
+
             if self.value < 0 {
                 errors.add(ValidationError::range("value", "must be non-negative"));
             }
-            
+
             if errors.is_empty() {
                 Ok(())
             } else {
@@ -466,10 +470,10 @@ mod tests {
     fn test_validate_trait_invalid() {
         let invalid = TestStruct { value: -1 };
         assert!(!invalid.is_valid());
-        
+
         let result = invalid.validate();
         assert!(result.is_err());
-        
+
         let errors = result.unwrap_err();
         assert_eq!(errors.len(), 1);
     }

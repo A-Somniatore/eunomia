@@ -99,8 +99,9 @@ impl Analyzer {
             }
 
             // Check for default deny (alternative pattern)
-            if trimmed.starts_with("default allow") && 
-               (trimmed.contains(":= false") || trimmed.contains("= false")) {
+            if trimmed.starts_with("default allow")
+                && (trimmed.contains(":= false") || trimmed.contains("= false"))
+            {
                 result.has_default_deny = true;
             }
 
@@ -248,7 +249,10 @@ default allow := true
         let analyzer = Analyzer::new();
         let result = analyzer.analyze(&policy).unwrap();
 
-        assert!(result.warnings.iter().any(|w| w.message.contains("insecure")));
+        assert!(result
+            .warnings
+            .iter()
+            .any(|w| w.message.contains("insecure")));
     }
 
     #[test]

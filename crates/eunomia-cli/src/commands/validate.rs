@@ -65,7 +65,10 @@ fn validate_file(
     let result = analyzer.analyze(&policy)?;
 
     if verbose {
-        println!("  Has default: {}", result.has_default_allow || result.has_default_deny);
+        println!(
+            "  Has default: {}",
+            result.has_default_allow || result.has_default_deny
+        );
         println!("  Imports: {}", result.imports.len());
         println!("  Rules: {}", result.rules.len());
 

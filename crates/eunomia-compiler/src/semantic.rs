@@ -269,7 +269,8 @@ impl SemanticValidator {
     /// Registers a service contract for operation validation.
     pub fn register_contract(&mut self, contract: MockServiceContract) -> &mut Self {
         self.validate_operations = true;
-        self.contracts.insert(contract.service_name.clone(), contract);
+        self.contracts
+            .insert(contract.service_name.clone(), contract);
         self
     }
 
@@ -310,10 +311,11 @@ impl SemanticValidator {
     ///
     /// Returns an error if the file cannot be read.
     pub fn validate_file(&self, path: impl AsRef<Path>) -> Result<Vec<SemanticIssue>> {
-        let source = std::fs::read_to_string(path.as_ref()).map_err(|e| CompilerError::FileReadError {
-            path: path.as_ref().to_path_buf(),
-            source: e,
-        })?;
+        let source =
+            std::fs::read_to_string(path.as_ref()).map_err(|e| CompilerError::FileReadError {
+                path: path.as_ref().to_path_buf(),
+                source: e,
+            })?;
         let file_name = path.as_ref().to_string_lossy();
         Ok(self.validate_source(&source, &file_name))
     }
@@ -423,7 +425,7 @@ impl SemanticValidator {
     fn extract_rule_references(&self, line: &str, refs: &mut HashSet<String>) {
         // Simple pattern matching for rule references
         let trimmed = line.trim();
-        
+
         // Skip lines that are rule definitions, imports, or package declarations
         if trimmed.starts_with("package ")
             || trimmed.starts_with("import ")
@@ -442,7 +444,9 @@ impl SemanticValidator {
             // Check if this looks like a rule reference (identifier only, possibly with 'not')
             let potential_ref = trimmed.trim_start_matches("not ").trim();
             if !potential_ref.is_empty()
-                && potential_ref.chars().all(|c| c.is_alphanumeric() || c == '_')
+                && potential_ref
+                    .chars()
+                    .all(|c| c.is_alphanumeric() || c == '_')
                 && potential_ref != "true"
                 && potential_ref != "false"
             {
@@ -456,7 +460,9 @@ impl SemanticValidator {
         for pattern in patterns {
             if let Some(idx) = line.find(pattern) {
                 let after = &line[idx + pattern.len()..];
-                if let Some(end) = after.find(|c: char| !c.is_alphanumeric() && c != '_' && c != '.') {
+                if let Some(end) =
+                    after.find(|c: char| !c.is_alphanumeric() && c != '_' && c != '.')
+                {
                     let reference = after[..end].trim();
                     if !reference.is_empty() && !reference.starts_with("input.") {
                         refs.insert(reference.to_string());
@@ -541,10 +547,7 @@ impl SemanticValidator {
     ) {
         for op_id in &analysis.operation_ids {
             let is_known = self.global_operations.contains(op_id)
-                || self
-                    .contracts
-                    .values()
-                    .any(|c| c.has_operation(op_id));
+                || self.contracts.values().any(|c| c.has_operation(op_id));
 
             if !is_known {
                 issues.push(SemanticIssue {
@@ -571,7 +574,10 @@ impl SemanticValidator {
         // Check for deprecated or incorrect input field usage
         let deprecated_patterns = [
             ("input.action", "Use input.operation_id instead"),
-            ("input.resource.type", "Use input.resource.owner_id or context instead"),
+            (
+                "input.resource.type",
+                "Use input.resource.owner_id or context instead",
+            ),
         ];
 
         for access in &analysis.input_accesses {
@@ -613,8 +619,11 @@ impl SemanticValidator {
             if parts.len() >= 2 {
                 let top_level = format!("input.{}", parts[1]);
                 let is_known = known_fields.iter().any(|f| f.starts_with(&top_level));
-                
-                if !is_known && !access.starts_with("input.context.") && !access.starts_with("input.resource.") {
+
+                if !is_known
+                    && !access.starts_with("input.context.")
+                    && !access.starts_with("input.resource.")
+                {
                     // Could be a typo
                     let suggestions = self.find_similar_fields(&top_level, &known_fields);
                     if !suggestions.is_empty() {
@@ -661,10 +670,34 @@ impl SemanticValidator {
 
             // Skip built-in functions and common patterns
             let builtins = [
-                "count", "sum", "max", "min", "sort", "contains", "startswith",
-                "endswith", "trim", "lower", "upper", "split", "concat", "sprintf",
-                "json", "yaml", "base64", "urlquery", "regex", "time", "http",
-                "io", "opa", "rego", "future", "true", "false", "null",
+                "count",
+                "sum",
+                "max",
+                "min",
+                "sort",
+                "contains",
+                "startswith",
+                "endswith",
+                "trim",
+                "lower",
+                "upper",
+                "split",
+                "concat",
+                "sprintf",
+                "json",
+                "yaml",
+                "base64",
+                "urlquery",
+                "regex",
+                "time",
+                "http",
+                "io",
+                "opa",
+                "rego",
+                "future",
+                "true",
+                "false",
+                "null",
             ];
 
             let base_name = reference.split('.').next().unwrap_or(reference);
@@ -824,13 +857,13 @@ allow if {
 "#;
 
         let issues = validator.validate_source(source, "test.rego");
-        
+
         // Should find unknown operation
         let unknown_ops: Vec<_> = issues
             .iter()
             .filter(|i| i.category == SemanticCategory::UnknownOperation)
             .collect();
-        
+
         assert_eq!(unknown_ops.len(), 1);
         assert!(unknown_ops[0].message.contains("unknownOperation"));
     }
@@ -851,13 +884,13 @@ allow if {
 "#;
 
         let issues = validator.validate_source(source, "test.rego");
-        
+
         // Should find deprecated field usage
         let deprecated: Vec<_> = issues
             .iter()
             .filter(|i| i.category == SemanticCategory::InputSchema)
             .collect();
-        
+
         assert!(!deprecated.is_empty());
         assert!(deprecated.iter().any(|i| i.message.contains("action")));
     }
@@ -882,13 +915,13 @@ allow if {
 "#;
 
         let issues = validator.validate_source(source, "authz.rego");
-        
+
         // getUser is valid, invalidOperation is not
         let unknown_ops: Vec<_> = issues
             .iter()
             .filter(|i| i.category == SemanticCategory::UnknownOperation)
             .collect();
-        
+
         assert_eq!(unknown_ops.len(), 1);
         assert!(unknown_ops[0].message.contains("invalidOperation"));
     }
@@ -916,13 +949,13 @@ unused_helper if {
 "#;
 
         let issues = validator.validate_source(source, "test.rego");
-        
+
         // Should find unused_helper as unused
         let unused: Vec<_> = issues
             .iter()
             .filter(|i| i.category == SemanticCategory::Unused)
             .collect();
-        
+
         assert!(unused.iter().any(|i| i.message.contains("unused_helper")));
         // is_admin should NOT be flagged as unused
         assert!(!unused.iter().any(|i| i.message.contains("is_admin")));
@@ -931,14 +964,18 @@ unused_helper if {
     #[test]
     fn test_input_schema_validation() {
         let schema = InputSchema::themis_standard();
-        
+
         assert!(schema.required_fields.contains("caller"));
         assert!(schema.required_fields.contains("operation_id"));
         assert!(schema.optional_fields.contains("context"));
-        
+
         let caller_type = schema.nested_requirements.get("caller.type").unwrap();
         assert!(caller_type.required);
-        assert!(caller_type.allowed_values.as_ref().unwrap().contains(&"user".to_string()));
+        assert!(caller_type
+            .allowed_values
+            .as_ref()
+            .unwrap()
+            .contains(&"user".to_string()));
     }
 
     #[test]

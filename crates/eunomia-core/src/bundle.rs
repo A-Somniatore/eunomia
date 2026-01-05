@@ -164,7 +164,11 @@ impl BundleBuilder {
 
     /// Adds a policy to the bundle.
     #[must_use]
-    pub fn add_policy(mut self, package_name: impl Into<String>, source: impl Into<String>) -> Self {
+    pub fn add_policy(
+        mut self,
+        package_name: impl Into<String>,
+        source: impl Into<String>,
+    ) -> Self {
         self.policies.insert(package_name.into(), source.into());
         self
     }
@@ -254,9 +258,7 @@ mod tests {
 
     #[test]
     fn test_bundle_builder_basic() {
-        let bundle = Bundle::builder("users-service")
-            .version("1.0.0")
-            .build();
+        let bundle = Bundle::builder("users-service").version("1.0.0").build();
 
         assert_eq!(bundle.name, "users-service");
         assert_eq!(bundle.version, "1.0.0");
@@ -309,9 +311,7 @@ mod tests {
 
     #[test]
     fn test_bundle_file_name() {
-        let bundle = Bundle::builder("users-service")
-            .version("1.2.3")
-            .build();
+        let bundle = Bundle::builder("users-service").version("1.2.3").build();
 
         assert_eq!(bundle.file_name(), "users-service-v1.2.3.bundle.tar.gz");
     }

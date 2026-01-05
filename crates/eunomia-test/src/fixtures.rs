@@ -206,8 +206,8 @@ mod tests {
 
     #[test]
     fn test_fixture_with_data() {
-        let fixture = TestFixture::new("test_roles")
-            .with_data("roles", json!({"admin": ["read", "write"]}));
+        let fixture =
+            TestFixture::new("test_roles").with_data("roles", json!({"admin": ["read", "write"]}));
 
         assert!(fixture.data.contains_key("roles"));
     }

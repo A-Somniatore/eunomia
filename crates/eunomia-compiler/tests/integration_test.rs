@@ -6,7 +6,7 @@
 use serde_json::json;
 
 use eunomia_compiler::{
-    IssueSeverity, PolicyValidator, RegoEngine, ValidatorConfig, validate_file,
+    validate_file, IssueSeverity, PolicyValidator, RegoEngine, ValidatorConfig,
 };
 
 /// Path to sample policies
@@ -28,8 +28,11 @@ fn policy_path(relative: &str) -> String {
 fn test_load_users_service_policy() {
     let mut engine = RegoEngine::new();
     let result = engine.add_policy_from_file(&policy_path(USERS_SERVICE_POLICY));
-    assert!(result.is_ok(), "Failed to load users service policy: {result:?}");
-    
+    assert!(
+        result.is_ok(),
+        "Failed to load users service policy: {result:?}"
+    );
+
     let policies: Vec<_> = engine.all_policies().collect();
     assert!(!policies.is_empty(), "No policies loaded");
 }
@@ -37,35 +40,41 @@ fn test_load_users_service_policy() {
 #[test]
 fn test_load_orders_service_policy() {
     let mut engine = RegoEngine::new();
-    
+
     // Orders service depends on common authz
     engine
         .add_policy_from_file(&policy_path(COMMON_AUTHZ_POLICY))
         .expect("Failed to load common authz");
-    
+
     let result = engine.add_policy_from_file(&policy_path(ORDERS_SERVICE_POLICY));
-    assert!(result.is_ok(), "Failed to load orders service policy: {result:?}");
+    assert!(
+        result.is_ok(),
+        "Failed to load orders service policy: {result:?}"
+    );
 }
 
 #[test]
 fn test_load_common_authz_policy() {
     let mut engine = RegoEngine::new();
     let result = engine.add_policy_from_file(&policy_path(COMMON_AUTHZ_POLICY));
-    assert!(result.is_ok(), "Failed to load common authz policy: {result:?}");
+    assert!(
+        result.is_ok(),
+        "Failed to load common authz policy: {result:?}"
+    );
 }
 
 #[test]
 fn test_load_multiple_policies() {
     let mut engine = RegoEngine::new();
-    
+
     engine
         .add_policy_from_file(&policy_path(COMMON_AUTHZ_POLICY))
         .expect("Failed to load common authz");
-    
+
     engine
         .add_policy_from_file(&policy_path(USERS_SERVICE_POLICY))
         .expect("Failed to load users service");
-    
+
     let policies: Vec<_> = engine.all_policies().collect();
     assert!(policies.len() >= 2, "Expected at least 2 policies");
 }
@@ -77,18 +86,18 @@ fn test_load_multiple_policies() {
 #[test]
 fn test_validate_users_service_policy() {
     let report = validate_file(&policy_path(USERS_SERVICE_POLICY)).unwrap();
-    
+
     if !report.is_valid() {
         eprintln!("Validation errors: {report:#?}");
     }
-    
+
     // Policy should have no critical issues
     let critical_issues: Vec<_> = report
         .issues
         .iter()
         .filter(|i| matches!(i.severity, IssueSeverity::Error))
         .collect();
-    
+
     assert!(
         critical_issues.is_empty(),
         "Users service policy has critical issues: {critical_issues:?}"
@@ -98,14 +107,14 @@ fn test_validate_users_service_policy() {
 #[test]
 fn test_validate_orders_service_policy() {
     let report = validate_file(&policy_path(ORDERS_SERVICE_POLICY)).unwrap();
-    
+
     // Policy should have no critical issues
     let critical_issues: Vec<_> = report
         .issues
         .iter()
         .filter(|i| matches!(i.severity, IssueSeverity::Error))
         .collect();
-    
+
     assert!(
         critical_issues.is_empty(),
         "Orders service policy has critical issues: {critical_issues:?}"
@@ -116,10 +125,15 @@ fn test_validate_orders_service_policy() {
 fn test_validate_common_authz_policy() {
     let config = ValidatorConfig::lenient();
     let validator = PolicyValidator::with_config(config);
-    let report = validator.validate_file(&policy_path(COMMON_AUTHZ_POLICY)).unwrap();
-    
+    let report = validator
+        .validate_file(&policy_path(COMMON_AUTHZ_POLICY))
+        .unwrap();
+
     // Lenient config should allow library patterns
-    assert!(report.is_valid(), "Common authz policy failed validation: {report:#?}");
+    assert!(
+        report.is_valid(),
+        "Common authz policy failed validation: {report:#?}"
+    );
 }
 
 // =============================================================================
@@ -140,7 +154,7 @@ mod users_service {
     #[test]
     fn test_admin_can_do_anything() {
         let mut engine = create_engine();
-        
+
         engine
             .set_input_json(&json!({
                 "caller": {
@@ -161,7 +175,7 @@ mod users_service {
     #[test]
     fn test_user_can_read_own_profile() {
         let mut engine = create_engine();
-        
+
         engine
             .set_input_json(&json!({
                 "caller": {
@@ -176,13 +190,16 @@ mod users_service {
             .expect("Failed to set input");
 
         let result = engine.eval_bool("data.users_service.authz.allow");
-        assert!(result.unwrap_or(false), "User should be able to read own profile");
+        assert!(
+            result.unwrap_or(false),
+            "User should be able to read own profile"
+        );
     }
 
     #[test]
     fn test_user_cannot_read_other_profile() {
         let mut engine = create_engine();
-        
+
         engine
             .set_input_json(&json!({
                 "caller": {
@@ -197,13 +214,16 @@ mod users_service {
             .expect("Failed to set input");
 
         let result = engine.eval_bool("data.users_service.authz.allow");
-        assert!(!result.unwrap_or(true), "User should NOT be able to read other's profile");
+        assert!(
+            !result.unwrap_or(true),
+            "User should NOT be able to read other's profile"
+        );
     }
 
     #[test]
     fn test_orders_service_can_read_user() {
         let mut engine = create_engine();
-        
+
         engine
             .set_input_json(&json!({
                 "caller": {
@@ -218,13 +238,16 @@ mod users_service {
             .expect("Failed to set input");
 
         let result = engine.eval_bool("data.users_service.authz.allow");
-        assert!(result.unwrap_or(false), "Orders service should be able to read user");
+        assert!(
+            result.unwrap_or(false),
+            "Orders service should be able to read user"
+        );
     }
 
     #[test]
     fn test_untrusted_service_denied() {
         let mut engine = create_engine();
-        
+
         engine
             .set_input_json(&json!({
                 "caller": {
@@ -239,13 +262,16 @@ mod users_service {
             .expect("Failed to set input");
 
         let result = engine.eval_bool("data.users_service.authz.allow");
-        assert!(!result.unwrap_or(true), "Untrusted service should be denied");
+        assert!(
+            !result.unwrap_or(true),
+            "Untrusted service should be denied"
+        );
     }
 
     #[test]
     fn test_api_key_with_read_scope() {
         let mut engine = create_engine();
-        
+
         engine
             .set_input_json(&json!({
                 "caller": {
@@ -259,13 +285,16 @@ mod users_service {
             .expect("Failed to set input");
 
         let result = engine.eval_bool("data.users_service.authz.allow");
-        assert!(result.unwrap_or(false), "API key with users:read should be allowed");
+        assert!(
+            result.unwrap_or(false),
+            "API key with users:read should be allowed"
+        );
     }
 
     #[test]
     fn test_api_key_without_scope_denied() {
         let mut engine = create_engine();
-        
+
         engine
             .set_input_json(&json!({
                 "caller": {
@@ -279,19 +308,25 @@ mod users_service {
             .expect("Failed to set input");
 
         let result = engine.eval_bool("data.users_service.authz.allow");
-        assert!(!result.unwrap_or(true), "API key without users scope should be denied");
+        assert!(
+            !result.unwrap_or(true),
+            "API key without users scope should be denied"
+        );
     }
 
     #[test]
     fn test_default_deny_empty_input() {
         let mut engine = create_engine();
-        
+
         engine
             .set_input_json(&json!({}))
             .expect("Failed to set input");
 
         let result = engine.eval_bool("data.users_service.authz.allow");
-        assert!(!result.unwrap_or(true), "Empty input should be denied (default deny)");
+        assert!(
+            !result.unwrap_or(true),
+            "Empty input should be denied (default deny)"
+        );
     }
 }
 
@@ -313,7 +348,7 @@ mod common_authz {
     #[test]
     fn test_is_user_helper() {
         let mut engine = create_engine();
-        
+
         engine
             .set_input_json(&json!({
                 "caller": {"type": "user"}
@@ -321,13 +356,16 @@ mod common_authz {
             .expect("Failed to set input");
 
         let result = engine.eval_bool("data.common.authz.is_user");
-        assert!(result.unwrap_or(false), "is_user should return true for user type");
+        assert!(
+            result.unwrap_or(false),
+            "is_user should return true for user type"
+        );
     }
 
     #[test]
     fn test_is_service_helper() {
         let mut engine = create_engine();
-        
+
         engine
             .set_input_json(&json!({
                 "caller": {"type": "spiffe"}
@@ -335,13 +373,16 @@ mod common_authz {
             .expect("Failed to set input");
 
         let result = engine.eval_bool("data.common.authz.is_service");
-        assert!(result.unwrap_or(false), "is_service should return true for spiffe type");
+        assert!(
+            result.unwrap_or(false),
+            "is_service should return true for spiffe type"
+        );
     }
 
     #[test]
     fn test_is_read_operation() {
         let mut engine = create_engine();
-        
+
         engine
             .set_input_json(&json!({"method": "GET"}))
             .expect("Failed to set input");
@@ -353,7 +394,7 @@ mod common_authz {
     #[test]
     fn test_is_write_operation() {
         let mut engine = create_engine();
-        
+
         engine
             .set_input_json(&json!({"method": "POST"}))
             .expect("Failed to set input");
@@ -365,7 +406,7 @@ mod common_authz {
     #[test]
     fn test_default_deny() {
         let mut engine = create_engine();
-        
+
         engine
             .set_input_json(&json!({}))
             .expect("Failed to set input");
@@ -425,7 +466,10 @@ mod engine_features {
             }))
             .expect("Failed to set input");
         let result2 = engine.eval_bool("data.users_service.authz.allow");
-        assert!(!result2.unwrap_or(true), "Regular user should be denied delete");
+        assert!(
+            !result2.unwrap_or(true),
+            "Regular user should be denied delete"
+        );
     }
 
     #[test]
