@@ -310,14 +310,17 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > - `MockSpiffe` builder with factories: `users_service()`, `orders_service()`, `gateway()`
   > - `MockApiKey` builder with factories: `read_only()`, `full_access()`, `read_service()`, `write_service()`
   > - Fluent APIs for customization
-- [ ] Implement fixture loading from JSON/YAML
-  > Support `*_fixtures.json` and `*_fixtures.yaml` files - FixtureSet can load, need runner integration
+- [x] Implement fixture loading from JSON/YAML
+  > **Completed**: `FixtureSet::from_json_file()` and `from_yaml_file()` for loading.
+  > Runner integrates with `run_discovered_fixtures()` and `run_all()` methods.
+  > Auto-detects policy files based on fixture naming conventions.
 - [ ] Create test utilities library
   > Common assertions, input builders, result matchers
 - [ ] Document testing patterns
   > Add testing guide to docs/
-- [ ] Add example test files with fixtures
-  > Working examples using fixture-based testing
+- [x] Add example test files with fixtures
+  > **Completed**: Added `examples/policies/users-service/authz_fixtures.json` with 8 test fixtures.
+  > Updated examples README with fixture documentation.
 
 ### Week 7: Bundle Compilation
 

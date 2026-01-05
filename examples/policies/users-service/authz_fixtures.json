@@ -1,0 +1,140 @@
+{
+  "name": "Users Service Authorization Fixtures",
+  "package": "users_service.authz",
+  "fixtures": [
+    {
+      "name": "admin_can_delete_any_user",
+      "description": "Admin users should be able to delete any user",
+      "input": {
+        "caller": {
+          "type": "user",
+          "user_id": "admin-123",
+          "roles": ["admin"]
+        },
+        "operation_id": "deleteUser",
+        "method": "DELETE",
+        "path": "/users/user-456",
+        "service": "users-service"
+      },
+      "expected_allowed": true
+    },
+    {
+      "name": "user_can_read_own_profile",
+      "description": "Users should be able to read their own profile",
+      "input": {
+        "caller": {
+          "type": "user",
+          "user_id": "user-123",
+          "roles": ["viewer"]
+        },
+        "operation_id": "getUser",
+        "method": "GET",
+        "path": "/users/user-123",
+        "service": "users-service",
+        "context": {
+          "userId": "user-123"
+        }
+      },
+      "expected_allowed": true
+    },
+    {
+      "name": "user_cannot_read_other_profile",
+      "description": "Users should NOT be able to read other users' profiles",
+      "input": {
+        "caller": {
+          "type": "user",
+          "user_id": "user-123",
+          "roles": ["viewer"]
+        },
+        "operation_id": "getUser",
+        "method": "GET",
+        "path": "/users/user-456",
+        "service": "users-service",
+        "context": {
+          "userId": "user-456"
+        }
+      },
+      "expected_allowed": false
+    },
+    {
+      "name": "orders_service_can_read_user",
+      "description": "Orders service should be able to read user info",
+      "input": {
+        "caller": {
+          "type": "spiffe",
+          "spiffe_id": "spiffe://somniatore.com/ns/prod/sa/orders-service",
+          "service_name": "orders-service",
+          "trust_domain": "somniatore.com"
+        },
+        "operation_id": "getUser",
+        "method": "GET",
+        "path": "/users/user-123",
+        "service": "users-service"
+      },
+      "expected_allowed": true
+    },
+    {
+      "name": "orders_service_cannot_delete_user",
+      "description": "Orders service should NOT be able to delete users",
+      "input": {
+        "caller": {
+          "type": "spiffe",
+          "spiffe_id": "spiffe://somniatore.com/ns/prod/sa/orders-service",
+          "service_name": "orders-service",
+          "trust_domain": "somniatore.com"
+        },
+        "operation_id": "deleteUser",
+        "method": "DELETE",
+        "path": "/users/user-123",
+        "service": "users-service"
+      },
+      "expected_allowed": false
+    },
+    {
+      "name": "anonymous_denied",
+      "description": "Anonymous users should be denied all access",
+      "input": {
+        "caller": {
+          "type": "anonymous"
+        },
+        "operation_id": "listUsers",
+        "method": "GET",
+        "path": "/users",
+        "service": "users-service"
+      },
+      "expected_allowed": false
+    },
+    {
+      "name": "api_key_read_users_allowed",
+      "description": "API key with read:users scope can list users",
+      "input": {
+        "caller": {
+          "type": "api_key",
+          "key_id": "key-123",
+          "scopes": ["read:users"]
+        },
+        "operation_id": "listUsers",
+        "method": "GET",
+        "path": "/users",
+        "service": "users-service"
+      },
+      "expected_allowed": true
+    },
+    {
+      "name": "api_key_write_users_denied",
+      "description": "API key with only read:users scope cannot create users",
+      "input": {
+        "caller": {
+          "type": "api_key",
+          "key_id": "key-123",
+          "scopes": ["read:users"]
+        },
+        "operation_id": "createUser",
+        "method": "POST",
+        "path": "/users",
+        "service": "users-service"
+      },
+      "expected_allowed": false
+    }
+  ]
+}

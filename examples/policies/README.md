@@ -11,7 +11,8 @@ examples/policies/
 │   └── authz_test.rego        # Tests for common utilities
 ├── users-service/             # Users service policies
 │   ├── authz.rego             # Authorization rules
-│   └── authz_test.rego        # Policy tests
+│   ├── authz_test.rego        # Policy tests (Rego)
+│   └── authz_fixtures.json    # Fixture-based tests (JSON)
 └── orders-service/            # Orders service policies
     ├── authz.rego             # Authorization rules
     └── authz_test.rego        # Policy tests
@@ -90,6 +91,22 @@ base.is_write_operation  // POST, PUT, PATCH, DELETE
 
 ## Testing Policies
 
+### With Eunomia CLI
+
+```bash
+# Run all tests (Rego tests and fixtures)
+eunomia test examples/policies/
+
+# Run tests for specific service
+eunomia test examples/policies/users-service/
+
+# With verbose output
+eunomia test examples/policies/ -v
+
+# Fail fast (stop on first failure)
+eunomia test examples/policies/ -f
+```
+
 ### With OPA CLI
 
 ```bash
@@ -156,3 +173,63 @@ Each policy file includes METADATA comments:
 4. **Limit service permissions** - Services get only what they need
 5. **Use explicit scopes** - API keys should have minimum required scopes
 6. **Test denial cases** - Ensure unauthorized access is blocked
+
+## Fixture-Based Testing
+
+In addition to native Rego tests, you can define test fixtures in JSON or YAML files.
+This is useful for:
+
+- Sharing test scenarios with non-Rego developers
+- Generating test cases from external sources
+- Documenting expected behavior in a structured format
+
+### Fixture File Format
+
+Create files named `*_fixtures.json` or `*_fixtures.yaml`:
+
+```json
+{
+  "name": "Service Authorization Fixtures",
+  "package": "my_service.authz",
+  "fixtures": [
+    {
+      "name": "admin_can_delete",
+      "description": "Admin users can delete resources",
+      "input": {
+        "caller": { "type": "user", "roles": ["admin"] },
+        "operation_id": "deleteResource",
+        "method": "DELETE"
+      },
+      "expected_allowed": true
+    },
+    {
+      "name": "guest_cannot_delete",
+      "description": "Guest users cannot delete resources",
+      "input": {
+        "caller": { "type": "user", "roles": [] },
+        "operation_id": "deleteResource",
+        "method": "DELETE"
+      },
+      "expected_allowed": false
+    }
+  ]
+}
+```
+
+### Running Fixture Tests
+
+```bash
+# Eunomia automatically discovers and runs fixture files
+eunomia test examples/policies/
+
+# Or use the Rust API
+use eunomia_test::{TestRunner, TestConfig, TestDiscovery};
+
+let discovery = TestDiscovery::new();
+let suite = discovery.discover("examples/policies/")?;
+
+let runner = TestRunner::new(TestConfig::default());
+let results = runner.run_all(&suite)?;  // Runs both Rego and fixture tests
+
+println!("Passed: {}, Failed: {}", results.passed(), results.failed());
+```
