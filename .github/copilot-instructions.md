@@ -16,6 +16,17 @@
 | CLI           | Clap                 |
 | Testing       | Built-in + proptest  |
 
+## Development Workflow
+
+### CRITICAL: Always Review Before Changes
+
+Before making any code changes, **always review these documents**:
+- `docs/roadmap.md` - Current phase, tasks, and priorities
+- `docs/design.md` - Architecture decisions and patterns
+- `docs/spec.md` - Requirements and specifications
+
+This ensures changes align with project direction and existing decisions.
+
 ## Development Guidelines
 
 ### Terminal Commands
@@ -25,6 +36,30 @@
 - Use `cargo` commands directly without output redirection
 - **Avoid long-running subprocesses** that may not terminate (e.g., watch modes)
 - When running tests, prefer `cargo test` over `cargo test -p <crate>` if the subprocess hangs
+
+### CRITICAL: Avoid Interactive Commands
+
+These commands will hang the terminal and must be avoided:
+
+- **Git commits**: Always use `git commit -m "message"` (never bare `git commit`)
+- **Git pager**: Use `git --no-pager log` or `git --no-pager diff`
+- **Confirmation prompts**: Use `-y` or `--yes` flags when available
+- **Interactive editors**: Never run commands that open vim/nano/editors
+- **Read prompts**: Avoid commands that wait for stdin input
+- **Cargo watch**: Don't use `cargo watch` or similar watch modes
+
+**Safe patterns:**
+```bash
+# Good - non-interactive
+git add -A && git commit -m "feat: add feature"
+git --no-pager log --oneline -10
+cargo test --no-fail-fast
+
+# Bad - will hang
+git commit          # Opens editor
+git log            # Opens pager
+read -p "Continue?"  # Waits for input
+```
 
 ### Code Formatting
 
