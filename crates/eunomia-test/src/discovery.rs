@@ -136,6 +136,8 @@ pub struct TestSuite {
     fixtures: Vec<DiscoveredFixture>,
     /// Policy files required by tests.
     policy_files: HashMap<PathBuf, String>,
+    /// Data files (JSON/YAML) to load into policy context.
+    data_files: HashMap<PathBuf, serde_json::Value>,
     /// Root directory of the discovery.
     root: PathBuf,
 }
@@ -147,6 +149,7 @@ impl TestSuite {
             tests: Vec::new(),
             fixtures: Vec::new(),
             policy_files: HashMap::new(),
+            data_files: HashMap::new(),
             root: root.into(),
         }
     }
@@ -167,6 +170,12 @@ impl TestSuite {
     #[must_use]
     pub const fn policy_files(&self) -> &HashMap<PathBuf, String> {
         &self.policy_files
+    }
+
+    /// Returns the data files to load.
+    #[must_use]
+    pub const fn data_files(&self) -> &HashMap<PathBuf, serde_json::Value> {
+        &self.data_files
     }
 
     /// Returns the number of tests.
@@ -194,6 +203,11 @@ impl TestSuite {
     /// Adds a policy file to the suite.
     pub fn add_policy_file(&mut self, path: PathBuf, content: String) {
         self.policy_files.insert(path, content);
+    }
+
+    /// Adds a data file to the suite.
+    pub fn add_data_file(&mut self, path: PathBuf, data: serde_json::Value) {
+        self.data_files.insert(path, data);
     }
 
     /// Returns tests grouped by file.
@@ -326,6 +340,10 @@ impl TestDiscovery {
         if file_name.ends_with(&self.config.test_file_pattern) {
             Self::process_test_file(path, suite)?;
         }
+        // Check for policy files (to load for import resolution)
+        else if extension.eq_ignore_ascii_case("rego") {
+            Self::process_policy_file(path, suite)?;
+        }
         // Check for fixture files
         else if self.config.include_fixtures {
             let is_json = extension.eq_ignore_ascii_case("json");
@@ -337,10 +355,10 @@ impl TestDiscovery {
             } else if is_yaml && file_name.contains("fixture") {
                 Self::process_fixture_file(path, FixtureFormat::Yaml, suite);
             }
-        }
-        // Check for policy files (to load for testing)
-        else if extension.eq_ignore_ascii_case("rego") && !file_name.ends_with("_test.rego") {
-            Self::process_policy_file(path, suite)?;
+            // Also check for data files (data.json, data.yaml)
+            else if (is_json || is_yaml) && file_name.starts_with("data") {
+                Self::process_data_file(path, suite)?;
+            }
         }
 
         Ok(())
@@ -410,6 +428,43 @@ impl TestDiscovery {
         })?;
 
         suite.add_policy_file(path.to_path_buf(), source);
+
+        Ok(())
+    }
+
+    /// Processes a data file (JSON/YAML) for loading into policy context.
+    ///
+    /// Data files provide static data that can be accessed via `data.X` imports
+    /// in Rego policies. The file path is used to determine the data path.
+    fn process_data_file(path: &Path, suite: &mut TestSuite) -> Result<()> {
+        debug!(file = %path.display(), "Processing data file");
+
+        let content = fs::read_to_string(path).map_err(|e| TestError::Io {
+            path: path.to_path_buf(),
+            source: e,
+        })?;
+
+        let extension = path.extension().and_then(|e| e.to_str()).unwrap_or("");
+        let data: serde_json::Value = if extension.eq_ignore_ascii_case("json") {
+            serde_json::from_str(&content).map_err(|e| {
+                TestError::Parse(format!(
+                    "Failed to parse JSON data file {}: {}",
+                    path.display(),
+                    e
+                ))
+            })?
+        } else {
+            // YAML support
+            serde_yaml::from_str(&content).map_err(|e| {
+                TestError::Parse(format!(
+                    "Failed to parse YAML data file {}: {}",
+                    path.display(),
+                    e
+                ))
+            })?
+        };
+
+        suite.add_data_file(path.to_path_buf(), data);
 
         Ok(())
     }
@@ -733,5 +788,125 @@ test_admin if {
         assert_eq!(by_package.len(), 2);
         assert!(by_package.contains_key("pkg_a"));
         assert!(by_package.contains_key("pkg_b"));
+    }
+
+    #[test]
+    fn test_data_file_discovery_json() {
+        let temp_dir = TempDir::new().unwrap();
+
+        // Create data file
+        let data_path = temp_dir.path().join("data.json");
+        std::fs::write(&data_path, r#"{"roles": {"admin": ["read", "write"]}}"#).unwrap();
+
+        // Create test file
+        let test_content = r#"
+package roles_test
+
+import data.roles
+
+test_admin_has_write if {
+    "write" in roles.admin
+}
+"#;
+        create_test_policy(temp_dir.path(), "roles_test.rego", test_content);
+
+        let discovery = TestDiscovery::new();
+        let suite = discovery.discover(temp_dir.path()).unwrap();
+
+        assert_eq!(suite.data_files().len(), 1);
+        let data = suite.data_files().values().next().unwrap();
+        assert!(data.get("roles").is_some());
+    }
+
+    #[test]
+    fn test_data_file_discovery_yaml() {
+        let temp_dir = TempDir::new().unwrap();
+
+        // Create data file in YAML
+        let data_path = temp_dir.path().join("data.yaml");
+        std::fs::write(
+            &data_path,
+            r#"
+roles:
+  admin:
+    - read
+    - write
+"#,
+        )
+        .unwrap();
+
+        // Create test file
+        let test_content = r#"
+package roles_test
+
+test_something if {
+    true
+}
+"#;
+        create_test_policy(temp_dir.path(), "roles_test.rego", test_content);
+
+        let discovery = TestDiscovery::new();
+        let suite = discovery.discover(temp_dir.path()).unwrap();
+
+        assert_eq!(suite.data_files().len(), 1);
+        let data = suite.data_files().values().next().unwrap();
+        assert!(data.get("roles").is_some());
+    }
+
+    #[test]
+    fn test_test_suite_add_data_file() {
+        let mut suite = TestSuite::new("/test");
+
+        let data = serde_json::json!({"key": "value"});
+        suite.add_data_file(PathBuf::from("data.json"), data.clone());
+
+        assert_eq!(suite.data_files().len(), 1);
+        assert_eq!(
+            suite.data_files().get(&PathBuf::from("data.json")),
+            Some(&data)
+        );
+    }
+
+    #[test]
+    fn test_policy_file_loading_with_imports() {
+        let temp_dir = TempDir::new().unwrap();
+
+        // Create a helper policy file (not a test)
+        let helper_content = r#"
+package helpers
+
+is_admin(user) if {
+    user.role == "admin"
+}
+"#;
+        create_test_policy(temp_dir.path(), "helpers.rego", helper_content);
+
+        // Create test file that imports helper
+        let test_content = r#"
+package authz_test
+
+import data.helpers
+
+test_helper_works if {
+    helpers.is_admin({"role": "admin"})
+}
+"#;
+        create_test_policy(temp_dir.path(), "authz_test.rego", test_content);
+
+        let discovery = TestDiscovery::new();
+        let suite = discovery.discover(temp_dir.path()).unwrap();
+
+        // Should have loaded both policy files
+        assert!(
+            suite.policy_files().len() >= 2,
+            "Should load helper and test files"
+        );
+
+        // Check that helpers.rego was loaded
+        let has_helpers = suite
+            .policy_files()
+            .keys()
+            .any(|p| p.to_string_lossy().contains("helpers.rego"));
+        assert!(has_helpers, "Should have loaded helpers.rego");
     }
 }

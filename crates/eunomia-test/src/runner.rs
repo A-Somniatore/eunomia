@@ -269,6 +269,17 @@ impl TestRunner {
                 })?;
         }
 
+        // Load all data files
+        for (path, data) in suite.data_files() {
+            debug!(file = %path.display(), "Loading data file");
+
+            engine
+                .add_data(data.clone())
+                .map_err(|e| TestError::ExecutionError {
+                    message: format!("Failed to load data from {}: {e}", path.display()),
+                })?;
+        }
+
         // Run each test
         for test in suite.tests() {
             let result = self.run_test(&mut engine, test);

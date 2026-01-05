@@ -20,6 +20,7 @@ examples/policies/
 ## Policy Patterns Demonstrated
 
 ### 1. Default Deny
+
 All policies follow the "default deny" pattern - requests are denied unless explicitly allowed:
 
 ```rego
@@ -27,6 +28,7 @@ default allow := false
 ```
 
 ### 2. Caller Types
+
 The policies handle three types of callers:
 
 - **User**: Human users with roles (admin, user, support)
@@ -39,16 +41,17 @@ The policies handle three types of callers:
 {
   "caller": {
     "type": "user|spiffe|api_key",
-    "user_id": "user-123",           // for users
-    "roles": ["admin", "user"],       // for users
+    "user_id": "user-123", // for users
+    "roles": ["admin", "user"], // for users
     "service_name": "orders-service", // for SPIFFE
     "trust_domain": "somniatore.com", // for SPIFFE
-    "scopes": ["users:read"]          // for API keys
+    "scopes": ["users:read"] // for API keys
   },
   "operation_id": "getUser",
   "method": "GET",
   "path": "/users/123",
-  "resource": {                       // optional, for ownership checks
+  "resource": {
+    // optional, for ownership checks
     "owner_id": "user-123",
     "status": "pending"
   }

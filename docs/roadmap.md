@@ -9,13 +9,13 @@
 
 ## Key Decisions
 
-| Decision                                                        | Impact                                              |
-| --------------------------------------------------------------- | --------------------------------------------------- |
-| [ADR-008](../../docs/decisions/008-archimedes-full-framework.md)| Archimedes is full framework replacement (40 weeks) |
-| [ADR-004](../../docs/decisions/004-regorus-for-rego-parsing.md) | Use Regorus for Rego parsing and evaluation         |
-| [ADR-002](../../docs/decisions/002-opa-for-authorization.md)    | OPA/Rego as the policy language                     |
-| [ADR-003](../../docs/decisions/003-push-based-policies.md)      | Hybrid push/pull policy distribution                |
-| [ADR-007](../../docs/decisions/007-apache-2-license.md)         | Apache 2.0 license                                  |
+| Decision                                                         | Impact                                              |
+| ---------------------------------------------------------------- | --------------------------------------------------- |
+| [ADR-008](../../docs/decisions/008-archimedes-full-framework.md) | Archimedes is full framework replacement (40 weeks) |
+| [ADR-004](../../docs/decisions/004-regorus-for-rego-parsing.md)  | Use Regorus for Rego parsing and evaluation         |
+| [ADR-002](../../docs/decisions/002-opa-for-authorization.md)     | OPA/Rego as the policy language                     |
+| [ADR-003](../../docs/decisions/003-push-based-policies.md)       | Hybrid push/pull policy distribution                |
+| [ADR-007](../../docs/decisions/007-apache-2-license.md)          | Apache 2.0 license                                  |
 
 **Resolved Open Questions:**
 
@@ -52,6 +52,7 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 ### Cross-Component Timeline Alignment
 
 **MVP Timeline (Weeks 1-20):**
+
 ```
          Week: 1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19  20
  Themis:      [T0][---T1---][--T2--][------T3------][--T4--][--T5--]
@@ -60,6 +61,7 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 ```
 
 **Full Framework Timeline (Weeks 21-40):**
+
 ```
          Week: 21  22  23  24  25  26  27  28  29  30  31  32  33  34  35  36  37  38  39  40
  Archimedes:  [------A6------][------A7------][------A8------][------A9------][-----A10------]
@@ -200,6 +202,7 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > **Completed**: `PolicyValidator` handles syntax checking via `RegoEngine`
 - [x] Add semantic validation
   > **Completed**: Created `SemanticValidator` in `semantic.rs`:
+  >
   > - Deep policy analysis beyond syntax checking
   > - `SemanticIssue`, `SemanticSeverity`, `SemanticCategory` types
   > - Operation ID validation against service contracts
@@ -208,17 +211,20 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > - Rule reference checking
 - [x] Create mock operationId support (for testing without Themis)
   > **Completed**: Created `MockServiceContract`:
+  >
   > - Define service contracts with operation IDs
   > - Validate policies against expected operations
   > - Predefined contracts: `users_service_contract()`, `orders_service_contract()`
   > - `InputSchema` for validating authorization input structure
 - [x] Implement validation error reporting
   > **Completed**: `SemanticIssue` provides structured reporting with:
+  >
   > - Severity levels (Error, Warning, Info)
   > - Category classification (OperationId, Unused, Deprecated, Schema, Reference)
   > - Rule names, descriptions, and suggestions
 - [x] Add structured error messages
   > **Completed**: All validation errors include:
+  >
   > - Clear descriptions of what's wrong
   > - Context about affected policies/rules
   > - Suggestions for how to fix issues
@@ -228,6 +234,7 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 **Criteria**: Rego policies can be parsed, validated, and loaded
 
 > ✅ **Status**: Phase E1 Complete!
+>
 > - Week 2 complete: Project setup, core types, validation framework
 > - Week 3 complete: Rego parsing with regorus, linting rules
 > - Week 4 complete: Semantic validation with mock contracts
@@ -240,6 +247,7 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 - [x] Implement test case discovery
   > **Completed**: Created `TestDiscovery` with:
+  >
   > - Recursive directory scanning for `*_test.rego` files
   > - Package name extraction from test files
   > - Test rule detection (`test_*` prefixed rules)
@@ -248,12 +256,14 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > - `DiscoveryConfig` for customization (patterns, recursion)
 - [x] Parse `*_test.rego` files
   > **Completed**: `TestDiscovery` parses test files to extract:
+  >
   > - Package names
   > - Test rule names
   > - Source file paths
   > - Associates tests with `DiscoveredTest` and `TestSuite`
 - [x] Execute OPA eval for tests
   > **Completed**: `TestRunner::run_suite()` executes tests using `RegoEngine`:
+  >
   > - Loads policy files into engine
   > - Evaluates each test rule
   > - Reports pass/fail with detailed errors
@@ -261,18 +271,21 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > - Handles native Rego tests (self-contained)
 - [x] Collect pass/fail results
   > **Completed**: `TestResults` aggregates test outcomes:
+  >
   > - `passed()` / `failed()` counts
   > - `all_passed()` check
   > - `failures()` iterator for detailed errors
   > - Duration tracking per test
 - [x] Generate test report (console output)
   > **Completed**: `ConsoleReporter` with:
+  >
   > - Color-coded pass/fail output
   > - Test duration display
   > - Error message formatting
   > - Summary with pass/fail counts
 - [x] Add `eunomia test` CLI command
   > **Completed**: Full CLI implementation with:
+  >
   > - Test discovery from directory
   > - Fail-fast mode (`-f`)
   > - Parallel execution flag (`-p`)

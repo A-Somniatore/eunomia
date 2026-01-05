@@ -636,13 +636,13 @@ for issue in &issues {
 
 #### Validation Categories
 
-| Category | Description |
-|----------|-------------|
+| Category      | Description                                |
+| ------------- | ------------------------------------------ |
 | `OperationId` | Unknown operation IDs referenced in policy |
-| `Unused` | Rules defined but never used |
-| `Deprecated` | Usage of deprecated input fields |
-| `Schema` | Input structure violations |
-| `Reference` | Missing rule or data references |
+| `Unused`      | Rules defined but never used               |
+| `Deprecated`  | Usage of deprecated input fields           |
+| `Schema`      | Input structure violations                 |
+| `Reference`   | Missing rule or data references            |
 
 #### InputSchema Validation
 
@@ -654,7 +654,7 @@ use eunomia_compiler::InputSchema;
 // Standard Themis authorization input
 let schema = InputSchema::themis_standard();
 
-// Includes: caller, service, operation_id, method, path, 
+// Includes: caller, service, operation_id, method, path,
 //           headers, timestamp, environment, context
 
 // Check if a policy uses deprecated fields
@@ -676,7 +676,7 @@ let contract = MockServiceContract::new("orders-service")
     .add_operation("cancelOrder")
     .add_operation("fulfillOrder");
 
-// Validator will warn if policy references 
+// Validator will warn if policy references
 // operations not in any registered contract
 ```
 
@@ -1606,11 +1606,13 @@ impl DegradationLevel {
 **Decision**: Load all `.rego` files from the policy directory into a single `RegoEngine` instance before running tests.
 
 **Rationale**:
+
 - Tests commonly use `import data.<package>` to reference the policy under test
 - Loading all policies together allows OPA's module system to resolve references
 - This matches how OPA's native `opa test` command works
 
 **Implementation**:
+
 ```rust
 // TestRunner.run_suite() loads all policy files first
 let mut engine = RegoEngine::new();
@@ -1631,6 +1633,7 @@ for test in suite.tests() {
 **Decision**: Use `*_fixtures.json` or `*_fixtures.yaml` naming pattern.
 
 **Structure**:
+
 ```json
 {
   "name": "users_service_authz",
@@ -1660,7 +1663,7 @@ let admin = MockIdentity::user("admin-123")
     .with_roles(["admin"])
     .build();
 
-// SPIFFE service identity  
+// SPIFFE service identity
 let orders = MockIdentity::spiffe("orders-service")
     .with_trust_domain("example.com")
     .build();
