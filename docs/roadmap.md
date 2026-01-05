@@ -320,8 +320,13 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > - `InputBuilder` - Fluent builder for policy input JSON
   > - Assertion helpers: `assert_allowed()`, `assert_denied()`, `assert_all_passed()`
   > - Policy generators: `simple_allow_policy()`, `role_based_policy()`, `scope_based_policy()`
-- [ ] Document testing patterns
-  > Add testing guide to docs/
+- [x] Document testing patterns
+  > **Completed**: Created comprehensive `docs/testing-guide.md` covering:
+  >
+  > - Native Rego tests and fixture-based tests
+  > - Mock identity builders
+  > - Test utilities and assertions
+  > - Best practices and troubleshooting
 - [x] Add example test files with fixtures
   > **Completed**: Added `examples/policies/users-service/authz_fixtures.json` with 8 test fixtures.
   > Updated examples README with fixture documentation.
