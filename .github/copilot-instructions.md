@@ -23,6 +23,8 @@
 - **Never use `2>&1`** for redirecting stderr - let errors display naturally
 - Prefer simple commands without complex shell redirections
 - Use `cargo` commands directly without output redirection
+- **Avoid long-running subprocesses** that may not terminate (e.g., watch modes)
+- When running tests, prefer `cargo test` over `cargo test -p <crate>` if the subprocess hangs
 
 ### Code Formatting
 
