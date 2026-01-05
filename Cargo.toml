@@ -27,6 +27,9 @@ flate2 = "1.0"
 # Cryptography
 sha2 = "0.10"
 hex = "0.4"
+ed25519-dalek = { version = "2.1", features = ["rand_core"] }
+rand = "0.8"
+base64 = "0.22"
 
 # Async runtime
 tokio = { version = "1.0", features = ["full"] }

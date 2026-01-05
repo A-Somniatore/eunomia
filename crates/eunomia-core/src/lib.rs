@@ -10,6 +10,7 @@
 //! - [`AuthorizationDecision`] - Result of policy evaluation
 //! - [`PolicyInput`] - Input schema for authorization requests
 //! - [`CallerIdentity`] - Identity types (SPIFFE, User, `ApiKey`, Anonymous)
+//! - [`signing`] - Ed25519 bundle signing and verification
 //!
 //! ## Example
 //!
@@ -34,6 +35,7 @@ pub mod error;
 pub mod identity;
 pub mod input;
 pub mod policy;
+pub mod signing;
 pub mod validation;
 
 #[cfg(test)]
@@ -46,4 +48,5 @@ pub use error::{Error, Result};
 pub use identity::CallerIdentity;
 pub use input::PolicyInput;
 pub use policy::Policy;
+pub use signing::{BundleSigner, BundleVerifier, SignedBundle, SigningError, SigningKeyPair};
 pub use validation::{Validate, ValidationError};
