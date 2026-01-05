@@ -617,7 +617,7 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 ### Week 11: Instance Discovery
 
-> 🔄 **Partially Complete**: Static discovery implemented, K8s/DNS stubs ready.
+> 🔄 **Mostly Complete**: Static and DNS discovery implemented, K8s pending.
 
 - [x] Track Archimedes instances
   > **Completed**: Created `instance.rs` with:
@@ -636,11 +636,18 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > - `StaticDiscovery` for manual endpoint configuration
   > - `CombinedDiscovery` for aggregating multiple sources
   > - `CachedDiscovery` for TTL-based caching
+- [x] Implement DNS service discovery
+  > **Completed**: Created `DnsDiscovery` with:
+  > - Uses hickory-resolver for DNS lookups
+  > - Supports A (IPv4) and AAAA (IPv6) records
+  > - Custom resolver configuration support
+  > - Instance metadata with DNS host and resolved IP
+  > - 6 tests covering localhost, nonexistent hosts, mixed scenarios
 - [ ] Implement Kubernetes service discovery
   > **Stub Ready**: K8s discovery source defined in `DiscoverySource::Kubernetes`
-  > Will integrate with k8s-openapi in Week 11
-- [ ] Test discovery mechanisms
-  > **Pending**: Integration tests with actual K8s/DNS
+  > Will integrate with k8s-openapi when needed
+- [x] Test discovery mechanisms
+  > **Completed**: 6 DNS discovery tests added, integration with CombinedDiscovery
 
 ### Week 12: Push Distribution
 
@@ -684,11 +691,9 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 **Criteria**: Control plane is operational, bundles can be pushed to instances
 
-> 🔄 **Status**: Core distributor infrastructure complete. Push CLI implemented. Remaining:
+> 🔄 **Status**: Core distributor infrastructure complete. Push CLI and DNS discovery implemented. Remaining:
 > - gRPC server implementation using tonic (Week 10)
-> - Kubernetes service discovery (Week 11)
-> - DNS service discovery (Week 11)
-> - Integration tests for discovery mechanisms (Week 11)
+> - Kubernetes service discovery (Week 11, when needed)
 
 ---
 

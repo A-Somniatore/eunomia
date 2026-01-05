@@ -241,7 +241,8 @@ eunomia/
 │           ├── sign.rs
 │           ├── publish.rs
 │           ├── fetch.rs
-│           └── push.rs           # (future)
+│           ├── push.rs           # Policy deployment CLI
+│           └── validate.rs
 │
 ├── eunomia-control-plane/        # Control plane service (future)
 │   ├── Cargo.toml
