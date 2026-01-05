@@ -1,20 +1,21 @@
 # Eunomia – Development Roadmap
 
-> **Version**: 1.1.0  
+> **Version**: 1.2.0  
 > **Created**: 2026-01-04  
-> **Last Updated**: 2026-01-04  
-> **Target Completion**: Week 20 (MVP)
+> **Last Updated**: 2026-01-05  
+> **Target Completion**: Week 20 (MVP Integration with Archimedes MVP)
 
 ---
 
 ## Key Decisions
 
-| Decision                                                        | Impact                                      |
-| --------------------------------------------------------------- | ------------------------------------------- |
-| [ADR-004](../../docs/decisions/004-regorus-for-rego-parsing.md) | Use Regorus for Rego parsing and evaluation |
-| [ADR-002](../../docs/decisions/002-opa-for-authorization.md)    | OPA/Rego as the policy language             |
-| [ADR-003](../../docs/decisions/003-push-based-policies.md)      | Hybrid push/pull policy distribution        |
-| [ADR-007](../../docs/decisions/007-apache-2-license.md)         | Apache 2.0 license                          |
+| Decision                                                        | Impact                                              |
+| --------------------------------------------------------------- | --------------------------------------------------- |
+| [ADR-008](../../docs/decisions/008-archimedes-full-framework.md)| Archimedes is full framework replacement (40 weeks) |
+| [ADR-004](../../docs/decisions/004-regorus-for-rego-parsing.md) | Use Regorus for Rego parsing and evaluation         |
+| [ADR-002](../../docs/decisions/002-opa-for-authorization.md)    | OPA/Rego as the policy language                     |
+| [ADR-003](../../docs/decisions/003-push-based-policies.md)      | Hybrid push/pull policy distribution                |
+| [ADR-007](../../docs/decisions/007-apache-2-license.md)         | Apache 2.0 license                                  |
 
 **Resolved Open Questions:**
 
@@ -50,11 +51,20 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 ### Cross-Component Timeline Alignment
 
+**MVP Timeline (Weeks 1-20):**
 ```
          Week: 1   2   3   4   5   6   7   8   9  10  11  12  13  14  15  16  17  18  19  20
  Themis:      [T0][---T1---][--T2--][------T3------][--T4--][--T5--]
  Eunomia:     [E0][---E1---][------E2------][------E3------]        (gap)        [------E4------]
  Archimedes:  [A0][---A1---][----------A2----------][----------A3----------][A4][------A5------]
+```
+
+**Full Framework Timeline (Weeks 21-40):**
+```
+         Week: 21  22  23  24  25  26  27  28  29  30  31  32  33  34  35  36  37  38  39  40
+ Archimedes:  [------A6------][------A7------][------A8------][------A9------][-----A10------]
+                  Router         FastAPI        WebSocket         CLI        Multi-Lang
+                Extractors       Parity          SSE/Tasks       DevExp       SDKs
 ```
 
 **Key Coordination Points**:
@@ -63,7 +73,8 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 - Week 12: Themis artifacts available for Archimedes validation
 - Week 12: Eunomia bundles available for Archimedes OPA
 - Weeks 13-16: Eunomia team can support Archimedes integration or work on stretch goals
-- Week 17-20: Full end-to-end integration testing
+- Week 17-20: Full end-to-end MVP integration testing
+- Week 40: Archimedes full framework release (replaces Axum/FastAPI/Boost)
 
 ---
 

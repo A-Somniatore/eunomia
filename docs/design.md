@@ -1,9 +1,12 @@
 # Eunomia – Implementation Design Document
 
-> **Version**: 1.1.0-draft  
+> **Version**: 1.2.0-draft  
 > **Status**: Design Phase  
 > **Repository**: `github.com/A-Somniatore/eunomia` (to be created)  
-> **Last Updated**: 2026-01-04
+> **Last Updated**: 2026-01-05
+>
+> **NOTE**: Archimedes is now a full framework replacement for Axum/FastAPI/Boost.
+> See [ADR-008](../../docs/decisions/008-archimedes-full-framework.md).
 
 ---
 

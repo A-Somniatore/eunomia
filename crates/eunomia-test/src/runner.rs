@@ -1,13 +1,38 @@
 //! Test runner for policy tests.
 //!
-//! This module provides the test execution engine.
+//! This module provides the test execution engine for running Rego policy tests.
+//!
+//! # Overview
+//!
+//! The test runner supports two modes of test execution:
+//!
+//! 1. **Native Rego Tests**: Tests written as `test_*` rules in `*_test.rego` files
+//! 2. **Fixture-Based Tests**: Tests defined in JSON/YAML fixtures
+//!
+//! # Example
+//!
+//! ```rust,ignore
+//! use eunomia_test::{TestRunner, TestConfig, TestDiscovery};
+//!
+//! // Discover tests
+//! let discovery = TestDiscovery::new();
+//! let suite = discovery.discover("policies/")?;
+//!
+//! // Run tests
+//! let runner = TestRunner::new(TestConfig::default());
+//! let results = runner.run_suite(&suite)?;
+//!
+//! println!("Passed: {}, Failed: {}", results.passed(), results.failed());
+//! ```
 
 use std::time::{Duration, Instant};
 
+use eunomia_compiler::RegoEngine;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info, warn};
 
-use crate::error::Result;
+use crate::discovery::{DiscoveredTest, TestSuite};
+use crate::error::{Result, TestError};
 use crate::fixtures::TestFixture;
 
 /// Configuration for the test runner.
@@ -183,13 +208,22 @@ impl TestResults {
 
 /// Test runner for executing policy tests.
 ///
+/// The runner supports two modes:
+/// - Native Rego tests (`test_*` rules in `*_test.rego` files)
+/// - Fixture-based tests with JSON/YAML input
+///
 /// # Examples
 ///
-/// ```rust
-/// use eunomia_test::{TestRunner, TestConfig};
+/// ```rust,ignore
+/// use eunomia_test::{TestRunner, TestConfig, TestDiscovery};
+///
+/// let discovery = TestDiscovery::new();
+/// let suite = discovery.discover("policies/")?;
 ///
 /// let runner = TestRunner::new(TestConfig::default());
-/// // Run tests...
+/// let results = runner.run_suite(&suite)?;
+///
+/// println!("Passed: {}, Failed: {}", results.passed(), results.failed());
 /// ```
 #[derive(Debug)]
 pub struct TestRunner {
@@ -203,31 +237,141 @@ impl TestRunner {
         Self { config }
     }
 
+    /// Runs all tests in a discovered test suite.
+    ///
+    /// This method:
+    /// 1. Creates a Rego engine
+    /// 2. Loads all policy files
+    /// 3. Executes each discovered test
+    /// 4. Collects and returns results
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if policy loading fails.
+    pub fn run_suite(&self, suite: &TestSuite) -> Result<TestResults> {
+        let start = Instant::now();
+        let mut results = TestResults::new();
+
+        info!(tests = suite.test_count(), "Running test suite");
+
+        // Create a Rego engine and load all policies
+        let mut engine = RegoEngine::new();
+
+        // Load all policy files
+        for (path, source) in suite.policy_files() {
+            let name = path.to_string_lossy().to_string();
+            debug!(file = %name, "Loading policy file");
+
+            engine.add_policy(&name, source).map_err(|e| {
+                TestError::ExecutionError {
+                    message: format!("Failed to load policy {name}: {e}"),
+                }
+            })?;
+        }
+
+        // Run each test
+        for test in suite.tests() {
+            let result = self.run_test(&mut engine, test);
+            let failed = !result.passed;
+            results.add(result);
+
+            if self.config.fail_fast && failed {
+                warn!("Stopping early due to fail-fast mode");
+                break;
+            }
+        }
+
+        results.total_duration = start.elapsed();
+        info!(
+            passed = results.passed(),
+            failed = results.failed(),
+            duration = ?results.total_duration,
+            "Test suite complete"
+        );
+
+        Ok(results)
+    }
+
+    /// Runs a single discovered test.
+    #[allow(clippy::unused_self)]
+    fn run_test(&self, engine: &mut RegoEngine, test: &DiscoveredTest) -> TestResult {
+        let start = Instant::now();
+
+        debug!(test = %test.qualified_name, "Running test");
+
+        // Evaluate the test rule
+        match engine.eval_bool(&test.qualified_name) {
+            Ok(passed) => {
+                let duration = start.elapsed();
+                if passed {
+                    debug!(test = %test.name, duration = ?duration, "Test passed");
+                    TestResult::pass(&test.name, duration)
+                } else {
+                    debug!(test = %test.name, duration = ?duration, "Test failed");
+                    TestResult::fail(
+                        &test.name,
+                        duration,
+                        "Test rule evaluated to false",
+                    )
+                    .with_comparison("true", "false")
+                }
+            }
+            Err(e) => {
+                let duration = start.elapsed();
+                warn!(test = %test.name, error = %e, "Test execution error");
+                TestResult::fail(
+                    &test.name,
+                    duration,
+                    format!("Evaluation error: {e}"),
+                )
+            }
+        }
+    }
+
     /// Runs a single test fixture against a policy.
     ///
-    /// Note: This is a placeholder implementation. In a real implementation,
-    /// this would invoke OPA to evaluate the policy.
-    pub fn run_fixture(&self, fixture: &TestFixture, _policy_source: &str) -> TestResult {
+    /// This evaluates the policy with the fixture's input and compares
+    /// the result to the expected outcome.
+    pub fn run_fixture(&self, fixture: &TestFixture, policy_source: &str) -> TestResult {
         let start = Instant::now();
         let name = fixture.name.clone();
 
         debug!(test = %name, "Running test fixture");
 
-        // TODO: Implement actual OPA evaluation
-        // For now, this is a placeholder that simulates test execution
-        
-        // Simulate some test execution time
-        let duration = start.elapsed();
+        // Create engine and load policy
+        let mut engine = RegoEngine::new();
+        if let Err(e) = engine.add_policy("test", policy_source) {
+            return TestResult::fail(&name, start.elapsed(), format!("Failed to load policy: {e}"));
+        }
 
-        // In a real implementation, we would:
-        // 1. Load the policy into OPA
-        // 2. Evaluate the policy with fixture.input
-        // 3. Compare the result with fixture.expected_allowed
+        // Set input from fixture
+        if let Err(e) = engine.set_input_json(&fixture.input) {
+            return TestResult::fail(&name, start.elapsed(), format!("Failed to set input: {e}"));
+        }
 
-        info!(test = %name, duration = ?duration, "Test completed");
-
-        // For now, return a placeholder result
-        TestResult::pass(name, duration)
+        // Evaluate the allow rule
+        let query = "data.test.allow";
+        match engine.eval_bool(query) {
+            Ok(allowed) => {
+                let duration = start.elapsed();
+                if allowed == fixture.expected_allowed {
+                    info!(test = %name, duration = ?duration, "Test passed");
+                    TestResult::pass(name, duration)
+                } else {
+                    info!(test = %name, duration = ?duration, "Test failed - mismatch");
+                    TestResult::fail(&name, duration, "Allow decision mismatch")
+                        .with_comparison(
+                            fixture.expected_allowed.to_string(),
+                            allowed.to_string(),
+                        )
+                }
+            }
+            Err(e) => {
+                let duration = start.elapsed();
+                warn!(test = %name, error = %e, "Test execution error");
+                TestResult::fail(name, duration, format!("Evaluation error: {e}"))
+            }
+        }
     }
 
     /// Runs all fixtures in a set against a policy.
@@ -346,12 +490,52 @@ mod tests {
     #[test]
     fn test_runner_basic() {
         let runner = TestRunner::default();
-        let fixture = TestFixture::new("test")
-            .with_input(json!({"key": "value"}))
+
+        // Test with a policy that allows based on caller type
+        let policy = r#"
+package test
+
+default allow := false
+
+allow if {
+    input.caller.type == "admin"
+}
+"#;
+
+        // Test that admin is allowed
+        let admin_fixture = TestFixture::new("admin_allowed")
+            .with_input(json!({"caller": {"type": "admin"}}))
             .expect_allowed(true);
 
-        let result = runner.run_fixture(&fixture, "package test\ndefault allow := false");
-        // Since we have a placeholder implementation, it always passes
-        assert!(result.passed);
+        let result = runner.run_fixture(&admin_fixture, policy);
+        assert!(result.passed, "Admin should be allowed: {:?}", result.error);
+
+        // Test that guest is denied
+        let guest_fixture = TestFixture::new("guest_denied")
+            .with_input(json!({"caller": {"type": "guest"}}))
+            .expect_allowed(false);
+
+        let result = runner.run_fixture(&guest_fixture, policy);
+        assert!(result.passed, "Guest should be denied: {:?}", result.error);
+    }
+
+    #[test]
+    fn test_runner_fixture_mismatch() {
+        let runner = TestRunner::default();
+
+        let policy = r#"
+package test
+
+default allow := false
+"#;
+
+        // Expect allowed but policy denies everything
+        let fixture = TestFixture::new("mismatch")
+            .with_input(json!({"caller": {"type": "admin"}}))
+            .expect_allowed(true);
+
+        let result = runner.run_fixture(&fixture, policy);
+        assert!(!result.passed, "Should fail due to mismatch");
+        assert!(result.error.is_some());
     }
 }
