@@ -439,12 +439,56 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 ### Week 9: Registry Client
 
-- [ ] Design registry API (OCI-compatible)
-- [ ] Implement bundle registry client
-- [ ] Add publish functionality
-- [ ] Add fetch functionality
-- [ ] Implement versioning support
-- [ ] Add caching layer
+- [x] Design registry API (OCI-compatible)
+  > **Completed**: Created `eunomia-registry` crate with OCI Distribution Spec support:
+  >
+  > - `RegistryConfig`: URL, namespace, auth, timeout, TLS settings
+  > - `RegistryAuth`: None, Basic, Bearer, AWS ECR (stub), GCP Artifact (stub)
+  > - `TlsConfig`: mTLS support with client cert/key
+  > - OCI types: `Manifest`, `Descriptor`, `MediaType`, `TagList`
+- [x] Implement bundle registry client
+  > **Completed**: `RegistryClient` with full OCI Distribution API:
+  >
+  > - `exists()`: Check if bundle exists (HEAD manifest)
+  > - `list_tags()`: List available versions
+  > - `fetch_manifest()`: Get OCI manifest
+  > - `fetch_blob()`: Download blob by digest
+  > - `upload_blob()`: Push blob with chunked uploads
+  > - `push_manifest()`: Push OCI manifest
+  > - Auth header generation for all methods
+- [x] Add publish functionality
+  > **Completed**: `RegistryClient::publish()` and CLI `eunomia publish`:
+  >
+  > - Serializes bundle to bytes
+  > - Computes SHA-256 digest
+  > - Uploads blob layer
+  > - Creates OCI manifest with annotations
+  > - CLI supports --registry, --service, --version, --token, --username/--password
+- [x] Add fetch functionality
+  > **Completed**: `RegistryClient::fetch()` and CLI `eunomia fetch`:
+  >
+  > - Fetches manifest to find bundle layer
+  > - Downloads blob by digest
+  > - Verifies size and checksum
+  > - Parses bundle from bytes
+  > - CLI supports --registry, --service, --version, --output, --info-only
+- [x] Implement versioning support
+  > **Completed**: `VersionQuery` and `VersionResolver`:
+  >
+  > - `Latest`: Resolves to highest semver tag
+  > - `Major(u64)`: Matches highest v{major}.x.x
+  > - `Minor(u64, u64)`: Matches highest v{major}.{minor}.x
+  > - `Exact(String)`: Matches exact tag
+  > - `Digest(String)`: Uses sha256 digest directly
+  > - Semantic version sorting for resolution
+- [x] Add caching layer
+  > **Completed**: `BundleCache` with file-based caching:
+  >
+  > - LRU eviction based on access time
+  > - Configurable max_size_bytes and max_age
+  > - `get()` / `put()` / `invalidate()` operations
+  > - `prune()` for cleanup with stats
+  > - Cross-platform cache directory via `dirs` crate
 
 ### Week 10: Control Plane API
 
