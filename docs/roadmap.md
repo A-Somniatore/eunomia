@@ -314,8 +314,12 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > **Completed**: `FixtureSet::from_json_file()` and `from_yaml_file()` for loading.
   > Runner integrates with `run_discovered_fixtures()` and `run_all()` methods.
   > Auto-detects policy files based on fixture naming conventions.
-- [ ] Create test utilities library
-  > Common assertions, input builders, result matchers
+- [x] Create test utilities library
+  > **Completed**: Created `test_utils` module with:
+  >
+  > - `InputBuilder` - Fluent builder for policy input JSON
+  > - Assertion helpers: `assert_allowed()`, `assert_denied()`, `assert_all_passed()`
+  > - Policy generators: `simple_allow_policy()`, `role_based_policy()`, `scope_based_policy()`
 - [ ] Document testing patterns
   > Add testing guide to docs/
 - [x] Add example test files with fixtures
