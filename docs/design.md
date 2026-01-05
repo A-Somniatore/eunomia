@@ -204,36 +204,46 @@ eunomia/
 │   │   └── src/
 │   │       ├── lib.rs
 │   │       ├── client.rs         # Registry API
-│   │       ├── publish.rs        # Publishing
-│   │       └── fetch.rs          # Fetching
+│   │       ├── cache.rs          # Local bundle caching
+│   │       ├── config.rs         # Registry configuration
+│   │       ├── oci.rs            # OCI manifest types
+│   │       └── version.rs        # Version resolution
 │   │
 │   ├── eunomia-distributor/      # Policy distribution
 │   │   ├── Cargo.toml
+│   │   ├── build.rs              # Protobuf compilation (optional)
 │   │   └── src/
-│   │       ├── lib.rs
-│   │       ├── scheduler.rs      # Push scheduling
+│   │       ├── lib.rs            # Main Distributor struct
+│   │       ├── config.rs         # Distributor configuration
+│   │       ├── discovery.rs      # Instance discovery (Static, K8s, DNS)
+│   │       ├── error.rs          # Error types
+│   │       ├── health.rs         # Health monitoring
+│   │       ├── instance.rs       # Instance representation
 │   │       ├── pusher.rs         # Bundle pushing
-│   │       └── health.rs         # Health checking
+│   │       ├── scheduler.rs      # Deployment scheduling
+│   │       ├── state.rs          # Deployment state tracking
+│   │       └── strategy.rs       # Deployment strategies
 │   │
-│   └── eunomia-audit/            # Audit logging
+│   └── eunomia-audit/            # Audit logging (future)
 │       ├── Cargo.toml
 │       └── src/
 │           ├── lib.rs
 │           ├── logger.rs         # Audit log emission
 │           └── schema.rs         # Audit event schema
 │
-├── eunomia-cli/                  # CLI application
+├── crates/eunomia-cli/           # CLI application
 │   ├── Cargo.toml
 │   └── src/
 │       ├── main.rs
 │       └── commands/
 │           ├── test.rs
-│           ├── compile.rs
+│           ├── build.rs
+│           ├── sign.rs
 │           ├── publish.rs
-│           ├── push.rs
-│           └── rollback.rs
+│           ├── fetch.rs
+│           └── push.rs           # (future)
 │
-├── eunomia-control-plane/        # Control plane service
+├── eunomia-control-plane/        # Control plane service (future)
 │   ├── Cargo.toml
 │   └── src/
 │       ├── main.rs
@@ -241,15 +251,17 @@ eunomia/
 │       ├── state.rs              # Deployment state
 │       └── reconciler.rs         # Desired state reconciliation
 │
-├── eunomia-action/               # GitHub Action
+├── eunomia-action/               # GitHub Action (future)
 │   ├── action.yml
 │   ├── Dockerfile
 │   └── entrypoint.sh
 │
-├── schemas/                      # JSON/Protobuf schemas
+├── proto/                        # Protobuf schemas
+│   └── control_plane.proto       # gRPC API definitions
+│
+├── schemas/                      # JSON schemas (future)
 │   ├── bundle.schema.json
-│   ├── audit-event.schema.json
-│   └── control-plane.proto
+│   └── audit-event.schema.json
 │
 └── examples/
     ├── simple-rbac/              # Basic RBAC example
