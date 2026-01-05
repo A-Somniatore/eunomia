@@ -5,6 +5,9 @@
 > **Last Updated**: 2026-01-05  
 > **Target Completion**: Week 20 (MVP Integration with Archimedes MVP)
 
+> ⚠️ **CTO REVIEW (2026-01-04)**: Sign-off pending. See [CTO Architecture Review](/docs/reviews/2026-01-04-cto-architecture-review.md)  
+> **BLOCKING ISSUE**: Local type definitions must be migrated to `themis-platform-types` before Week 2.
+
 ---
 
 ## Key Decisions

@@ -42,7 +42,7 @@ thiserror = "2.0"
 anyhow = "1.0"
 
 # CLI
-clap = { version = "4.0", features = ["derive"] }
+clap = { version = "4.0", features = ["derive", "env"] }
 
 # Logging & tracing
 tracing = "0.1"

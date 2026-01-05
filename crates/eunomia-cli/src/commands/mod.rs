@@ -1,6 +1,7 @@
 //! CLI commands and argument parsing.
 
 pub mod build;
+pub mod sign;
 pub mod test;
 pub mod validate;
 
@@ -23,6 +24,9 @@ pub enum Commands {
 
     /// Build a policy bundle
     Build(build::BuildArgs),
+
+    /// Sign a policy bundle
+    Sign(sign::SignArgs),
 
     /// Validate policies
     Validate(validate::ValidateArgs),

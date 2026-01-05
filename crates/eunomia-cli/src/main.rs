@@ -23,6 +23,7 @@ fn main() -> Result<()> {
     match cli.command {
         Commands::Test(args) => commands::test::run(&args),
         Commands::Build(args) => commands::build::run(args),
+        Commands::Sign(args) => commands::sign::run(&args),
         Commands::Validate(args) => commands::validate::run(&args),
         Commands::Version => {
             println!("eunomia {}", env!("CARGO_PKG_VERSION"));
