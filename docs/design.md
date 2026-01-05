@@ -866,54 +866,160 @@ All authorization decisions include the policy version:
 
 ## 8. Bundle Compilation
 
+### 8.0 Design Decisions
+
+#### 8.0.1 OPA Bundle Format Compatibility
+
+**Decision**: Use OPA-native bundle format (tar.gz) for maximum compatibility.
+
+**Rationale**:
+
+- OPA and Regorus can load bundles directly without transformation
+- Standard format enables tooling interoperability
+- Well-documented format with ecosystem support
+
+**Implementation**:
+
+```rust
+// Bundle is exported as tar.gz with OPA-compatible structure
+bundle.write_to_tarball(path)?;
+
+// Bundle can be loaded directly by OPA/Regorus
+// opa run --bundle users-service-v1.0.0.bundle.tar.gz
+```
+
+#### 8.0.2 Bundle Manifest Format
+
+**Decision**: Use `.manifest` JSON file at bundle root (OPA standard).
+
+**Required Fields**:
+
+- `revision`: Monotonically increasing revision number
+- `roots`: Array of root documents (e.g., `["users_service"]`)
+
+**Extended Fields** (Eunomia-specific):
+
+- `version`: Semantic version (e.g., `"1.2.0"`)
+- `git_commit`: Source commit SHA
+- `created_at`: RFC 3339 timestamp
+- `checksum`: SHA-256 of bundle contents
+- `service`: Service name this bundle is for
+
+**Example**:
+
+```json
+{
+  "revision": "2026010512000000",
+  "roots": ["users_service", "common"],
+  "version": "1.2.0",
+  "service": "users-service",
+  "git_commit": "abc123def456",
+  "created_at": "2026-01-05T12:00:00Z",
+  "checksum": {
+    "algorithm": "sha256",
+    "value": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}
+```
+
+#### 8.0.3 Policy File Organization in Bundle
+
+**Decision**: Organize policies by package namespace under root directories.
+
+**Mapping Rules**:
+
+- Package `users_service.authz` → `users_service/authz.rego`
+- Package `common.roles` → `common/roles.rego`
+- Data file `data.json` in `users-service/` → `users_service/data.json`
+
+**Implementation**:
+
+```rust
+fn package_to_path(package: &str) -> PathBuf {
+    // "users_service.authz" -> "users_service/authz.rego"
+    let parts: Vec<&str> = package.split('.').collect();
+    let mut path = PathBuf::new();
+    for part in &parts[..parts.len() - 1] {
+        path.push(part);
+    }
+    path.push(format!("{}.rego", parts.last().unwrap()));
+    path
+}
+```
+
+#### 8.0.4 Bundle Checksum Calculation
+
+**Decision**: Use SHA-256 over canonical bundle content for integrity verification.
+
+**Process**:
+
+1. Sort all files alphabetically by path
+2. For each file: append `path + "\n" + content + "\n"`
+3. Compute SHA-256 of concatenated result
+4. Store as lowercase hex string
+
+**Rationale**: Deterministic checksums regardless of tar ordering.
+
 ### 8.1 Bundle Structure
 
 ```
 users-service-v1.2.0.bundle.tar.gz
-├── manifest.json
-├── policy/
-│   ├── users_service/
-│   │   └── authz.rego
-│   └── common/
-│       ├── roles.rego
-│       └── identity.rego
-├── data/
-│   └── static_data.json        # Optional static data
-└── signatures/
-    └── manifest.sig            # Bundle signature
+├── .manifest                   # OPA bundle manifest (JSON)
+├── users_service/              # Root namespace directory
+│   ├── authz.rego             # Main authorization policy
+│   └── data.json              # Optional static data
+├── common/                     # Shared modules
+│   ├── roles.rego
+│   └── identity.rego
+└── .signatures/                # Optional signatures
+    └── .manifest.sig          # Ed25519 signature of manifest
 ```
 
 ### 8.2 Manifest Format
 
+The `.manifest` file follows OPA's bundle specification with Eunomia extensions:
+
 ```json
 {
-  "version": "1.2.0",
-  "service": "users-service",
-  "created_at": "2026-01-04T12:00:00Z",
-  "git_commit": "abc123def456",
-  "git_repository": "github.com/somniatore/policies",
-
-  "entrypoint": "users_service.authz.allow",
-
-  "dependencies": ["common.roles", "common.identity"],
-
-  "checksum": {
-    "algorithm": "sha256",
-    "value": "e3b0c44298fc..."
-  },
-
-  "signature": {
-    "algorithm": "ed25519",
-    "key_id": "policy-signing-key-2026",
-    "value": "base64-encoded-signature"
-  },
-
+  "revision": "2026010512000000",
+  "roots": ["users_service", "common"],
   "metadata": {
-    "author": "platform-team",
-    "change_summary": "Added support for API key authentication"
+    "eunomia": {
+      "version": "1.2.0",
+      "service": "users-service",
+      "git_commit": "abc123def456",
+      "git_repository": "github.com/somniatore/policies",
+      "created_at": "2026-01-05T12:00:00Z",
+      "author": "platform-team",
+      "change_summary": "Added support for API key authentication"
+    },
+    "checksum": {
+      "algorithm": "sha256",
+      "value": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
   }
 }
 ```
+
+**OPA Standard Fields**:
+
+| Field      | Type       | Description                        |
+| ---------- | ---------- | ---------------------------------- |
+| `revision` | string     | Unique bundle revision (timestamp) |
+| `roots`    | string[]   | Root documents exposed by bundle   |
+| `metadata` | object     | Custom metadata (extensible)       |
+
+**Eunomia Extension Fields** (under `metadata.eunomia`):
+
+| Field            | Type   | Description                           |
+| ---------------- | ------ | ------------------------------------- |
+| `version`        | string | Semantic version (SemVer 2.0)         |
+| `service`        | string | Target service name                   |
+| `git_commit`     | string | Source commit SHA                     |
+| `git_repository` | string | Source repository URL                 |
+| `created_at`     | string | Bundle creation timestamp (RFC 3339) |
+| `author`         | string | Bundle author/team                    |
+| `change_summary` | string | Description of changes                |
 
 ### 8.3 Compilation Process
 
@@ -1653,25 +1759,75 @@ for test in suite.tests() {
 
 #### 11.0.3 Mock Identity Builders
 
-**Decision**: Provide builder-pattern helpers for common identity types.
+**Decision**: Provide separate builder types for each identity type with factory methods for common scenarios.
+
+**Implementation** (in `eunomia_test::mock_identity`):
 
 ```rust
-use eunomia_test::MockIdentity;
+use eunomia_test::{MockUser, MockSpiffe, MockApiKey};
 
-// User identity
-let admin = MockIdentity::user("admin-123")
-    .with_roles(["admin"])
+// User identity with factory methods
+let admin = MockUser::admin();  // Pre-configured admin user
+let viewer = MockUser::viewer();
+let custom = MockUser::new("user-123")
+    .with_roles(vec!["custom-role"])
+    .with_tenant("tenant-1")
     .build();
 
-// SPIFFE service identity
-let orders = MockIdentity::spiffe("orders-service")
+// SPIFFE service identity with factory methods
+let orders = MockSpiffe::orders_service();  // Pre-configured
+let gateway = MockSpiffe::gateway();
+let custom = MockSpiffe::new("custom-service")
     .with_trust_domain("example.com")
+    .with_namespace("production")
     .build();
 
-// API key identity
-let api = MockIdentity::api_key("key-123")
-    .with_scopes(["users:read", "users:write"])
+// API key identity with factory methods
+let read_only = MockApiKey::read_only();
+let full = MockApiKey::full_access();
+let custom = MockApiKey::new("key-123")
+    .with_scopes(vec!["users:read", "users:write"])
     .build();
+```
+
+**Factory Methods Available**:
+
+| Type         | Factory Methods                                            |
+| ------------ | ---------------------------------------------------------- |
+| `MockUser`   | `admin()`, `viewer()`, `editor()`, `guest()`, `super_admin()` |
+| `MockSpiffe` | `users_service()`, `orders_service()`, `gateway()`         |
+| `MockApiKey` | `read_only()`, `full_access()`, `read_service()`, `write_service()` |
+
+#### 11.0.4 Test Utilities
+
+**Decision**: Provide a utilities module with common test helpers.
+
+**Available in `eunomia_test::test_utils`**:
+
+```rust
+use eunomia_test::test_utils::{InputBuilder, assert_allowed, assert_denied};
+
+// Fluent input builder
+let input = InputBuilder::new()
+    .user("user-123", vec!["admin"])
+    .operation("getUser")
+    .method("GET")
+    .path("/users/123")
+    .build();
+
+// Assertion helpers
+assert_allowed(&engine, &input)?;
+assert_denied(&engine, &input)?;
+```
+
+**Policy Generators** (for testing the test framework):
+
+```rust
+use eunomia_test::test_utils::{simple_allow_policy, role_based_policy};
+
+// Generate simple policies for testing
+let policy = simple_allow_policy("test.authz");
+let rbac_policy = role_based_policy("test.authz", &["admin", "editor"]);
 ```
 
 ### 11.1 Test File Structure
