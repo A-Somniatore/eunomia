@@ -287,14 +287,24 @@ The test runner currently evaluates test files in isolation. Tests that use `imp
 (like `import data.authz`) will fail because the imported modules aren't loaded. This will be
 addressed in Week 6 with policy data file support and proper dependency loading.
 
-### Week 6: Test Fixtures
+### Week 6: Test Fixtures & Import Resolution
 
+> **Design Decisions**: See [design.md Section 11.0](design.md#110-design-decisions)
+
+- [ ] **Fix import resolution** - Load all `.rego` files so imports work
+  > Load all policy files into single RegoEngine before test execution
 - [ ] Implement fixture loading from JSON/YAML
-- [ ] Support data files for policies
-- [ ] Add mock identity helpers
+  > Support `*_fixtures.json` and `*_fixtures.yaml` files
+- [ ] Support data files for policies (`data.json`)
+  > Load static data files into policy evaluation context
+- [ ] Add mock identity helpers (`MockIdentity` builder)
+  > Convenience builders for user, SPIFFE, and API key identities
 - [ ] Create test utilities library
+  > Common assertions, input builders, result matchers
 - [ ] Document testing patterns
-- [ ] Add example test files
+  > Add testing guide to docs/
+- [ ] Add example test files with fixtures
+  > Working examples using fixture-based testing
 
 ### Week 7: Bundle Compilation
 

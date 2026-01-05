@@ -1599,6 +1599,78 @@ impl DegradationLevel {
 
 ## 11. Testing Framework
 
+### 11.0 Design Decisions
+
+#### 11.0.1 Import Resolution Strategy
+
+**Decision**: Load all `.rego` files from the policy directory into a single `RegoEngine` instance before running tests.
+
+**Rationale**:
+- Tests commonly use `import data.<package>` to reference the policy under test
+- Loading all policies together allows OPA's module system to resolve references
+- This matches how OPA's native `opa test` command works
+
+**Implementation**:
+```rust
+// TestRunner.run_suite() loads all policy files first
+let mut engine = RegoEngine::new();
+
+// Load ALL .rego files (both policies and tests)
+for (path, source) in suite.policy_files() {
+    engine.add_policy(&name, source)?;
+}
+
+// Then execute each test rule
+for test in suite.tests() {
+    engine.eval_bool(&test.qualified_name)?;
+}
+```
+
+#### 11.0.2 Fixture File Conventions
+
+**Decision**: Use `*_fixtures.json` or `*_fixtures.yaml` naming pattern.
+
+**Structure**:
+```json
+{
+  "name": "users_service_authz",
+  "package": "users_service.authz",
+  "fixtures": [
+    {
+      "name": "admin_can_delete_user",
+      "description": "Admin role grants full access",
+      "input": { "caller": { "type": "user", "roles": ["admin"] } },
+      "expected_allowed": true
+    }
+  ]
+}
+```
+
+**Discovery**: Fixtures are discovered alongside test files and loaded when present.
+
+#### 11.0.3 Mock Identity Builders
+
+**Decision**: Provide builder-pattern helpers for common identity types.
+
+```rust
+use eunomia_test::MockIdentity;
+
+// User identity
+let admin = MockIdentity::user("admin-123")
+    .with_roles(["admin"])
+    .build();
+
+// SPIFFE service identity  
+let orders = MockIdentity::spiffe("orders-service")
+    .with_trust_domain("example.com")
+    .build();
+
+// API key identity
+let api = MockIdentity::api_key("key-123")
+    .with_scopes(["users:read", "users:write"])
+    .build();
+```
+
 ### 11.1 Test File Structure
 
 ```rego
