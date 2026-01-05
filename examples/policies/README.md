@@ -2,6 +2,16 @@
 
 This directory contains example authorization policies demonstrating common patterns for the Themis Platform.
 
+## Quick Reference
+
+| Example | Pattern | Description |
+|---------|---------|-------------|
+| [rbac-service](./rbac-service/) | Role-Based Access Control | Hierarchical roles with inherited permissions |
+| [multi-tenant](./multi-tenant/) | Multi-Tenant SaaS | Tenant isolation, ownership, cross-tenant access |
+| [api-gateway](./api-gateway/) | API Key Authorization | Scopes, expiration, rate limiting tiers |
+| [users-service](./users-service/) | Basic Service | User/service/API key authentication |
+| [orders-service](./orders-service/) | Cross-Service Access | Service-to-service authorization |
+
 ## Directory Structure
 
 ```
@@ -9,6 +19,18 @@ examples/policies/
 ├── common/                     # Shared utilities and base rules
 │   ├── authz.rego             # Reusable authorization helpers
 │   └── authz_test.rego        # Tests for common utilities
+├── rbac-service/              # Role-based access control example
+│   ├── authz.rego             # RBAC with role hierarchy
+│   ├── authz_test.rego        # Comprehensive RBAC tests
+│   └── README.md              # Pattern documentation
+├── multi-tenant/              # Multi-tenant SaaS example
+│   ├── authz.rego             # Tenant isolation rules
+│   ├── authz_test.rego        # Tenant isolation tests
+│   └── README.md              # Pattern documentation
+├── api-gateway/               # API key authorization example
+│   ├── authz.rego             # Scope-based access control
+│   ├── authz_test.rego        # Scope and expiry tests
+│   └── README.md              # Pattern documentation
 ├── users-service/             # Users service policies
 │   ├── authz.rego             # Authorization rules
 │   ├── authz_test.rego        # Policy tests (Rego)
