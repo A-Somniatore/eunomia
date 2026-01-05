@@ -960,6 +960,54 @@ fn package_to_path(package: &str) -> PathBuf {
 
 **Rationale**: Deterministic checksums regardless of tar ordering.
 
+#### 8.0.5 Bundle Signing
+
+**Decision**: Use Ed25519 signatures for bundle authenticity verification.
+
+**Algorithm**: Ed25519 (RFC 8032)
+
+- Fast and secure elliptic curve signing
+- 32-byte public keys, 64-byte signatures
+- Deterministic signatures (no random nonce needed)
+
+**Signed Content**:
+
+- Sign the canonical bundle checksum (SHA-256 hex string)
+- This ensures both integrity (via checksum) and authenticity (via signature)
+
+**Signature Format** (`.signatures/.manifest.sig`):
+
+```json
+{
+  "signatures": [
+    {
+      "keyid": "eunomia-prod-2026",
+      "algorithm": "ed25519",
+      "value": "<base64-encoded-signature>"
+    }
+  ]
+}
+```
+
+**Key Management**:
+
+- Key IDs are human-readable identifiers (e.g., "eunomia-prod-2026")
+- Private keys stored securely (environment variable or file)
+- Public keys distributed to Archimedes instances for verification
+- Support for key rotation with multiple valid keys
+
+**CLI Integration**:
+
+```bash
+# Sign a bundle
+eunomia sign --bundle ./bundle.tar.gz --key-file ./private.key --key-id prod-2026
+
+# Verify a bundle
+eunomia verify --bundle ./bundle.tar.gz --public-key ./public.key
+```
+
+**Rationale**: Ed25519 is fast, secure, and widely supported. Signing the checksum rather than the full bundle content is efficient and provides the same security guarantees.
+
 ### 8.1 Bundle Structure
 
 ```
