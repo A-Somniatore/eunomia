@@ -510,11 +510,14 @@ dependencies = [
  "clap",
  "eunomia-compiler",
  "eunomia-core",
+ "eunomia-registry",
  "eunomia-test",
  "serde",
  "serde_json",
+ "tokio",
  "tracing",
  "tracing-subscriber",
+ "url",
 ]
 
 [[package]]

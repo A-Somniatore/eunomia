@@ -24,6 +24,8 @@ fn main() -> Result<()> {
         Commands::Test(args) => commands::test::run(&args),
         Commands::Build(args) => commands::build::run(args),
         Commands::Sign(args) => commands::sign::run(&args),
+        Commands::Publish(args) => commands::publish::run(&args),
+        Commands::Fetch(args) => commands::fetch::run(&args),
         Commands::Validate(args) => commands::validate::run(&args),
         Commands::Version => {
             println!("eunomia {}", env!("CARGO_PKG_VERSION"));

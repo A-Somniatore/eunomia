@@ -15,12 +15,15 @@ path = "src/main.rs"
 eunomia-core = { workspace = true }
 eunomia-compiler = { workspace = true }
 eunomia-test = { workspace = true }
+eunomia-registry = { workspace = true }
 clap = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 tracing = { workspace = true }
 tracing-subscriber = { workspace = true }
 anyhow = { workspace = true }
+tokio = { workspace = true }
+url = { workspace = true }
 
 [lints]
 workspace = true
