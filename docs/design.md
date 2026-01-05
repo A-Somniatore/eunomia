@@ -1008,6 +1008,144 @@ eunomia verify --bundle ./bundle.tar.gz --public-key ./public.key
 
 **Rationale**: Ed25519 is fast, secure, and widely supported. Signing the checksum rather than the full bundle content is efficient and provides the same security guarantees.
 
+#### 8.0.6 Registry API Design
+
+**Decision**: Use OCI Distribution Specification-compatible API for bundle registry.
+
+**Rationale**:
+
+- OCI registries (Docker Registry, Harbor, ECR, GCR) are battle-tested infrastructure
+- Enables use of existing registry infrastructure and tooling
+- Built-in content-addressable storage and garbage collection
+- Supports geo-replication out of the box
+
+**OCI Artifact Mapping**:
+
+```
+Repository: eunomia/policies/<service-name>
+Tag:        v<semver>  (e.g., v1.2.0)
+Digest:     sha256:<content-hash>
+
+Media Types:
+  - application/vnd.eunomia.policy.bundle.v1+tar.gz  (bundle)
+  - application/vnd.eunomia.policy.manifest.v1+json  (manifest)
+  - application/vnd.eunomia.policy.signature.v1+json (signature)
+```
+
+**Registry URL Format**:
+
+```
+<registry-host>/<namespace>/<service-name>:<version>
+
+Examples:
+  registry.themis.io/policies/users-service:v1.2.0
+  localhost:5000/eunomia/users-service:v1.0.0
+```
+
+**API Operations**:
+
+| Operation    | HTTP Method | Endpoint                                    |
+| ------------ | ----------- | ------------------------------------------- |
+| Check exists | HEAD        | `/v2/<name>/manifests/<reference>`          |
+| Get manifest | GET         | `/v2/<name>/manifests/<reference>`          |
+| Push blob    | POST/PUT    | `/v2/<name>/blobs/uploads/`                 |
+| Pull blob    | GET         | `/v2/<name>/blobs/<digest>`                 |
+| List tags    | GET         | `/v2/<name>/tags/list`                      |
+| Delete tag   | DELETE      | `/v2/<name>/manifests/<reference>`          |
+
+**Client Configuration**:
+
+```rust
+pub struct RegistryConfig {
+    /// Registry URL (e.g., "https://registry.themis.io")
+    pub url: String,
+
+    /// Namespace prefix (e.g., "policies")
+    pub namespace: String,
+
+    /// Authentication method
+    pub auth: RegistryAuth,
+
+    /// Request timeout
+    pub timeout: Duration,
+
+    /// TLS configuration for mTLS
+    pub tls: Option<TlsConfig>,
+}
+
+pub enum RegistryAuth {
+    /// No authentication (for local development)
+    None,
+
+    /// Basic authentication (username/password or username/token)
+    Basic { username: String, password: String },
+
+    /// Bearer token (OAuth2 / service account)
+    Bearer { token: String },
+
+    /// AWS ECR (uses IAM credentials)
+    AwsEcr { region: String },
+
+    /// GCP Artifact Registry (uses ADC)
+    GcpArtifact { project: String, location: String },
+}
+```
+
+**Version Resolution**:
+
+- `latest` → Most recent semantic version
+- `v1.2.3` → Exact version match
+- `v1.2` → Latest patch in minor version
+- `v1` → Latest minor/patch in major version
+- `sha256:abc...` → Exact digest match
+
+#### 8.0.7 Bundle Caching Strategy
+
+**Decision**: Use local file-based cache with LRU eviction.
+
+**Cache Structure**:
+
+```
+$EUNOMIA_CACHE_DIR/
+├── bundles/
+│   ├── users-service/
+│   │   ├── v1.2.0.bundle.tar.gz
+│   │   ├── v1.2.0.manifest.json
+│   │   └── v1.1.0.bundle.tar.gz
+│   └── orders-service/
+│       └── v1.0.0.bundle.tar.gz
+├── signatures/
+│   └── users-service/
+│       └── v1.2.0.sig
+└── cache.db  # SQLite index (optional)
+```
+
+**Cache Configuration**:
+
+```rust
+pub struct CacheConfig {
+    /// Cache directory (default: ~/.eunomia/cache)
+    pub dir: PathBuf,
+
+    /// Maximum cache size in bytes (default: 1GB)
+    pub max_size: u64,
+
+    /// Time-to-live for cache entries (default: 7 days)
+    pub ttl: Duration,
+
+    /// Enable cache integrity verification
+    pub verify_checksums: bool,
+}
+```
+
+**Cache Operations**:
+
+- `get(service, version)` → Returns cached bundle if present and valid
+- `put(service, version, bundle)` → Stores bundle, evicts LRU if needed
+- `invalidate(service, version)` → Removes specific entry
+- `clear()` → Removes all cached entries
+- `prune()` → Removes expired entries, enforces size limit
+
 ### 8.1 Bundle Structure
 
 ```

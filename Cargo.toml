@@ -4,6 +4,7 @@ members = [
     "crates/eunomia-core",
     "crates/eunomia-compiler",
     "crates/eunomia-test",
+    "crates/eunomia-registry",
     "crates/eunomia-cli",
 ]
 
@@ -59,10 +60,19 @@ chrono = { version = "0.4", features = ["serde"] }
 proptest = "1.0"
 tempfile = "3.15"
 
+# HTTP client
+reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
+url = "2.5"
+
+# File system utilities
+walkdir = "2.5"
+dirs = "5.0"
+
 # Workspace crates
 eunomia-core = { path = "crates/eunomia-core" }
 eunomia-compiler = { path = "crates/eunomia-compiler" }
 eunomia-test = { path = "crates/eunomia-test" }
+eunomia-registry = { path = "crates/eunomia-registry" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
