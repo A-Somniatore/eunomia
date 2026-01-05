@@ -5,7 +5,7 @@
 > **Last Updated**: 2026-01-05  
 > **Target Completion**: Week 20 (MVP Integration with Archimedes MVP)
 
-> ⚠️ **CTO REVIEW (2026-01-04)**: Sign-off pending. See [CTO Architecture Review](/docs/reviews/2026-01-04-cto-architecture-review.md)  
+> ⚠️ **CTO REVIEW (2026-01-04)**: Sign-off pending. See [CTO Architecture Review](~/Documents/projects/Startups/ThemisPlatform/docs/reviews/2026-01-04-cto-architecture-review.md)  
 > **BLOCKING ISSUE**: Local type definitions must be migrated to `themis-platform-types` before Week 2.
 
 ---
@@ -376,16 +376,62 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 ### Week 8: Bundle Signing & CLI
 
-- [ ] Implement Ed25519 signing
-- [ ] Generate bundle signature
-- [ ] Add public key management
-- [ ] Implement `eunomia build` command
-- [ ] Add `eunomia sign` command
-- [ ] Write signing documentation
+- [x] Implement Ed25519 signing
+  > **Completed**: Added `signing` module to `eunomia-core`:
+  >
+  > - `SigningKeyPair`: Ed25519 key generation, base64 export/import
+  > - `BundleSigner`: Sign bundle checksums with private key
+  > - `BundleVerifier`: Verify signatures with public keys
+  > - `SignedBundle`: Bundle with attached signatures
+  > - `SignatureFile`: OPA-compatible `.signatures.json` format
+  > - Algorithm: Ed25519 (RFC 8032) via `ed25519-dalek` crate
+- [x] Generate bundle signature
+  > **Completed**: `BundleSigner::sign()` creates signatures:
+  >
+  > - Signs SHA-256 checksum (hex string) of bundle
+  > - Produces base64-encoded Ed25519 signature
+  > - Returns `BundleSignature` with key_id, algorithm, value
+- [x] Add public key management
+  > **Completed**: Key management features:
+  >
+  > - `SigningKeyPair::generate()` for new key pairs
+  > - `public_key_base64()` and `private_key_base64()` for export
+  > - `from_private_key_base64()` for key restoration
+  > - Human-readable key IDs for signature identification
+- [x] Implement `eunomia build` command
+  > **Completed**: Full build command implementation:
+  >
+  > - `Bundler::add_policy_dir()` for recursive policy loading
+  > - `Bundler::compile_to_file()` for bundle output
+  > - Shows bundle metadata (name, version, policies, checksum)
+  > - Progress output with checkmarks
+- [x] Add `eunomia sign` command
+  > **Completed**: Sign command with full functionality:
+  >
+  > - `--key-file` for private key file path
+  > - `--key` / `EUNOMIA_SIGNING_KEY` env var support
+  > - `--key-id` for signature identification
+  > - `--generate-key` flag for Ed25519 key pair generation
+  > - Outputs `.sig` file alongside bundle
+- [x] Write signing documentation
+  > **Completed**: Added Section 8.0.5 to design.md:
+  >
+  > - Algorithm choice rationale (Ed25519 vs RSA/ECDSA)
+  > - Signed content (SHA-256 checksum)
+  > - Signature format (OPA-compatible JSON)
+  > - Key management approach
+  > - CLI integration examples
 
 ### Phase E2 Milestone
 
 **Criteria**: Policy tests run and report results, signed bundles are created
+
+> ✅ **Status**: Phase E2 Complete!
+>
+> - Week 5 complete: Test runner with discovery, execution, reporting, CLI
+> - Week 6 complete: Fixtures, import resolution, mock identities, test utilities
+> - Week 7 complete: Bundle compilation with manifest, checksums, tar.gz format
+> - Week 8 complete: Ed25519 signing, CLI build/sign commands, key management
 
 ---
 
