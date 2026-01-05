@@ -480,6 +480,121 @@ policies/
     └── authz_test.rego
 ```
 
+### 6. Test Role Hierarchies
+
+If using hierarchical roles, test that inheritance works correctly:
+
+```rego
+# Test higher roles can do what lower roles can
+test_admin_inherits_viewer_permissions if {
+    authz.allow with input as {
+        "caller": {"type": "user", "roles": ["admin"]},
+        "operation_id": "viewContent"  # A viewer-level operation
+    }
+}
+
+# Test lower roles cannot escalate
+test_viewer_cannot_access_admin_operations if {
+    not authz.allow with input as {
+        "caller": {"type": "user", "roles": ["viewer"]},
+        "operation_id": "deleteUser"  # An admin-level operation
+    }
+}
+```
+
+### 7. Test Tenant Isolation (Multi-Tenant)
+
+For multi-tenant applications, always test cross-tenant access:
+
+```rego
+# Users can access their own tenant
+test_user_accesses_own_tenant if {
+    authz.allow with input as {
+        "caller": {"type": "user", "tenant_id": "tenant-a"},
+        "context": {"tenant_id": "tenant-a"}
+    }
+}
+
+# Users cannot access other tenants
+test_user_cannot_access_other_tenant if {
+    not authz.allow with input as {
+        "caller": {"type": "user", "tenant_id": "tenant-a"},
+        "context": {"tenant_id": "tenant-b"}
+    }
+}
+```
+
+### 8. Test Scope Requirements
+
+For API key/scope-based authorization, test all scope combinations:
+
+```rego
+# Single scope sufficient
+test_read_scope_allows_read if {
+    authz.allow with input as {
+        "caller": {"type": "api_key", "scopes": ["users:read"]},
+        "operation_id": "getUser"
+    }
+}
+
+# Multiple scopes required
+test_multiple_scopes_required if {
+    authz.allow with input as {
+        "caller": {"type": "api_key", "scopes": ["analytics:read", "analytics:export"]},
+        "operation_id": "generateReport"
+    }
+}
+
+# Missing one scope fails
+test_missing_scope_denied if {
+    not authz.allow with input as {
+        "caller": {"type": "api_key", "scopes": ["analytics:read"]},
+        "operation_id": "generateReport"  # Requires both read and export
+    }
+}
+```
+
+### 9. Test Time-Based Constraints
+
+If policies have time-based rules, test expiration and validity windows:
+
+```rego
+test_expired_key_denied if {
+    not authz.allow with input as {
+        "caller": {
+            "type": "api_key",
+            "expires_at": "2020-01-01T00:00:00Z"
+        },
+        "timestamp": "2026-01-05T10:00:00Z"
+    }
+}
+
+test_valid_key_allowed if {
+    authz.allow with input as {
+        "caller": {
+            "type": "api_key",
+            "scopes": ["users:read"],
+            "expires_at": "2027-01-01T00:00:00Z"
+        },
+        "operation_id": "getUser",
+        "timestamp": "2026-01-05T10:00:00Z"
+    }
+}
+```
+
+### 10. Coverage Checklist
+
+Before submitting policy changes, ensure you have tests for:
+
+- [ ] All `allow` rules (positive tests)
+- [ ] Default deny behavior (negative tests)
+- [ ] Each operation defined in the policy
+- [ ] Each caller type (user, spiffe, api_key, anonymous)
+- [ ] Role/scope boundaries and inheritance
+- [ ] Resource ownership checks
+- [ ] Tenant isolation (if applicable)
+- [ ] Time-based constraints (if applicable)
+
 ---
 
 ## Troubleshooting
