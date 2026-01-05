@@ -31,9 +31,9 @@ use eunomia_compiler::RegoEngine;
 use serde::{Deserialize, Serialize};
 use tracing::{debug, info, warn};
 
-use crate::discovery::{DiscoveredTest, TestSuite};
+use crate::discovery::{DiscoveredFixture, DiscoveredTest, FixtureFormat, TestSuite};
 use crate::error::{Result, TestError};
-use crate::fixtures::TestFixture;
+use crate::fixtures::{FixtureSet, TestFixture};
 
 /// Configuration for the test runner.
 #[derive(Debug, Clone)]
@@ -203,6 +203,12 @@ impl TestResults {
     /// Returns an iterator over failed tests.
     pub fn failures(&self) -> impl Iterator<Item = &TestResult> {
         self.results.iter().filter(|r| !r.passed)
+    }
+
+    /// Returns a slice of all test results.
+    #[must_use]
+    pub fn results(&self) -> &[TestResult] {
+        &self.results
     }
 }
 
@@ -404,6 +410,152 @@ impl TestRunner {
 
         results.total_duration = start.elapsed();
         Ok(results)
+    }
+
+    /// Runs all fixture files discovered in a test suite.
+    ///
+    /// This method loads each discovered fixture file, finds the associated
+    /// policy file, and runs all fixtures against that policy.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if fixture or policy loading fails.
+    pub fn run_discovered_fixtures(&self, suite: &TestSuite) -> Result<TestResults> {
+        let start = Instant::now();
+        let mut results = TestResults::new();
+
+        let fixtures = suite.fixtures();
+        info!(count = fixtures.len(), "Running discovered fixtures");
+
+        for discovered in fixtures {
+            let fixture_results = self.run_discovered_fixture(discovered, suite)?;
+            for result in fixture_results.results() {
+                let failed = !result.passed;
+                results.add(result.clone());
+
+                if self.config.fail_fast && failed {
+                    warn!("Stopping early due to fail-fast mode");
+                    results.total_duration = start.elapsed();
+                    return Ok(results);
+                }
+            }
+        }
+
+        results.total_duration = start.elapsed();
+        info!(
+            passed = results.passed(),
+            failed = results.failed(),
+            duration = ?results.total_duration,
+            "Fixture tests complete"
+        );
+
+        Ok(results)
+    }
+
+    /// Runs a single discovered fixture file.
+    fn run_discovered_fixture(
+        &self,
+        discovered: &DiscoveredFixture,
+        suite: &TestSuite,
+    ) -> Result<TestResults> {
+        debug!(file = %discovered.file.display(), "Running discovered fixture");
+
+        // Load the fixture set
+        let fixture_set = match discovered.format {
+            FixtureFormat::Json => FixtureSet::from_json_file(&discovered.file)?,
+            FixtureFormat::Yaml => FixtureSet::from_yaml_file(&discovered.file)?,
+        };
+
+        // Find the policy source
+        let policy_source = self.find_policy_for_fixture(discovered, suite)?;
+
+        // Run all fixtures in the set
+        self.run_fixture_set(&fixture_set.fixtures, &policy_source)
+    }
+
+    /// Finds the policy source for a discovered fixture.
+    #[allow(clippy::unused_self)]
+    fn find_policy_for_fixture(
+        &self,
+        discovered: &DiscoveredFixture,
+        suite: &TestSuite,
+    ) -> Result<String> {
+        // First, check if there's an associated test file with a policy
+        if let Some(ref test_file) = discovered.test_file {
+            if let Some(source) = suite.policy_files().get(test_file) {
+                return Ok(source.clone());
+            }
+        }
+
+        // Try to find a policy file based on the fixture file name
+        // e.g., authz_fixtures.json -> authz.rego
+        let fixture_stem = discovered
+            .file
+            .file_stem()
+            .and_then(|s| s.to_str())
+            .unwrap_or("");
+
+        // Remove _fixtures suffix
+        let policy_name = fixture_stem
+            .strip_suffix("_fixtures")
+            .or_else(|| fixture_stem.strip_suffix("_fixture"))
+            .unwrap_or(fixture_stem);
+
+        // Look for matching policy file
+        for (path, source) in suite.policy_files() {
+            let stem = path.file_stem().and_then(|s| s.to_str()).unwrap_or("");
+            if stem == policy_name || stem == format!("{policy_name}_test") {
+                return Ok(source.clone());
+            }
+        }
+
+        // If fixture set specifies a package, try to match
+        // This requires loading the fixture first - we'll use a simple heuristic
+
+        // Fallback: use the first non-test policy file
+        for (path, source) in suite.policy_files() {
+            let name = path.to_string_lossy();
+            if !name.contains("_test") {
+                return Ok(source.clone());
+            }
+        }
+
+        Err(TestError::ExecutionError {
+            message: format!(
+                "Could not find policy file for fixture: {}",
+                discovered.file.display()
+            ),
+        })
+    }
+
+    /// Runs all tests in a suite, including both native Rego tests and fixtures.
+    ///
+    /// This is a convenience method that runs `run_suite` and `run_discovered_fixtures`
+    /// and combines the results.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if test execution fails.
+    pub fn run_all(&self, suite: &TestSuite) -> Result<TestResults> {
+        let start = Instant::now();
+        let mut combined = TestResults::new();
+
+        // Run native Rego tests
+        let rego_results = self.run_suite(suite)?;
+        for result in rego_results.results() {
+            combined.add(result.clone());
+        }
+
+        // Run fixture-based tests (if any)
+        if !suite.fixtures().is_empty() {
+            let fixture_results = self.run_discovered_fixtures(suite)?;
+            for result in fixture_results.results() {
+                combined.add(result.clone());
+            }
+        }
+
+        combined.total_duration = start.elapsed();
+        Ok(combined)
     }
 
     /// Returns the test configuration.
