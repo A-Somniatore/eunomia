@@ -292,26 +292,26 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > - Verbose output (`-v`)
   > - No-color mode (`--no-color`)
   > - Filter option (`--filter`)
-  > - Note: Native Rego tests with imports require loading dependencies (Week 6)
-
-### Known Limitation (Week 5)
-
-The test runner currently evaluates test files in isolation. Tests that use `import` statements
-(like `import data.authz`) will fail because the imported modules aren't loaded. This will be
-addressed in Week 6 with policy data file support and proper dependency loading.
 
 ### Week 6: Test Fixtures & Import Resolution
 
 > **Design Decisions**: See [design.md Section 11.0](design.md#110-design-decisions)
 
-- [ ] **Fix import resolution** - Load all `.rego` files so imports work
-  > Load all policy files into single RegoEngine before test execution
+- [x] **Fix import resolution** - Load all `.rego` files so imports work
+  > **Completed**: All `.rego` policy files are now loaded into the RegoEngine before test execution.
+  > Discovery finds all policy files in directory tree and runner loads them.
+- [x] Support data files for policies (`data.json`)
+  > **Completed**: `TestSuite` now stores `data_files: HashMap<PathBuf, serde_json::Value>`.
+  > Discovery finds `data.json`/`data.yaml` files, runner loads them via `engine.add_data()`.
+- [x] Add mock identity helpers (`MockIdentity` builder)
+  > **Completed**: Created `mock_identity` module with:
+  >
+  > - `MockUser` builder with factory methods: `admin()`, `viewer()`, `editor()`, `guest()`, `super_admin()`
+  > - `MockSpiffe` builder with factories: `users_service()`, `orders_service()`, `gateway()`
+  > - `MockApiKey` builder with factories: `read_only()`, `full_access()`, `read_service()`, `write_service()`
+  > - Fluent APIs for customization
 - [ ] Implement fixture loading from JSON/YAML
-  > Support `*_fixtures.json` and `*_fixtures.yaml` files
-- [ ] Support data files for policies (`data.json`)
-  > Load static data files into policy evaluation context
-- [ ] Add mock identity helpers (`MockIdentity` builder)
-  > Convenience builders for user, SPIFFE, and API key identities
+  > Support `*_fixtures.json` and `*_fixtures.yaml` files - FixtureSet can load, need runner integration
 - [ ] Create test utilities library
   > Common assertions, input builders, result matchers
 - [ ] Document testing patterns
