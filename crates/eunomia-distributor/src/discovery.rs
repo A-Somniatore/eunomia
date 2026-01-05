@@ -4,10 +4,12 @@
 //! across different environments (static configuration, Kubernetes, DNS).
 
 use async_trait::async_trait;
+use hickory_resolver::config::{ResolverConfig, ResolverOpts};
+use hickory_resolver::TokioAsyncResolver;
 use std::sync::Arc;
 use tokio::sync::RwLock;
 
-use crate::error::Result;
+use crate::error::{DistributorError, Result};
 use crate::instance::{Instance, InstanceMetadata};
 
 /// Trait for instance discovery.
@@ -238,6 +240,147 @@ impl Discovery for CachedDiscovery {
     }
 }
 
+/// DNS-based instance discovery.
+///
+/// Resolves hostnames to IP addresses using DNS lookups.
+/// Supports both A (IPv4) and AAAA (IPv6) records.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// use eunomia_distributor::discovery::DnsDiscovery;
+///
+/// let discovery = DnsDiscovery::new(
+///     vec!["archimedes.service.consul".to_string()],
+///     8080,
+/// );
+/// let instances = discovery.all_instances().await?;
+/// ```
+pub struct DnsDiscovery {
+    hosts: Vec<String>,
+    port: u16,
+    resolver: TokioAsyncResolver,
+    instances: Arc<RwLock<Vec<Instance>>>,
+}
+
+impl DnsDiscovery {
+    /// Creates a new DNS discovery with the given hosts and port.
+    ///
+    /// Uses the system DNS resolver by default.
+    pub fn new(hosts: Vec<String>, port: u16) -> Self {
+        let resolver =
+            TokioAsyncResolver::tokio(ResolverConfig::default(), ResolverOpts::default());
+
+        Self {
+            hosts,
+            port,
+            resolver,
+            instances: Arc::new(RwLock::new(Vec::new())),
+        }
+    }
+
+    /// Creates a DNS discovery with a custom resolver address.
+    ///
+    /// # Arguments
+    ///
+    /// * `hosts` - DNS hostnames to resolve
+    /// * `port` - Port number to use for discovered instances
+    /// * `resolver_addr` - Custom DNS resolver address (e.g., "8.8.8.8:53")
+    pub fn with_resolver(hosts: Vec<String>, port: u16, resolver_addr: &str) -> Result<Self> {
+        use hickory_resolver::config::NameServerConfig;
+        use std::net::SocketAddr;
+
+        let addr: SocketAddr = resolver_addr.parse().map_err(|e| {
+            DistributorError::InvalidConfig {
+                reason: format!("Invalid resolver address: {e}"),
+            }
+        })?;
+
+        let mut config = ResolverConfig::new();
+        config.add_name_server(NameServerConfig::new(
+            addr,
+            hickory_resolver::config::Protocol::Udp,
+        ));
+
+        let resolver = TokioAsyncResolver::tokio(config, ResolverOpts::default());
+
+        Ok(Self {
+            hosts,
+            port,
+            resolver,
+            instances: Arc::new(RwLock::new(Vec::new())),
+        })
+    }
+
+    /// Resolves all configured hosts and updates the instance list.
+    async fn resolve_hosts(&self) -> Result<Vec<Instance>> {
+        let mut instances = Vec::new();
+
+        for host in &self.hosts {
+            match self.resolver.lookup_ip(host.as_str()).await {
+                Ok(lookup) => {
+                    for ip in lookup.iter() {
+                        let endpoint = format!("{}:{}", ip, self.port);
+                        let instance_id = format!("dns-{host}-{ip}");
+
+                        let mut metadata = InstanceMetadata::default();
+                        metadata.annotations.insert("dns.host".to_string(), host.clone());
+                        metadata.annotations.insert("dns.resolved_ip".to_string(), ip.to_string());
+
+                        instances.push(
+                            Instance::new(instance_id, endpoint).with_metadata(metadata),
+                        );
+                    }
+                }
+                Err(e) => {
+                    tracing::warn!(host = %host, error = %e, "DNS lookup failed");
+                    // Continue with other hosts, don't fail the entire discovery
+                }
+            }
+        }
+
+        Ok(instances)
+    }
+}
+
+impl std::fmt::Debug for DnsDiscovery {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DnsDiscovery")
+            .field("hosts", &self.hosts)
+            .field("port", &self.port)
+            .finish_non_exhaustive()
+    }
+}
+
+#[async_trait]
+impl Discovery for DnsDiscovery {
+    async fn discover(&self, _service: &str) -> Result<Vec<Instance>> {
+        // DNS discovery returns all resolved instances regardless of service
+        // Service filtering would require additional DNS TXT records or SRV records
+        self.all_instances().await
+    }
+
+    async fn all_instances(&self) -> Result<Vec<Instance>> {
+        let instances = self.instances.read().await;
+        if instances.is_empty() {
+            // If cache is empty, do a refresh first
+            drop(instances);
+            self.refresh().await?;
+            let instances = self.instances.read().await;
+            Ok(instances.clone())
+        } else {
+            Ok(instances.clone())
+        }
+    }
+
+    async fn refresh(&self) -> Result<()> {
+        let resolved = self.resolve_hosts().await?;
+        let mut instances = self.instances.write().await;
+        *instances = resolved;
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -382,6 +525,92 @@ mod tests {
             assert!(resolver.is_none());
         } else {
             panic!("Expected DNS source");
+        }
+    }
+
+    #[test]
+    fn test_dns_discovery_creation() {
+        let discovery = DnsDiscovery::new(
+            vec!["example.com".to_string(), "test.local".to_string()],
+            8080,
+        );
+        assert_eq!(discovery.hosts.len(), 2);
+        assert_eq!(discovery.port, 8080);
+    }
+
+    #[test]
+    fn test_dns_discovery_with_invalid_resolver() {
+        let result = DnsDiscovery::with_resolver(
+            vec!["example.com".to_string()],
+            8080,
+            "not-a-valid-address",
+        );
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn test_dns_discovery_with_valid_resolver() {
+        let result = DnsDiscovery::with_resolver(
+            vec!["example.com".to_string()],
+            8080,
+            "8.8.8.8:53",
+        );
+        assert!(result.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_dns_discovery_localhost() {
+        // This test resolves localhost which should work on any system
+        let discovery = DnsDiscovery::new(vec!["localhost".to_string()], 8080);
+        
+        // Refresh to resolve
+        discovery.refresh().await.unwrap();
+        
+        let instances = discovery.all_instances().await.unwrap();
+        // localhost should resolve to at least one address (127.0.0.1 or ::1)
+        assert!(!instances.is_empty(), "localhost should resolve to at least one IP");
+        
+        // Check instance metadata
+        let first = &instances[0];
+        assert!(first.id.starts_with("dns-localhost-"));
+        assert!(first.endpoint.to_string().ends_with(":8080"));
+    }
+
+    #[tokio::test]
+    async fn test_dns_discovery_nonexistent_host() {
+        // This test tries to resolve a non-existent host
+        let discovery = DnsDiscovery::new(
+            vec!["this-host-definitely-does-not-exist-12345.invalid".to_string()],
+            8080,
+        );
+        
+        // Refresh should not fail, but return empty results
+        discovery.refresh().await.unwrap();
+        
+        let instances = discovery.all_instances().await.unwrap();
+        assert!(instances.is_empty());
+    }
+
+    #[tokio::test]
+    async fn test_dns_discovery_mixed_hosts() {
+        // Test with a mix of valid and invalid hosts
+        let discovery = DnsDiscovery::new(
+            vec![
+                "localhost".to_string(),
+                "nonexistent-host-xyz.invalid".to_string(),
+            ],
+            9090,
+        );
+        
+        discovery.refresh().await.unwrap();
+        
+        let instances = discovery.all_instances().await.unwrap();
+        // Should have at least the localhost resolution
+        assert!(!instances.is_empty());
+        
+        // All instances should have port 9090
+        for instance in &instances {
+            assert!(instance.endpoint.to_string().contains(":9090"));
         }
     }
 }

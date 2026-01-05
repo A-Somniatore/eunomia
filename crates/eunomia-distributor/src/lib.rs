@@ -72,7 +72,7 @@ pub mod strategy;
 
 // Re-export main types at crate root
 pub use config::DistributorConfig;
-pub use discovery::{Discovery, DiscoverySource, StaticDiscovery};
+pub use discovery::{Discovery, DiscoverySource, DnsDiscovery, StaticDiscovery};
 pub use error::{DistributorError, Result};
 pub use health::{HealthCheck, HealthConfig, HealthState};
 pub use instance::{Instance, InstanceId, InstanceMetadata, InstanceStatus};

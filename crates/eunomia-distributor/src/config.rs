@@ -5,7 +5,7 @@
 
 use std::time::Duration;
 
-use crate::discovery::{Discovery, DiscoverySource, StaticDiscovery};
+use crate::discovery::{Discovery, DiscoverySource, DnsDiscovery, StaticDiscovery};
 use crate::error::{DistributorError, Result};
 use crate::health::HealthConfig;
 use crate::pusher::PushConfig;
@@ -60,16 +60,15 @@ impl DistributorConfig {
                     ),
                 })
             }
-            DiscoverySource::Dns { hosts, port, .. } => {
-                // For now, return an error - DNS discovery will be implemented later
-                Err(DistributorError::InvalidConfig {
-                    reason: format!(
-                        "DNS discovery not yet implemented (hosts: {}, port: {})",
-                        hosts.len(),
-                        port
-                    ),
-                })
-            }
+            DiscoverySource::Dns { hosts, port, resolver } => resolver
+                .as_ref()
+                .map_or_else(
+                    || Ok(Box::new(DnsDiscovery::new(hosts.clone(), *port)) as Box<dyn Discovery>),
+                    |resolver_addr| {
+                        DnsDiscovery::with_resolver(hosts.clone(), *port, resolver_addr)
+                            .map(|d| Box::new(d) as Box<dyn Discovery>)
+                    },
+                ),
         }
     }
 }

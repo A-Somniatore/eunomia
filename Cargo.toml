@@ -68,6 +68,9 @@ tempfile = "3.15"
 reqwest = { version = "0.12", features = ["json", "rustls-tls"] }
 url = "2.5"
 
+# DNS resolution
+hickory-resolver = { version = "0.24", features = ["tokio-runtime"] }
+
 # File system utilities
 walkdir = "2.5"
 dirs = "5.0"
