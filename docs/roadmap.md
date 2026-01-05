@@ -691,9 +691,18 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 **Criteria**: Control plane is operational, bundles can be pushed to instances
 
-> 🔄 **Status**: Core distributor infrastructure complete. Push CLI and DNS discovery implemented. Remaining:
-> - gRPC server implementation using tonic (Week 10)
-> - Kubernetes service discovery (Week 11, when needed)
+> ✅ **Status**: Phase E3 Complete!
+>
+> - Week 9: Registry client with OCI support, versioning, caching
+> - Week 10: Control plane API design, state tracking, health checks
+> - Week 11: Instance discovery with Static and DNS sources, K8s stub ready
+> - Week 12: Push distribution with scheduler, parallel deployment, CLI
+> - Week 13: CTO review items complete - deprecated types removed
+> - Week 14: Documentation & examples complete - authoring guide, examples, migration guide
+>
+> **Remaining for E4 integration:**
+> - gRPC server implementation using tonic (when needed for control plane service)
+> - Kubernetes service discovery (when K8s cluster available)
 
 ---
 
@@ -720,12 +729,40 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 - [x] Update documentation to remove references to deprecated modules
   > **Completed**: lib.rs docs updated, AuthorizationDecision alias removed
 
-**Week 14: Documentation & Examples**
+**Week 14: Documentation & Examples** ✅ COMPLETE
 
-- [ ] Create comprehensive policy authoring guide
-- [ ] Build example policy repository with common patterns
-- [ ] Document testing best practices
-- [ ] Create policy migration guide for existing services
+- [x] Create comprehensive policy authoring guide
+  > **Completed**: Created `docs/policy-authoring-guide.md` with:
+  > - Getting started section with CLI installation
+  > - Policy structure and naming conventions
+  > - Input schema documentation with all caller types
+  > - Writing rules with common patterns
+  > - Testing, building, signing, and deployment guides
+  > - Best practices and troubleshooting sections
+  > - Quick reference for CLI commands and input fields
+- [x] Build example policy repository with common patterns
+  > **Completed**: Added three comprehensive examples:
+  > - `examples/policies/rbac-service/` - RBAC with hierarchical roles
+  > - `examples/policies/multi-tenant/` - Multi-tenant SaaS with isolation
+  > - `examples/policies/api-gateway/` - Scope-based API key authorization
+  > - All examples include authz.rego, authz_test.rego, and README.md
+- [x] Document testing best practices
+  > **Completed**: Enhanced `docs/testing-guide.md` with:
+  > - Test role hierarchies (#6)
+  > - Test tenant isolation for multi-tenant apps (#7)
+  > - Test scope requirements for API keys (#8)
+  > - Test time-based constraints (#9)
+  > - Comprehensive coverage checklist (#10)
+- [x] Create policy migration guide for existing services
+  > **Completed**: Created `docs/migration-guide.md` with:
+  > - Migration overview with stages diagram
+  > - Assessment phase with inventory template
+  > - Design phase with input schema mapping
+  > - Implementation phase with code translation examples
+  > - Testing phase with shadow testing approach
+  > - Deployment phase with feature flags and rollback plan
+  > - Common migration scenarios (Spring Security, Express.js, IAM-style)
+  > - Troubleshooting section and complete checklist
 
 **Week 15-16: Stretch Goals (if time permits)**
 
