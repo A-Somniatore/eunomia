@@ -104,6 +104,120 @@ impl Bundler {
         Ok(self)
     }
 
+    /// Loads all policy files from a directory.
+    ///
+    /// Recursively scans for `.rego` files, excluding test files (`*_test.rego`).
+    ///
+    /// # Arguments
+    ///
+    /// * `dir` - Directory containing policy files
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the directory cannot be read or any policy fails to parse.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use eunomia_compiler::Bundler;
+    ///
+    /// let bundler = Bundler::new("users-service")
+    ///     .version("1.0.0")
+    ///     .add_policy_dir("policies/users-service")
+    ///     .unwrap();
+    /// ```
+    pub fn add_policy_dir(mut self, dir: impl AsRef<Path>) -> Result<Self> {
+        let dir = dir.as_ref();
+        self.load_policies_recursive(dir)?;
+        Ok(self)
+    }
+
+    /// Recursively loads all .rego files from a directory.
+    fn load_policies_recursive(&mut self, dir: &Path) -> Result<()> {
+        let entries = std::fs::read_dir(dir).map_err(|e| CompilerError::Io {
+            path: dir.to_path_buf(),
+            source: e,
+        })?;
+
+        let parser = Parser::new();
+
+        for entry in entries {
+            let entry = entry.map_err(|e| CompilerError::Io {
+                path: dir.to_path_buf(),
+                source: e,
+            })?;
+
+            let path = entry.path();
+
+            if path.is_dir() {
+                self.load_policies_recursive(&path)?;
+            } else if let Some(ext) = path.extension() {
+                if ext == "rego" {
+                    // Skip test files
+                    if let Some(stem) = path.file_stem() {
+                        if stem.to_string_lossy().ends_with("_test") {
+                            continue;
+                        }
+                    }
+                    let policy = parser.parse_file(&path)?;
+                    self.policies.push(policy);
+                }
+            }
+        }
+
+        Ok(())
+    }
+
+    /// Loads data files from a directory.
+    ///
+    /// Looks for `data.json` or `data.yaml` files.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if files cannot be read.
+    pub fn add_data_dir(mut self, dir: impl AsRef<Path>) -> Result<Self> {
+        let dir = dir.as_ref();
+        self.load_data_recursive(dir)?;
+        Ok(self)
+    }
+
+    /// Recursively loads data files from a directory.
+    fn load_data_recursive(&mut self, dir: &Path) -> Result<()> {
+        let entries = std::fs::read_dir(dir).map_err(|e| CompilerError::Io {
+            path: dir.to_path_buf(),
+            source: e,
+        })?;
+
+        for entry in entries {
+            let entry = entry.map_err(|e| CompilerError::Io {
+                path: dir.to_path_buf(),
+                source: e,
+            })?;
+
+            let path = entry.path();
+
+            if path.is_dir() {
+                self.load_data_recursive(&path)?;
+            } else if let Some(name) = path.file_name() {
+                let name_str = name.to_string_lossy();
+                if name_str == "data.json" || name_str == "data.yaml" {
+                    let content = std::fs::read_to_string(&path).map_err(|e| CompilerError::Io {
+                        path: path.clone(),
+                        source: e,
+                    })?;
+                    // Use relative path from the policy root as the data path
+                    let relative_path = path.strip_prefix(dir).unwrap_or(&path);
+                    self.data_files.push((
+                        relative_path.to_string_lossy().to_string(),
+                        content,
+                    ));
+                }
+            }
+        }
+
+        Ok(())
+    }
+
     /// Adds a data file to the bundle.
     #[must_use]
     pub fn add_data_file(mut self, path: impl Into<String>, content: impl Into<String>) -> Self {
@@ -198,8 +312,46 @@ impl Bundler {
 
         Ok(builder.build())
     }
+
+    /// Compiles and writes the bundle to a tar.gz file.
+    ///
+    /// This is a convenience method that combines `compile()` and `Bundle::write_to_file()`.
+    ///
+    /// # Arguments
+    ///
+    /// * `output_path` - Path to write the bundle file
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if compilation fails or the file cannot be written.
+    ///
+    /// # Examples
+    ///
+    /// ```rust,no_run
+    /// use eunomia_compiler::Bundler;
+    /// use eunomia_core::Policy;
+    ///
+    /// let policy = Policy::new(
+    ///     "users_service.authz",
+    ///     "package users_service.authz\ndefault allow := false",
+    /// );
+    ///
+    /// Bundler::new("users-service")
+    ///     .version("1.0.0")
+    ///     .add_policy(policy)
+    ///     .compile_to_file("users-service-v1.0.0.bundle.tar.gz")
+    ///     .unwrap();
+    /// ```
+    pub fn compile_to_file(self, output_path: impl AsRef<Path>) -> Result<Bundle> {
+        let bundle = self.compile()?;
+        bundle.write_to_file(output_path).map_err(|e| CompilerError::BundleError {
+            message: format!("failed to write bundle: {e}"),
+        })?;
+        Ok(bundle)
+    }
 }
 
+#[cfg(test)]
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -298,5 +450,85 @@ mod tests {
             .unwrap();
 
         assert!(bundle.data_files.contains_key("data/roles.json"));
+    }
+
+    #[test]
+    fn test_bundler_compile_to_file() {
+        let dir = tempfile::tempdir().unwrap();
+        let output_path = dir.path().join("test.bundle.tar.gz");
+
+        let policy = Policy::new("test.authz", "package test.authz\ndefault allow := false");
+
+        let bundle = Bundler::new("test-service")
+            .version("1.0.0")
+            .add_policy(policy)
+            .compile_to_file(&output_path)
+            .unwrap();
+
+        assert!(output_path.exists());
+        assert_eq!(bundle.name, "test-service");
+
+        // Verify we can read it back
+        let loaded = Bundle::from_file(&output_path).unwrap();
+        assert_eq!(loaded.name, "test-service");
+        assert_eq!(loaded.version, "1.0.0");
+    }
+
+    #[test]
+    fn test_bundler_add_policy_dir() {
+        let dir = tempfile::tempdir().unwrap();
+        let policy_dir = dir.path().join("policies");
+        std::fs::create_dir_all(&policy_dir).unwrap();
+
+        // Create a policy file
+        std::fs::write(
+            policy_dir.join("authz.rego"),
+            "package test.authz\ndefault allow := false",
+        )
+        .unwrap();
+
+        // Create a test file (should be skipped)
+        std::fs::write(
+            policy_dir.join("authz_test.rego"),
+            "package test.authz_test\ntest_foo { true }",
+        )
+        .unwrap();
+
+        let bundle = Bundler::new("test")
+            .version("1.0.0")
+            .add_policy_dir(&policy_dir)
+            .unwrap()
+            .compile()
+            .unwrap();
+
+        // Should only include the non-test policy
+        assert_eq!(bundle.policy_count(), 1);
+        assert!(bundle.has_policy("test.authz"));
+    }
+
+    #[test]
+    fn test_bundler_add_data_dir() {
+        let dir = tempfile::tempdir().unwrap();
+        let data_dir = dir.path().join("policies");
+        std::fs::create_dir_all(&data_dir).unwrap();
+
+        // Create a data file
+        std::fs::write(
+            data_dir.join("data.json"),
+            r#"{"roles": ["admin", "user"]}"#,
+        )
+        .unwrap();
+
+        let policy = Policy::new("test.authz", "package test.authz\ndefault allow := false");
+
+        let bundle = Bundler::new("test")
+            .version("1.0.0")
+            .add_policy(policy)
+            .add_data_dir(&data_dir)
+            .unwrap()
+            .compile()
+            .unwrap();
+
+        assert_eq!(bundle.data_files.len(), 1);
     }
 }

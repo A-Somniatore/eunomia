@@ -51,6 +51,16 @@ pub enum CompilerError {
         message: String,
     },
 
+    /// I/O error during directory operations.
+    #[error("I/O error at {path}: {source}")]
+    Io {
+        /// Path where error occurred.
+        path: PathBuf,
+        /// Underlying I/O error.
+        #[source]
+        source: std::io::Error,
+    },
+
     /// Core library error.
     #[error(transparent)]
     CoreError(#[from] eunomia_core::Error),

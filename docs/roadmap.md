@@ -333,12 +333,43 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 ### Week 7: Bundle Compilation
 
-- [ ] Implement OPA bundle compilation
-- [ ] Generate bundle manifest
-- [ ] Include policy data files
-- [ ] Add metadata (version, timestamp, git commit)
-- [ ] Create tar.gz bundle format
-- [ ] Test bundle structure
+- [x] Implement OPA bundle compilation
+  > **Completed**: `Bundler` compiles policies into OPA-compatible bundles:
+  >
+  > - `add_policy_dir()` loads all `.rego` files from directory
+  > - `add_data_dir()` loads `data.json`/`data.yaml` files
+  > - Validates policies with `Analyzer` (optional)
+  > - Optimizes policies with `Optimizer` (optional)
+- [x] Generate bundle manifest
+  > **Completed**: `Bundle::generate_manifest()` creates OPA-compatible `.manifest`:
+  >
+  > - Standard OPA fields: `revision`, `roots`
+  > - Eunomia extensions under `metadata.eunomia`: version, service, git_commit, created_at
+  > - Checksum under `metadata.checksum` with SHA-256 value
+- [x] Include policy data files
+  > **Completed**: `Bundler::add_data_file()` and `add_data_dir()` methods.
+  > Data files are included in tar.gz bundle.
+- [x] Add metadata (version, timestamp, git commit)
+  > **Completed**: Bundle includes:
+  >
+  > - `version`: Semantic version from `Bundler::version()`
+  > - `created_at`: RFC 3339 timestamp
+  > - `git_commit`: Optional commit SHA from `Bundler::git_commit()`
+- [x] Create tar.gz bundle format
+  > **Completed**: `Bundle::write_to_file()` creates OPA-compatible tar.gz:
+  >
+  > - `.manifest` JSON at root
+  > - Policy files organized by package namespace
+  > - Data files included at appropriate paths
+  > - `Bundle::from_file()` for reading bundles back
+- [x] Test bundle structure
+  > **Completed**: Comprehensive tests added:
+  >
+  > - `test_bundle_roundtrip_bytes` - full serialization/deserialization
+  > - `test_bundler_compile_to_file` - file export and reload
+  > - `test_compute_checksum_deterministic` - checksum consistency
+  > - `test_generate_manifest` - manifest format validation
+  > - `test_bundler_add_policy_dir` - directory loading
 
 ### Week 8: Bundle Signing & CLI
 
