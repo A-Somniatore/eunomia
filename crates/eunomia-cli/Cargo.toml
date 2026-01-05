@@ -16,6 +16,7 @@ eunomia-core = { workspace = true }
 eunomia-compiler = { workspace = true }
 eunomia-test = { workspace = true }
 eunomia-registry = { workspace = true }
+eunomia-distributor = { workspace = true }
 clap = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }

@@ -3,6 +3,7 @@
 pub mod build;
 pub mod fetch;
 pub mod publish;
+pub mod push;
 pub mod sign;
 pub mod test;
 pub mod validate;
@@ -38,6 +39,9 @@ pub enum Commands {
 
     /// Validate policies
     Validate(validate::ValidateArgs),
+
+    /// Push a policy to Archimedes instances
+    Push(push::PushArgs),
 
     /// Print version information
     Version,

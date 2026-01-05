@@ -8,7 +8,8 @@ mod commands;
 
 use commands::{Cli, Commands};
 
-fn main() -> Result<()> {
+#[tokio::main]
+async fn main() -> Result<()> {
     // Initialize tracing
     tracing_subscriber::registry()
         .with(
@@ -27,6 +28,7 @@ fn main() -> Result<()> {
         Commands::Publish(args) => commands::publish::run(&args),
         Commands::Fetch(args) => commands::fetch::run(&args),
         Commands::Validate(args) => commands::validate::run(&args),
+        Commands::Push(args) => commands::push::execute(args).await,
         Commands::Version => {
             println!("eunomia {}", env!("CARGO_PKG_VERSION"));
             Ok(())

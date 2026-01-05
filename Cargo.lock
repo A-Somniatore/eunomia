@@ -590,6 +590,7 @@ dependencies = [
  "clap",
  "eunomia-compiler",
  "eunomia-core",
+ "eunomia-distributor",
  "eunomia-registry",
  "eunomia-test",
  "serde",
