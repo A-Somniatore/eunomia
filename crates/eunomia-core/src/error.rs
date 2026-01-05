@@ -52,6 +52,20 @@ pub enum Error {
     #[error("Serialization error: {0}")]
     SerializationError(#[from] serde_json::Error),
 
+    /// Serialization error (non-From variant for custom messages).
+    #[error("Serialization error: {message}")]
+    Serialization {
+        /// Error message.
+        message: String,
+    },
+
+    /// I/O error.
+    #[error("I/O error: {message}")]
+    Io {
+        /// Error message.
+        message: String,
+    },
+
     /// Invalid input provided.
     #[error("Invalid input: {reason}")]
     InvalidInput {
