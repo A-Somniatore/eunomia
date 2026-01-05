@@ -671,14 +671,24 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > - Per-instance result tracking
   > - Service-level status aggregation
   > - Active deployment listing
-- [ ] Add `eunomia push` CLI command
-  > **Pending**: CLI integration after gRPC server is complete
+- [x] Add `eunomia push` CLI command
+  > **Completed**: Full CLI implementation with:
+  > - Immediate, canary, and rolling deployment strategies
+  > - Static endpoint discovery (--endpoints flag)
+  > - Dry-run mode for deployment preview
+  > - JSON output format option
+  > - Auto-rollback and max-failures configuration
+  > - Converted main.rs to async with tokio runtime
 
 ### Phase E3 Milestone
 
 **Criteria**: Control plane is operational, bundles can be pushed to instances
 
-> 🔄 **Status**: Core distributor infrastructure complete. gRPC server and CLI pending.
+> 🔄 **Status**: Core distributor infrastructure complete. Push CLI implemented. Remaining:
+> - gRPC server implementation using tonic (Week 10)
+> - Kubernetes service discovery (Week 11)
+> - DNS service discovery (Week 11)
+> - Integration tests for discovery mechanisms (Week 11)
 
 ---
 
