@@ -1,12 +1,47 @@
 # Eunomia – Development Roadmap
 
-> **Version**: 1.4.0  
+> **Version**: 1.5.0  
 > **Created**: 2026-01-04  
 > **Last Updated**: 2026-01-05  
 > **Target Completion**: Week 20 (MVP Integration with Archimedes MVP)
 
 > ✅ **CTO REVIEW (2026-01-05)**: Phase E0 complete. Shared types migration resolved.
 > All Eunomia types now use `themis-platform-types` for schema compatibility.
+
+---
+
+## 🔄 themis-platform-types v0.2.1 Production Readiness (Coming Soon)
+
+> **When**: Before production release
+> **Status**: Development Complete - Pending Publish
+
+### New Production Guarantees (v0.2.1)
+
+1. **Thread Safety** - `Send + Sync` compile-time assertions for all types
+2. **MSRV Testing** - CI validates Rust 1.75 compatibility
+3. **Schema Validation** - JSON schemas validated against Rust types in CI
+4. **Serialization Testing** - Property-based roundtrip tests for policy types
+5. **Fallible Constructor** - `RequestId::try_new()` for edge cases
+6. **Security Lint** - `#[must_use = "security bug"]` on `PolicyDecision`
+
+### Impact on Eunomia
+
+- **Audit Logging**: `Versioned<PolicyDecision>` provides schema version for stored decisions
+- **Policy Testing**: `eunomia-test` should use `try_build()` for cleaner error messages
+- **Performance**: Types verified thread-safe for async policy evaluation
+
+```rust
+// In eunomia-test fixtures
+let input = PolicyInput::builder()
+    .caller(mock_user("test-user"))
+    .service("test-service")
+    .operation_id("testOp")
+    .method("GET")
+    .path("/test")
+    .request_id(RequestId::try_new().unwrap_or_default())
+    .try_build()
+    .expect("test fixture should be valid");
+```
 
 ---
 
