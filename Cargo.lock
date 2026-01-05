@@ -549,7 +549,9 @@ dependencies = [
  "serde_json",
  "sha2",
  "tar",
+ "themis-platform-types",
  "thiserror 2.0.17",
+ "uuid",
 ]
 
 [[package]]
@@ -584,6 +586,7 @@ dependencies = [
  "serde_json",
  "serde_yaml",
  "tempfile",
+ "themis-platform-types",
  "thiserror 2.0.17",
  "tracing",
 ]
@@ -2373,6 +2376,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "themis-platform-types"
+version = "0.1.0"
+dependencies = [
+ "chrono",
+ "serde",
+ "serde_json",
+ "thiserror 2.0.17",
+ "uuid",
+]
+
+[[package]]
 name = "thiserror"
 version = "1.0.69"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2719,6 +2733,7 @@ dependencies = [
  "getrandom 0.3.4",
  "js-sys",
  "rand 0.9.2",
+ "serde_core",
  "wasm-bindgen",
 ]
 

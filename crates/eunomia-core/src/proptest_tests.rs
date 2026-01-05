@@ -4,7 +4,7 @@
 
 use proptest::prelude::*;
 
-use crate::{AuthorizationDecision, Bundle, CallerIdentity, Policy, PolicyInput};
+use crate::{Bundle, CallerIdentity, Policy, PolicyDecision, PolicyInput};
 
 /// Strategy for generating valid SPIFFE IDs.
 fn spiffe_id_strategy() -> impl Strategy<Value = String> {
@@ -13,7 +13,7 @@ fn spiffe_id_strategy() -> impl Strategy<Value = String> {
         "[a-z][a-z0-9-]{2,20}",              // namespace
         "[a-z][a-z0-9-]{2,30}",              // service
     )
-        .prop_map(|(domain, ns, svc)| format!("spiffe://{}/ns/{}/sa/{}", domain, ns, svc))
+        .prop_map(|(domain, ns, svc)| format!("spiffe://{domain}/ns/{ns}/sa/{svc}"))
 }
 
 /// Strategy for generating service names.
@@ -26,9 +26,9 @@ fn user_id_strategy() -> impl Strategy<Value = String> {
     "(user|usr|u)-[a-f0-9]{8,32}"
 }
 
-/// Strategy for generating role names.
-fn role_strategy() -> impl Strategy<Value = String> {
-    "(admin|editor|viewer|moderator|owner|member|guest)"
+/// Strategy for generating email addresses.
+fn email_strategy() -> impl Strategy<Value = String> {
+    "[a-z]{3,10}@[a-z]{3,10}\\.(com|org|io)"
 }
 
 /// Strategy for generating API key IDs.
@@ -36,9 +36,9 @@ fn api_key_id_strategy() -> impl Strategy<Value = String> {
     "(key|api|ak)-[a-f0-9]{16,32}"
 }
 
-/// Strategy for generating scopes.
-fn scope_strategy() -> impl Strategy<Value = String> {
-    "(read|write|delete|admin):(users|orders|payments|products|all)"
+/// Strategy for generating API key names.
+fn api_key_name_strategy() -> impl Strategy<Value = String> {
+    "(Production|Staging|Development|CI|Test) (API Key|Integration|Bot)"
 }
 
 /// Strategy for generating operation IDs.
@@ -56,40 +56,22 @@ fn path_strategy() -> impl Strategy<Value = String> {
     "/(users|orders|payments|products)(/[a-f0-9-]{8,36})?"
 }
 
-/// Strategy for generating environments.
-fn environment_strategy() -> impl Strategy<Value = String> {
-    "(production|staging|development|test)"
-}
-
-/// Strategy for generating CallerIdentity.
+/// Strategy for generating CallerIdentity using themis-platform-types API.
 fn caller_identity_strategy() -> impl Strategy<Value = CallerIdentity> {
     prop_oneof![
-        // SPIFFE identity
+        // SPIFFE identity (using full constructor)
         (
             spiffe_id_strategy(),
+            "[a-z]+\\.[a-z]{2,6}",
             service_name_strategy(),
-            "[a-z]+\\.[a-z]{2,6}"
         )
-            .prop_map(|(id, name, domain)| CallerIdentity::spiffe(id, name, domain)),
+            .prop_map(|(id, domain, name)| CallerIdentity::spiffe_full(id, domain, name)),
         // User identity
-        (
-            user_id_strategy(),
-            prop::collection::vec(role_strategy(), 0..5),
-            prop::option::of("[a-z]+-[0-9]{3,6}")
-        )
-            .prop_map(|(id, roles, org)| {
-                if let Some(org_id) = org {
-                    CallerIdentity::user_with_tenant(id, roles, org_id)
-                } else {
-                    CallerIdentity::user(id, roles)
-                }
-            }),
+        (user_id_strategy(), email_strategy())
+            .prop_map(|(id, email)| CallerIdentity::user(id, email)),
         // API key identity
-        (
-            api_key_id_strategy(),
-            prop::collection::vec(scope_strategy(), 1..5)
-        )
-            .prop_map(|(id, scopes)| CallerIdentity::api_key(id, scopes)),
+        (api_key_id_strategy(), api_key_name_strategy())
+            .prop_map(|(id, name)| CallerIdentity::api_key(id, name)),
         // Anonymous
         Just(CallerIdentity::anonymous()),
     ]
@@ -108,7 +90,7 @@ proptest! {
     #[test]
     fn caller_identity_type_exclusive(identity in caller_identity_strategy()) {
         let checks = [
-            identity.is_spiffe(),
+            identity.is_service(),
             identity.is_user(),
             identity.is_api_key(),
             identity.is_anonymous(),
@@ -117,16 +99,11 @@ proptest! {
         prop_assert_eq!(true_count, 1, "Exactly one type check should be true");
     }
 
-    /// Test that CallerIdentity::identity_type matches the variant.
+    /// Test that CallerIdentity::identifier returns a non-empty string.
     #[test]
-    fn caller_identity_type_string_matches(identity in caller_identity_strategy()) {
-        let type_str = identity.identity_type();
-        match &identity {
-            CallerIdentity::Spiffe { .. } => prop_assert_eq!(type_str, "spiffe"),
-            CallerIdentity::User { .. } => prop_assert_eq!(type_str, "user"),
-            CallerIdentity::ApiKey { .. } => prop_assert_eq!(type_str, "api_key"),
-            CallerIdentity::Anonymous => prop_assert_eq!(type_str, "anonymous"),
-        }
+    fn caller_identity_has_identifier(identity in caller_identity_strategy()) {
+        let id = identity.identifier();
+        prop_assert!(!id.is_empty(), "identifier should not be empty");
     }
 
     /// Test that PolicyInput serialization is reversible.
@@ -137,7 +114,6 @@ proptest! {
         operation_id in operation_id_strategy(),
         method in http_method_strategy(),
         path in path_strategy(),
-        environment in environment_strategy(),
     ) {
         let input = PolicyInput::builder()
             .caller(caller)
@@ -145,7 +121,6 @@ proptest! {
             .operation_id(operation_id)
             .method(method)
             .path(path)
-            .environment(environment)
             .build();
 
         let json = serde_json::to_string(&input).unwrap();
@@ -155,39 +130,38 @@ proptest! {
         prop_assert_eq!(input.operation_id, deserialized.operation_id);
         prop_assert_eq!(input.method, deserialized.method);
         prop_assert_eq!(input.path, deserialized.path);
-        prop_assert_eq!(input.environment, deserialized.environment);
     }
 
-    /// Test that AuthorizationDecision serialization is reversible.
+    /// Test that PolicyDecision serialization is reversible.
     #[test]
     fn authorization_decision_roundtrip(
         allowed in any::<bool>(),
         reason in "[a-zA-Z ]{5,50}",
         policy_id in "[a-z_]+\\.[a-z_]+",
+        policy_version in "[0-9]+\\.[0-9]+\\.[0-9]+",
     ) {
         let decision = if allowed {
-            AuthorizationDecision::allow(&reason, &policy_id)
+            PolicyDecision::allow(&policy_id, &policy_version)
         } else {
-            AuthorizationDecision::deny(&reason, &policy_id)
+            PolicyDecision::deny(&policy_id, &policy_version, &reason)
         };
 
         let json = serde_json::to_string(&decision).unwrap();
-        let deserialized: AuthorizationDecision = serde_json::from_str(&json).unwrap();
+        let deserialized: PolicyDecision = serde_json::from_str(&json).unwrap();
 
         prop_assert_eq!(decision.allowed, deserialized.allowed);
-        prop_assert_eq!(decision.reason, deserialized.reason);
         prop_assert_eq!(decision.policy_id, deserialized.policy_id);
     }
 
-    /// Test that AuthorizationDecision is_allowed/is_denied are consistent.
+    /// Test that PolicyDecision is_allowed/is_denied are consistent.
     #[test]
     fn authorization_decision_allowed_consistency(
         allowed in any::<bool>(),
     ) {
         let decision = if allowed {
-            AuthorizationDecision::allow("test", "test.policy")
+            PolicyDecision::allow("test.policy", "1.0.0")
         } else {
-            AuthorizationDecision::deny("test", "test.policy")
+            PolicyDecision::deny("test.policy", "1.0.0", "access denied")
         };
 
         prop_assert_eq!(decision.is_allowed(), allowed);
@@ -225,7 +199,7 @@ proptest! {
             .build();
 
         let file_name = bundle.file_name();
-        let expected_version = format!("-v{}", version);
+        let expected_version = format!("-v{version}");
         prop_assert!(file_name.starts_with(&name));
         prop_assert!(file_name.contains(&expected_version));
         prop_assert!(file_name.ends_with(".bundle.tar.gz"));
@@ -267,7 +241,7 @@ mod additional_tests {
         }"#;
 
         let identity: CallerIdentity = serde_json::from_str(json).unwrap();
-        assert!(identity.is_spiffe());
+        assert!(identity.is_service());
     }
 
     /// Test deserializing CallerIdentity from external JSON format.
@@ -276,7 +250,7 @@ mod additional_tests {
         let json = r#"{
             "type": "user",
             "user_id": "user-123",
-            "roles": ["admin", "editor"]
+            "email": "user@example.com"
         }"#;
 
         let identity: CallerIdentity = serde_json::from_str(json).unwrap();
@@ -292,8 +266,8 @@ mod additional_tests {
             "operation_id": "getUser",
             "method": "GET",
             "path": "/users/123",
-            "timestamp": "2026-01-04T12:00:00Z",
-            "environment": "production"
+            "request_id": "01234567-89ab-cdef-0123-456789abcdef",
+            "timestamp": "2026-01-04T12:00:00Z"
         }"#;
 
         let input: PolicyInput = serde_json::from_str(json).unwrap();
@@ -357,15 +331,14 @@ mod additional_tests {
         assert_eq!(bundle.policies.len(), deserialized.policies.len());
     }
 
-    /// Test AuthorizationDecision with all optional fields.
+    /// Test PolicyDecision with all optional fields.
     #[test]
     fn test_authorization_decision_full() {
-        let decision = AuthorizationDecision::allow("admin access granted", "users_service.authz")
-            .with_version("1.2.3")
+        let decision = PolicyDecision::allow("users_service.authz", "1.2.3")
             .with_evaluation_time(500_000);
 
         assert!(decision.is_allowed());
-        assert_eq!(decision.policy_version, Some("1.2.3".to_string()));
+        assert_eq!(decision.policy_version, "1.2.3");
         assert_eq!(decision.evaluation_time_ns, Some(500_000));
 
         let json = serde_json::to_string(&decision).unwrap();

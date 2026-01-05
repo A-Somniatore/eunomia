@@ -37,6 +37,7 @@
 //! ```
 
 use eunomia_core::CallerIdentity;
+use themis_platform_types::identity::{ApiKeyIdentity, SpiffeIdentity, UserIdentity};
 
 /// Builder for mock user identities.
 ///
@@ -59,7 +60,10 @@ use eunomia_core::CallerIdentity;
 #[derive(Debug, Clone)]
 pub struct MockUser {
     user_id: String,
+    email: Option<String>,
+    name: Option<String>,
     roles: Vec<String>,
+    groups: Vec<String>,
     tenant_id: Option<String>,
 }
 
@@ -67,9 +71,13 @@ impl MockUser {
     /// Creates a new mock user builder with the given user ID.
     #[must_use]
     pub fn new(user_id: impl Into<String>) -> Self {
+        let id = user_id.into();
         Self {
-            user_id: user_id.into(),
+            email: Some(format!("{id}@mock.test")),
+            user_id: id,
+            name: None,
             roles: Vec::new(),
+            groups: Vec::new(),
             tenant_id: None,
         }
     }
@@ -116,6 +124,20 @@ impl MockUser {
             .build()
     }
 
+    /// Sets the email for this user.
+    #[must_use]
+    pub fn with_email(mut self, email: impl Into<String>) -> Self {
+        self.email = Some(email.into());
+        self
+    }
+
+    /// Sets the display name for this user.
+    #[must_use]
+    pub fn with_name(mut self, name: impl Into<String>) -> Self {
+        self.name = Some(name.into());
+        self
+    }
+
     /// Adds a single role to the user.
     #[must_use]
     pub fn with_role(mut self, role: impl Into<String>) -> Self {
@@ -134,6 +156,24 @@ impl MockUser {
         self
     }
 
+    /// Adds a single group to the user.
+    #[must_use]
+    pub fn with_group(mut self, group: impl Into<String>) -> Self {
+        self.groups.push(group.into());
+        self
+    }
+
+    /// Sets the groups for this user, replacing any existing groups.
+    #[must_use]
+    pub fn with_groups<I, S>(mut self, groups: I) -> Self
+    where
+        I: IntoIterator<Item = S>,
+        S: Into<String>,
+    {
+        self.groups = groups.into_iter().map(Into::into).collect();
+        self
+    }
+
     /// Sets the tenant ID for this user (multi-tenant scenarios).
     #[must_use]
     pub fn with_tenant(mut self, tenant_id: impl Into<String>) -> Self {
@@ -144,11 +184,14 @@ impl MockUser {
     /// Builds the [`CallerIdentity`].
     #[must_use]
     pub fn build(self) -> CallerIdentity {
-        if let Some(tenant_id) = self.tenant_id {
-            CallerIdentity::user_with_tenant(self.user_id, self.roles, tenant_id)
-        } else {
-            CallerIdentity::user(self.user_id, self.roles)
-        }
+        CallerIdentity::User(UserIdentity {
+            user_id: self.user_id,
+            email: self.email,
+            name: self.name,
+            roles: self.roles,
+            groups: self.groups,
+            tenant_id: self.tenant_id,
+        })
     }
 }
 
@@ -234,7 +277,11 @@ impl MockSpiffe {
             "spiffe://{}/ns/{}/sa/{}",
             self.trust_domain, self.namespace, self.service_name
         );
-        CallerIdentity::spiffe(spiffe_id, self.service_name, self.trust_domain)
+        CallerIdentity::Spiffe(SpiffeIdentity {
+            spiffe_id,
+            trust_domain: Some(self.trust_domain),
+            service_name: Some(self.service_name),
+        })
     }
 }
 
@@ -258,35 +305,47 @@ impl MockSpiffe {
 #[derive(Debug, Clone)]
 pub struct MockApiKey {
     key_id: String,
+    name: String,
     scopes: Vec<String>,
+    owner_id: Option<String>,
 }
 
 impl MockApiKey {
     /// Creates a new mock API key builder.
     #[must_use]
     pub fn new(key_id: impl Into<String>) -> Self {
+        let id = key_id.into();
         Self {
-            key_id: key_id.into(),
+            name: format!("Mock Key {id}"),
+            key_id: id,
             scopes: Vec::new(),
+            owner_id: None,
         }
     }
 
     /// Creates a read-only API key with "read:*" scope.
     #[must_use]
     pub fn read_only() -> CallerIdentity {
-        Self::new("mock-read-key").with_scope("read:*").build()
+        Self::new("mock-read-key")
+            .with_name("Mock Read-Only Key")
+            .with_scope("read:*")
+            .build()
     }
 
     /// Creates a full-access API key with "admin:*" scope.
     #[must_use]
     pub fn full_access() -> CallerIdentity {
-        Self::new("mock-admin-key").with_scope("admin:*").build()
+        Self::new("mock-admin-key")
+            .with_name("Mock Admin Key")
+            .with_scope("admin:*")
+            .build()
     }
 
     /// Creates an API key with specific service read access.
     #[must_use]
     pub fn read_service(service: &str) -> CallerIdentity {
         Self::new(format!("mock-{service}-read-key"))
+            .with_name(format!("{service} Read Key"))
             .with_scope(format!("read:{service}"))
             .build()
     }
@@ -295,8 +354,23 @@ impl MockApiKey {
     #[must_use]
     pub fn write_service(service: &str) -> CallerIdentity {
         Self::new(format!("mock-{service}-write-key"))
+            .with_name(format!("{service} Write Key"))
             .with_scopes([format!("read:{service}"), format!("write:{service}")])
             .build()
+    }
+
+    /// Sets the human-readable name for this API key.
+    #[must_use]
+    pub fn with_name(mut self, name: impl Into<String>) -> Self {
+        self.name = name.into();
+        self
+    }
+
+    /// Sets the owner ID for this API key.
+    #[must_use]
+    pub fn with_owner(mut self, owner_id: impl Into<String>) -> Self {
+        self.owner_id = Some(owner_id.into());
+        self
     }
 
     /// Adds a single scope to the API key.
@@ -320,7 +394,12 @@ impl MockApiKey {
     /// Builds the [`CallerIdentity`].
     #[must_use]
     pub fn build(self) -> CallerIdentity {
-        CallerIdentity::api_key(self.key_id, self.scopes)
+        CallerIdentity::ApiKey(ApiKeyIdentity {
+            key_id: self.key_id,
+            name: self.name,
+            scopes: self.scopes,
+            owner_id: self.owner_id,
+        })
     }
 }
 
@@ -332,9 +411,9 @@ mod tests {
     fn test_mock_user_admin() {
         let admin = MockUser::admin();
         match admin {
-            CallerIdentity::User { user_id, roles, .. } => {
-                assert_eq!(user_id, "mock-admin");
-                assert!(roles.contains(&"admin".to_string()));
+            CallerIdentity::User(user) => {
+                assert_eq!(user.user_id, "mock-admin");
+                assert!(user.roles.contains(&"admin".to_string()));
             }
             _ => panic!("Expected User identity"),
         }
@@ -348,14 +427,10 @@ mod tests {
             .build();
 
         match user {
-            CallerIdentity::User {
-                user_id,
-                roles,
-                tenant_id,
-            } => {
-                assert_eq!(user_id, "user-123");
-                assert!(roles.contains(&"viewer".to_string()));
-                assert_eq!(tenant_id, Some("tenant-abc".to_string()));
+            CallerIdentity::User(u) => {
+                assert_eq!(u.user_id, "user-123");
+                assert!(u.roles.contains(&"viewer".to_string()));
+                assert_eq!(u.tenant_id, Some("tenant-abc".to_string()));
             }
             _ => panic!("Expected User identity"),
         }
@@ -365,8 +440,8 @@ mod tests {
     fn test_mock_user_guest() {
         let guest = MockUser::guest();
         match guest {
-            CallerIdentity::User { roles, .. } => {
-                assert!(roles.is_empty());
+            CallerIdentity::User(u) => {
+                assert!(u.roles.is_empty());
             }
             _ => panic!("Expected User identity"),
         }
@@ -376,14 +451,10 @@ mod tests {
     fn test_mock_spiffe_default() {
         let service = MockSpiffe::new("my-service").build();
         match service {
-            CallerIdentity::Spiffe {
-                spiffe_id,
-                service_name,
-                trust_domain,
-            } => {
-                assert_eq!(service_name, "my-service");
-                assert_eq!(trust_domain, "test.local");
-                assert!(spiffe_id.contains("my-service"));
+            CallerIdentity::Spiffe(s) => {
+                assert_eq!(s.service_name, Some("my-service".to_string()));
+                assert_eq!(s.trust_domain, Some("test.local".to_string()));
+                assert!(s.spiffe_id.contains("my-service"));
             }
             _ => panic!("Expected Spiffe identity"),
         }
@@ -397,13 +468,9 @@ mod tests {
             .build();
 
         match service {
-            CallerIdentity::Spiffe {
-                spiffe_id,
-                trust_domain,
-                ..
-            } => {
-                assert_eq!(trust_domain, "prod.example.com");
-                assert!(spiffe_id.contains("production"));
+            CallerIdentity::Spiffe(s) => {
+                assert_eq!(s.trust_domain, Some("prod.example.com".to_string()));
+                assert!(s.spiffe_id.contains("production"));
             }
             _ => panic!("Expected Spiffe identity"),
         }
@@ -416,22 +483,22 @@ mod tests {
         let gateway = MockSpiffe::gateway();
 
         match users {
-            CallerIdentity::Spiffe { service_name, .. } => {
-                assert_eq!(service_name, "users-service");
+            CallerIdentity::Spiffe(s) => {
+                assert_eq!(s.service_name, Some("users-service".to_string()));
             }
             _ => panic!("Expected Spiffe"),
         }
 
         match orders {
-            CallerIdentity::Spiffe { service_name, .. } => {
-                assert_eq!(service_name, "orders-service");
+            CallerIdentity::Spiffe(s) => {
+                assert_eq!(s.service_name, Some("orders-service".to_string()));
             }
             _ => panic!("Expected Spiffe"),
         }
 
         match gateway {
-            CallerIdentity::Spiffe { service_name, .. } => {
-                assert_eq!(service_name, "gateway");
+            CallerIdentity::Spiffe(s) => {
+                assert_eq!(s.service_name, Some("gateway".to_string()));
             }
             _ => panic!("Expected Spiffe"),
         }
@@ -441,8 +508,8 @@ mod tests {
     fn test_mock_api_key_read_only() {
         let key = MockApiKey::read_only();
         match key {
-            CallerIdentity::ApiKey { scopes, .. } => {
-                assert!(scopes.contains(&"read:*".to_string()));
+            CallerIdentity::ApiKey(k) => {
+                assert!(k.scopes.contains(&"read:*".to_string()));
             }
             _ => panic!("Expected ApiKey identity"),
         }
@@ -454,18 +521,18 @@ mod tests {
         let write_key = MockApiKey::write_service("orders");
 
         match read_key {
-            CallerIdentity::ApiKey { scopes, key_id } => {
-                assert!(key_id.contains("users"));
-                assert!(scopes.contains(&"read:users".to_string()));
+            CallerIdentity::ApiKey(k) => {
+                assert!(k.key_id.contains("users"));
+                assert!(k.scopes.contains(&"read:users".to_string()));
             }
             _ => panic!("Expected ApiKey identity"),
         }
 
         match write_key {
-            CallerIdentity::ApiKey { scopes, key_id } => {
-                assert!(key_id.contains("orders"));
-                assert!(scopes.contains(&"read:orders".to_string()));
-                assert!(scopes.contains(&"write:orders".to_string()));
+            CallerIdentity::ApiKey(k) => {
+                assert!(k.key_id.contains("orders"));
+                assert!(k.scopes.contains(&"read:orders".to_string()));
+                assert!(k.scopes.contains(&"write:orders".to_string()));
             }
             _ => panic!("Expected ApiKey identity"),
         }
@@ -478,9 +545,9 @@ mod tests {
             .build();
 
         match key {
-            CallerIdentity::ApiKey { key_id, scopes } => {
-                assert_eq!(key_id, "custom-key");
-                assert_eq!(scopes.len(), 2);
+            CallerIdentity::ApiKey(k) => {
+                assert_eq!(k.key_id, "custom-key");
+                assert_eq!(k.scopes.len(), 2);
             }
             _ => panic!("Expected ApiKey identity"),
         }

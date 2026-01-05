@@ -1,12 +1,12 @@
 # Eunomia – Development Roadmap
 
-> **Version**: 1.2.0  
+> **Version**: 1.3.0  
 > **Created**: 2026-01-04  
 > **Last Updated**: 2026-01-05  
 > **Target Completion**: Week 20 (MVP Integration with Archimedes MVP)
 
-> ⚠️ **CTO REVIEW (2026-01-04)**: Sign-off pending. See [CTO Architecture Review](~/Documents/projects/Startups/ThemisPlatform/docs/reviews/2026-01-04-cto-architecture-review.md)  
-> **BLOCKING ISSUE**: Local type definitions must be migrated to `themis-platform-types` before Week 2.
+> ✅ **CTO REVIEW (2026-01-05)**: Phase E0 complete. Shared types migration resolved.
+> All Eunomia types now use `themis-platform-types` for schema compatibility.
 
 ---
 
@@ -83,32 +83,43 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 ---
 
-## Phase E0: Shared Platform Types (Week 1) ⭐ COORDINATION
+## Phase E0: Shared Platform Types (Week 1) ✅ COMPLETE
 
 > **Note**: The `themis-platform-types` crate is created by Themis team in Week 1.
 > Eunomia integrates it to ensure schema compatibility.
 
 ### Week 1: Integrate Shared Types
 
-> ✅ **Update (2026-01-04)**: `themis-platform-types` crate is now available!
-> Local type implementations in `eunomia-core` are ready for migration.
+> ✅ **Completed (2026-01-05)**: `themis-platform-types` integration complete!
+> All shared types now come from the platform crate. Local modules deprecated.
 
-- [ ] Add `themis-platform-types` dependency to `eunomia-core`
-  > ⏳ **Ready**: Shared crate available, migration pending
-- [ ] Migrate `CallerIdentity` to use shared definition
-  > ⏳ **Ready**: Local implementation matches spec, ready for migration
-- [ ] Migrate `PolicyInput` to use shared definition
-  > ⏳ **Ready**: Local implementation matches spec, ready for migration
-- [ ] Migrate `PolicyDecision` to use shared definition
-  > ⏳ **Ready**: Local implementation matches spec, ready for migration
-- [ ] Update existing code to use shared types
-- [ ] Verify JSON serialization matches spec
+- [x] Add `themis-platform-types` dependency to `eunomia-core`
+  > ✅ **Completed**: Added as workspace dependency, re-exported from `eunomia-core`
+- [x] Migrate `CallerIdentity` to use shared definition
+  > ✅ **Completed**: Re-exported from `themis-platform-types`, local module deprecated
+- [x] Migrate `PolicyInput` to use shared definition
+  > ✅ **Completed**: Re-exported from `themis-platform-types`, local module deprecated
+- [x] Migrate `PolicyDecision` to use shared definition
+  > ✅ **Completed**: Re-exported as `PolicyDecision`, `AuthorizationDecision` alias deprecated
+- [x] Update existing code to use shared types
+  > ✅ **Completed**: Updated `eunomia-test` mock builders to use new API
+- [x] Verify JSON serialization matches spec
+  > ✅ **Completed**: All 331 tests passing
+
+**Migration Notes:**
+- `CallerIdentity` now uses tuple variants with inner structs (`User(UserIdentity)`, etc.)
+- `CallerIdentity::user()` takes `(user_id, email)` instead of `(user_id, roles)`
+- Use `CallerIdentity::spiffe_full()` for full SPIFFE details
+- `CallerIdentity::api_key()` takes `(key_id, name)` instead of `(key_id, scopes)`
+- `is_spiffe()` renamed to `is_service()`
+- `identity_type()` renamed to `identifier()`
+- Local modules (`identity`, `input`, `decision`) are deprecated but preserved for compatibility
 
 ### Phase E0 Milestone
 
 **Criteria**: Eunomia uses `themis-platform-types` for all shared types
 
-> ⏳ **Status**: Local implementations complete. Migration to shared crate pending.
+> ✅ **Status**: COMPLETE. All shared types migrated to `themis-platform-types`.
 
 ---
 

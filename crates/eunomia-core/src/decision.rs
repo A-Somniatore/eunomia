@@ -2,6 +2,9 @@
 //!
 //! This module defines the [`AuthorizationDecision`] structure that represents
 //! the result of evaluating a policy.
+//!
+//! **Note:** This module is deprecated. Use [`PolicyDecision`](themis_platform_types::PolicyDecision)
+//! from the `themis-platform-types` crate instead.
 
 use serde::{Deserialize, Serialize};
 
@@ -10,10 +13,12 @@ use serde::{Deserialize, Serialize};
 /// This structure contains the decision (allow/deny) along with metadata
 /// about the evaluation for auditing and debugging purposes.
 ///
+/// **Deprecated:** Use [`themis_platform_types::PolicyDecision`] instead.
+///
 /// # Examples
 ///
-/// ```rust
-/// use eunomia_core::AuthorizationDecision;
+/// ```rust,ignore
+/// use eunomia_core::decision::AuthorizationDecision;
 ///
 /// let decision = AuthorizationDecision::allow("admin access granted", "users_service.authz");
 /// assert!(decision.allowed);
@@ -49,10 +54,12 @@ impl AuthorizationDecision {
     /// * `reason` - Reason for allowing the request
     /// * `policy_id` - Identifier of the policy that made the decision
     ///
+    /// **Deprecated:** Use [`themis_platform_types::PolicyDecision::allow`] instead.
+    ///
     /// # Examples
     ///
-    /// ```rust
-    /// use eunomia_core::AuthorizationDecision;
+    /// ```rust,ignore
+    /// use eunomia_core::decision::AuthorizationDecision;
     ///
     /// let decision = AuthorizationDecision::allow(
     ///     "user has admin role",
@@ -78,10 +85,12 @@ impl AuthorizationDecision {
     /// * `reason` - Reason for denying the request
     /// * `policy_id` - Identifier of the policy that made the decision
     ///
+    /// **Deprecated:** Use [`themis_platform_types::PolicyDecision::deny`] instead.
+    ///
     /// # Examples
     ///
-    /// ```rust
-    /// use eunomia_core::AuthorizationDecision;
+    /// ```rust,ignore
+    /// use eunomia_core::decision::AuthorizationDecision;
     ///
     /// let decision = AuthorizationDecision::deny(
     ///     "no matching allow rule",

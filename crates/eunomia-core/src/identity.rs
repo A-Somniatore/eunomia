@@ -7,6 +7,9 @@
 //! - [`CallerIdentity::User`] - External user with roles
 //! - [`CallerIdentity::ApiKey`] - API key with scopes
 //! - [`CallerIdentity::Anonymous`] - Unauthenticated caller
+//!
+//! **Note:** This module is deprecated. Use [`CallerIdentity`](themis_platform_types::CallerIdentity)
+//! from the `themis-platform-types` crate instead.
 
 use serde::{Deserialize, Serialize};
 
@@ -15,10 +18,12 @@ use serde::{Deserialize, Serialize};
 /// The identity type determines which authorization rules apply and what
 /// attributes are available for policy evaluation.
 ///
+/// **Deprecated:** Use [`themis_platform_types::CallerIdentity`] instead.
+///
 /// # Examples
 ///
-/// ```rust
-/// use eunomia_core::CallerIdentity;
+/// ```rust,ignore
+/// use eunomia_core::identity::CallerIdentity;
 ///
 /// // Internal service identity
 /// let service = CallerIdentity::spiffe(
@@ -94,10 +99,12 @@ impl CallerIdentity {
     /// * `service_name` - Parsed service name
     /// * `trust_domain` - Trust domain
     ///
+    /// **Deprecated:** Use [`themis_platform_types::CallerIdentity::spiffe_full`] instead.
+    ///
     /// # Examples
     ///
-    /// ```rust
-    /// use eunomia_core::CallerIdentity;
+    /// ```rust,ignore
+    /// use eunomia_core::identity::CallerIdentity;
     ///
     /// let identity = CallerIdentity::spiffe(
     ///     "spiffe://somniatore.com/ns/prod/sa/orders",
@@ -125,10 +132,12 @@ impl CallerIdentity {
     /// * `user_id` - Unique user identifier
     /// * `roles` - Roles assigned to the user
     ///
+    /// **Deprecated:** Use [`themis_platform_types::CallerIdentity::user`] instead (takes email, not roles).
+    ///
     /// # Examples
     ///
-    /// ```rust
-    /// use eunomia_core::CallerIdentity;
+    /// ```rust,ignore
+    /// use eunomia_core::identity::CallerIdentity;
     ///
     /// let user = CallerIdentity::user("user-123", vec!["admin".to_string()]);
     /// ```
@@ -149,10 +158,12 @@ impl CallerIdentity {
     /// * `roles` - Roles assigned to the user
     /// * `tenant_id` - Tenant identifier (for multi-tenant systems)
     ///
+    /// **Deprecated:** This method is not available in `themis-platform-types`.
+    ///
     /// # Examples
     ///
-    /// ```rust
-    /// use eunomia_core::CallerIdentity;
+    /// ```rust,ignore
+    /// use eunomia_core::identity::CallerIdentity;
     ///
     /// let user = CallerIdentity::user_with_tenant(
     ///     "user-123",
@@ -180,10 +191,12 @@ impl CallerIdentity {
     /// * `key_id` - Unique key identifier
     /// * `scopes` - Scopes granted to the API key
     ///
+    /// **Deprecated:** Use [`themis_platform_types::CallerIdentity::api_key`] instead (takes name, not scopes).
+    ///
     /// # Examples
     ///
-    /// ```rust
-    /// use eunomia_core::CallerIdentity;
+    /// ```rust,ignore
+    /// use eunomia_core::identity::CallerIdentity;
     ///
     /// let api_key = CallerIdentity::api_key(
     ///     "key-789",

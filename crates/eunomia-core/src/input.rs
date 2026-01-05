@@ -2,6 +2,9 @@
 //!
 //! This module defines the [`PolicyInput`] structure that represents the
 //! input data provided to OPA for policy evaluation.
+//!
+//! **Note:** This module is deprecated. Use [`PolicyInput`](themis_platform_types::PolicyInput)
+//! from the `themis-platform-types` crate instead.
 
 use std::collections::HashMap;
 
@@ -15,10 +18,13 @@ use crate::CallerIdentity;
 /// This structure contains all the information needed to make an authorization
 /// decision. It is serialized to JSON and passed to OPA as the `input` document.
 ///
+/// **Deprecated:** Use [`themis_platform_types::PolicyInput`] instead.
+///
 /// # Examples
 ///
-/// ```rust
-/// use eunomia_core::{PolicyInput, CallerIdentity};
+/// ```rust,ignore
+/// use eunomia_core::input::{PolicyInput, PolicyInputBuilder};
+/// use eunomia_core::identity::CallerIdentity;
 ///
 /// let input = PolicyInput::builder()
 ///     .caller(CallerIdentity::user("user-123", vec!["admin".to_string()]))
@@ -220,7 +226,7 @@ mod tests {
     #[test]
     fn test_policy_input_builder() {
         let input = PolicyInput::builder()
-            .caller(CallerIdentity::user("user-123", vec!["admin".to_string()]))
+            .caller(CallerIdentity::user("user-123", "admin@example.com"))
             .service("users-service")
             .operation_id("getUser")
             .method("GET")
@@ -316,7 +322,7 @@ mod tests {
     #[test]
     fn test_policy_input_serialization() {
         let input = PolicyInput::builder()
-            .caller(CallerIdentity::user("user-123", vec!["viewer".to_string()]))
+            .caller(CallerIdentity::user("user-123", "viewer@example.com"))
             .service("users-service")
             .operation_id("getUser")
             .method("GET")

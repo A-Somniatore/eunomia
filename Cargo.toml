@@ -56,6 +56,9 @@ prost = "0.13"
 # Time
 chrono = { version = "0.4", features = ["serde"] }
 
+# UUID (for RequestId compatibility)
+uuid = { version = "1.0", features = ["v7", "serde"] }
+
 # Testing
 proptest = "1.0"
 tempfile = "3.15"
@@ -73,6 +76,9 @@ eunomia-core = { path = "crates/eunomia-core" }
 eunomia-compiler = { path = "crates/eunomia-compiler" }
 eunomia-test = { path = "crates/eunomia-test" }
 eunomia-registry = { path = "crates/eunomia-registry" }
+
+# Shared platform types (from Themis team)
+themis-platform-types = { path = "../themis-platform-types" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
