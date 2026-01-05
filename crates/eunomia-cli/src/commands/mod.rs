@@ -5,6 +5,7 @@ pub mod fetch;
 pub mod publish;
 pub mod push;
 pub mod sign;
+pub mod status;
 pub mod test;
 pub mod validate;
 
@@ -42,6 +43,9 @@ pub enum Commands {
 
     /// Push a policy to Archimedes instances
     Push(push::PushArgs),
+
+    /// Check deployment status
+    Status(status::StatusArgs),
 
     /// Print version information
     Version,

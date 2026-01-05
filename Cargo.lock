@@ -607,6 +607,7 @@ dependencies = [
  "eunomia-test",
  "serde",
  "serde_json",
+ "tempfile",
  "tokio",
  "tracing",
  "tracing-subscriber",

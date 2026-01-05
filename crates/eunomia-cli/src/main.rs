@@ -29,6 +29,7 @@ async fn main() -> Result<()> {
         Commands::Fetch(args) => commands::fetch::run(&args),
         Commands::Validate(args) => commands::validate::run(&args),
         Commands::Push(args) => commands::push::execute(args).await,
+        Commands::Status(args) => commands::status::run(&args),
         Commands::Version => {
             println!("eunomia {}", env!("CARGO_PKG_VERSION"));
             Ok(())
