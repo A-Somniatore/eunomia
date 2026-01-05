@@ -143,8 +143,7 @@ impl SignatureFile {
     ///
     /// Returns an error if JSON serialization fails.
     pub fn to_json(&self) -> Result<String, SigningError> {
-        serde_json::to_string_pretty(self)
-            .map_err(|e| SigningError::DecodeError(e.to_string()))
+        serde_json::to_string_pretty(self).map_err(|e| SigningError::DecodeError(e.to_string()))
     }
 
     /// Deserializes a signature file from JSON.
@@ -277,7 +276,10 @@ impl BundleSigner {
     /// Creates a new bundle signer.
     #[must_use]
     pub const fn new(signing_key: SigningKey, key_id: String) -> Self {
-        Self { signing_key, key_id }
+        Self {
+            signing_key,
+            key_id,
+        }
     }
 
     /// Creates a signer from a key pair.
@@ -364,9 +366,9 @@ impl BundleVerifier {
             .decode(encoded.trim())
             .map_err(|e| SigningError::InvalidKeyFormat(e.to_string()))?;
 
-        let key_bytes: [u8; 32] = bytes
-            .try_into()
-            .map_err(|_| SigningError::InvalidKeyFormat("public key must be 32 bytes".to_string()))?;
+        let key_bytes: [u8; 32] = bytes.try_into().map_err(|_| {
+            SigningError::InvalidKeyFormat("public key must be 32 bytes".to_string())
+        })?;
 
         let public_key = VerifyingKey::from_bytes(&key_bytes)
             .map_err(|e| SigningError::InvalidKeyFormat(e.to_string()))?;
@@ -464,9 +466,7 @@ mod tests {
 
     /// Helper function to create a simple test bundle.
     fn test_bundle(name: &str, version: &str) -> Bundle {
-        Bundle::builder(name)
-            .version(version)
-            .build()
+        Bundle::builder(name).version(version).build()
     }
 
     /// Helper function to create a bundle with a policy.
@@ -486,10 +486,7 @@ mod tests {
         let exported = key_pair.to_base64();
         let reimported = SigningKeyPair::from_base64(&exported).unwrap();
 
-        assert_eq!(
-            reimported.verifying_key().to_bytes(),
-            public_key.to_bytes()
-        );
+        assert_eq!(reimported.verifying_key().to_bytes(), public_key.to_bytes());
     }
 
     #[test]
@@ -566,7 +563,7 @@ mod tests {
             "tampered-service",
             "1.0.0",
             "test.authz",
-            "package test\ndefault allow := true",  // Different content!
+            "package test\ndefault allow := true", // Different content!
         );
 
         assert!(verifier.verify(&signed).is_err());

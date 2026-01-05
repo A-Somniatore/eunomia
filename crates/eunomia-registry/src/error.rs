@@ -141,7 +141,9 @@ impl From<reqwest::Error> for RegistryError {
     fn from(err: reqwest::Error) -> Self {
         if err.is_connect() {
             Self::ConnectionFailed {
-                url: err.url().map_or_else(|| "unknown".to_string(), ToString::to_string),
+                url: err
+                    .url()
+                    .map_or_else(|| "unknown".to_string(), ToString::to_string),
                 source: err,
             }
         } else if err.is_status() {

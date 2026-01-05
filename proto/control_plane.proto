@@ -1,0 +1,559 @@
+// proto/control_plane.proto
+// Eunomia Control Plane gRPC API
+//
+// This protocol defines the communication between:
+// - Eunomia CLI/Control Plane -> Archimedes Instances (policy push)
+// - External systems -> Eunomia Control Plane (deployment management)
+
+syntax = "proto3";
+
+package eunomia.control.v1;
+
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+// =============================================================================
+// Control Plane Service
+// =============================================================================
+
+// ControlPlane manages policy deployments across Archimedes instances.
+service ControlPlane {
+  // Deploy a policy bundle to target instances
+  rpc DeployPolicy(DeployPolicyRequest) returns (DeployPolicyResponse);
+  
+  // Rollback to a previous policy version
+  rpc RollbackPolicy(RollbackPolicyRequest) returns (RollbackPolicyResponse);
+  
+  // Get current deployment status for a service
+  rpc GetPolicyStatus(GetPolicyStatusRequest) returns (PolicyStatusResponse);
+  
+  // List all known Archimedes instances
+  rpc ListInstances(ListInstancesRequest) returns (ListInstancesResponse);
+  
+  // Get health status of an instance
+  rpc GetInstanceHealth(GetInstanceHealthRequest) returns (InstanceHealthResponse);
+  
+  // Stream deployment events in real-time
+  rpc WatchDeployment(WatchDeploymentRequest) returns (stream DeploymentEvent);
+  
+  // Stream audit events
+  rpc GetAuditLog(GetAuditLogRequest) returns (stream AuditEvent);
+}
+
+// =============================================================================
+// Policy Receiver Service (Archimedes side)
+// =============================================================================
+
+// PolicyReceiver is implemented by Archimedes instances to receive policy updates.
+service PolicyReceiver {
+  // Receive a policy update push
+  rpc UpdatePolicy(UpdatePolicyRequest) returns (UpdatePolicyResponse);
+  
+  // Report current policy status
+  rpc GetCurrentPolicy(GetCurrentPolicyRequest) returns (CurrentPolicyResponse);
+  
+  // Health check
+  rpc HealthCheck(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// =============================================================================
+// Deployment Messages
+// =============================================================================
+
+message DeployPolicyRequest {
+  // Target service name
+  string service = 1;
+  
+  // Version to deploy (e.g., "1.2.3")
+  string version = 2;
+  
+  // Deployment strategy
+  DeploymentStrategy strategy = 3;
+  
+  // Optional: specific instance IDs to target
+  repeated string target_instances = 4;
+  
+  // Optional: reason for deployment
+  string reason = 5;
+}
+
+message DeployPolicyResponse {
+  // Unique deployment ID for tracking
+  string deployment_id = 1;
+  
+  // Current deployment state
+  DeploymentState state = 2;
+  
+  // Summary of results
+  DeploymentSummary summary = 3;
+  
+  // Detailed per-instance results
+  repeated InstanceDeploymentResult instance_results = 4;
+}
+
+message DeploymentStrategy {
+  // Strategy type
+  StrategyType type = 1;
+  
+  // For canary: percentage of instances (0-100)
+  int32 canary_percentage = 2;
+  
+  // For canary: duration before proceeding
+  google.protobuf.Duration canary_duration = 3;
+  
+  // For rolling: batch size
+  int32 batch_size = 4;
+  
+  // For rolling: delay between batches
+  google.protobuf.Duration batch_delay = 5;
+  
+  // Health check configuration
+  HealthCheckConfig health_check = 6;
+}
+
+enum StrategyType {
+  STRATEGY_TYPE_UNSPECIFIED = 0;
+  STRATEGY_TYPE_IMMEDIATE = 1;     // Deploy to all at once
+  STRATEGY_TYPE_CANARY = 2;        // Deploy to subset, then all
+  STRATEGY_TYPE_ROLLING = 3;       // Deploy in batches
+}
+
+message HealthCheckConfig {
+  // Enable health checks during deployment
+  bool enabled = 1;
+  
+  // Time to wait before checking health
+  google.protobuf.Duration initial_delay = 2;
+  
+  // Interval between health checks
+  google.protobuf.Duration interval = 3;
+  
+  // Number of consecutive failures to trigger rollback
+  int32 failure_threshold = 4;
+  
+  // Number of consecutive successes required
+  int32 success_threshold = 5;
+}
+
+message DeploymentSummary {
+  // Total instances targeted
+  int32 total_instances = 1;
+  
+  // Successfully updated
+  int32 successful = 2;
+  
+  // Failed to update
+  int32 failed = 3;
+  
+  // Pending (in progress)
+  int32 pending = 4;
+  
+  // Skipped (e.g., already at version)
+  int32 skipped = 5;
+}
+
+message InstanceDeploymentResult {
+  // Instance identifier
+  string instance_id = 1;
+  
+  // Result status
+  InstanceResultStatus status = 2;
+  
+  // Error message if failed
+  string error_message = 3;
+  
+  // Time taken for this instance
+  google.protobuf.Duration duration = 4;
+  
+  // Previous version (if applicable)
+  string previous_version = 5;
+}
+
+enum InstanceResultStatus {
+  INSTANCE_RESULT_STATUS_UNSPECIFIED = 0;
+  INSTANCE_RESULT_STATUS_SUCCESS = 1;
+  INSTANCE_RESULT_STATUS_FAILED = 2;
+  INSTANCE_RESULT_STATUS_SKIPPED = 3;
+  INSTANCE_RESULT_STATUS_PENDING = 4;
+  INSTANCE_RESULT_STATUS_TIMEOUT = 5;
+}
+
+// =============================================================================
+// Rollback Messages
+// =============================================================================
+
+message RollbackPolicyRequest {
+  // Target service name
+  string service = 1;
+  
+  // Version to rollback to
+  string target_version = 2;
+  
+  // Optional: reason for rollback
+  string reason = 3;
+  
+  // Optional: specific instances (empty = all)
+  repeated string target_instances = 4;
+}
+
+message RollbackPolicyResponse {
+  // Rollback ID for tracking
+  string rollback_id = 1;
+  
+  // Current state
+  DeploymentState state = 2;
+  
+  // Version rolled back from
+  string from_version = 3;
+  
+  // Version rolled back to
+  string to_version = 4;
+  
+  // Detailed results
+  DeploymentSummary summary = 5;
+}
+
+// =============================================================================
+// Status Messages
+// =============================================================================
+
+message GetPolicyStatusRequest {
+  // Service name
+  string service = 1;
+}
+
+message PolicyStatusResponse {
+  // Service name
+  string service = 1;
+  
+  // Current deployed version
+  string current_version = 2;
+  
+  // Previous version (for rollback)
+  string previous_version = 3;
+  
+  // Current deployment state
+  DeploymentState state = 4;
+  
+  // Per-instance status
+  repeated InstancePolicyStatus instances = 5;
+  
+  // Last deployment timestamp
+  google.protobuf.Timestamp last_deployed = 6;
+  
+  // Git commit of current bundle
+  string git_commit = 7;
+}
+
+message InstancePolicyStatus {
+  // Instance identifier
+  string instance_id = 1;
+  
+  // Current version on this instance
+  string version = 2;
+  
+  // Instance health state
+  HealthState health_state = 3;
+  
+  // Last update timestamp
+  google.protobuf.Timestamp last_updated = 4;
+}
+
+enum DeploymentState {
+  DEPLOYMENT_STATE_UNSPECIFIED = 0;
+  DEPLOYMENT_STATE_DEPLOYED = 1;
+  DEPLOYMENT_STATE_DEPLOYING = 2;
+  DEPLOYMENT_STATE_ROLLING_BACK = 3;
+  DEPLOYMENT_STATE_FAILED = 4;
+  DEPLOYMENT_STATE_PARTIAL = 5;    // Some instances failed
+}
+
+enum HealthState {
+  HEALTH_STATE_UNSPECIFIED = 0;
+  HEALTH_STATE_HEALTHY = 1;
+  HEALTH_STATE_UNHEALTHY = 2;
+  HEALTH_STATE_UNKNOWN = 3;
+}
+
+// =============================================================================
+// Instance Discovery Messages
+// =============================================================================
+
+message ListInstancesRequest {
+  // Optional: filter by service
+  string service = 1;
+  
+  // Optional: filter by health state
+  HealthState health_filter = 2;
+  
+  // Pagination
+  int32 page_size = 3;
+  string page_token = 4;
+}
+
+message ListInstancesResponse {
+  // List of instances
+  repeated Instance instances = 1;
+  
+  // Token for next page
+  string next_page_token = 2;
+}
+
+message Instance {
+  // Unique instance identifier
+  string id = 1;
+  
+  // Service this instance belongs to
+  string service = 2;
+  
+  // Control plane endpoint (for policy push)
+  string control_endpoint = 3;
+  
+  // Instance metadata
+  InstanceMetadata metadata = 4;
+  
+  // Current health state
+  HealthState health_state = 5;
+  
+  // Last heartbeat timestamp
+  google.protobuf.Timestamp last_heartbeat = 6;
+}
+
+message InstanceMetadata {
+  // Kubernetes namespace
+  string namespace = 1;
+  
+  // Pod name (if K8s)
+  string pod_name = 2;
+  
+  // Node name
+  string node_name = 3;
+  
+  // Region/zone
+  string region = 4;
+  
+  // Additional labels
+  map<string, string> labels = 5;
+}
+
+message GetInstanceHealthRequest {
+  string instance_id = 1;
+}
+
+message InstanceHealthResponse {
+  string instance_id = 1;
+  HealthState state = 2;
+  string message = 3;
+  google.protobuf.Timestamp checked_at = 4;
+  
+  // Detailed health info
+  PolicyHealthInfo policy_health = 5;
+  ResourceHealthInfo resource_health = 6;
+}
+
+message PolicyHealthInfo {
+  // Currently loaded policy version
+  string loaded_version = 1;
+  
+  // Policy load status
+  bool policy_loaded = 2;
+  
+  // Recent authorization stats
+  int64 total_evaluations = 3;
+  int64 allow_count = 4;
+  int64 deny_count = 5;
+  int64 error_count = 6;
+  
+  // Average evaluation time (microseconds)
+  double avg_eval_time_us = 7;
+}
+
+message ResourceHealthInfo {
+  // CPU usage percentage
+  double cpu_percent = 1;
+  
+  // Memory usage in bytes
+  int64 memory_bytes = 2;
+  
+  // Open connections
+  int32 open_connections = 3;
+}
+
+// =============================================================================
+// Policy Receiver Messages (Archimedes side)
+// =============================================================================
+
+message UpdatePolicyRequest {
+  // Service name
+  string service = 1;
+  
+  // New version
+  string version = 2;
+  
+  // Bundle download URL (OCI registry)
+  string bundle_url = 3;
+  
+  // Bundle checksum for verification
+  string bundle_checksum = 4;
+  
+  // Bundle manifest
+  bytes manifest = 5;
+  
+  // Optional: signature for verification
+  bytes signature = 6;
+  
+  // Deployment ID for correlation
+  string deployment_id = 7;
+}
+
+message UpdatePolicyResponse {
+  // Success indicator
+  bool success = 1;
+  
+  // Error message if failed
+  string error_message = 2;
+  
+  // Previous version (for rollback reference)
+  string previous_version = 3;
+  
+  // Time taken to apply policy
+  google.protobuf.Duration apply_duration = 4;
+}
+
+message GetCurrentPolicyRequest {
+  string service = 1;
+}
+
+message CurrentPolicyResponse {
+  // Service name
+  string service = 1;
+  
+  // Currently loaded version
+  string version = 2;
+  
+  // Bundle checksum
+  string bundle_checksum = 3;
+  
+  // Loaded timestamp
+  google.protobuf.Timestamp loaded_at = 4;
+  
+  // Policy statistics
+  PolicyHealthInfo stats = 5;
+}
+
+message HealthCheckRequest {
+  // Optional: include detailed stats
+  bool include_stats = 1;
+}
+
+message HealthCheckResponse {
+  // Overall health
+  HealthState state = 1;
+  
+  // Health message
+  string message = 2;
+  
+  // Detailed policy health
+  PolicyHealthInfo policy_health = 3;
+  
+  // Resource health
+  ResourceHealthInfo resource_health = 4;
+}
+
+// =============================================================================
+// Deployment Events (Streaming)
+// =============================================================================
+
+message WatchDeploymentRequest {
+  // Deployment ID to watch
+  string deployment_id = 1;
+}
+
+message DeploymentEvent {
+  // Event timestamp
+  google.protobuf.Timestamp timestamp = 1;
+  
+  // Deployment ID
+  string deployment_id = 2;
+  
+  // Event type
+  DeploymentEventType event_type = 3;
+  
+  // Affected instance (if applicable)
+  string instance_id = 4;
+  
+  // Event message
+  string message = 5;
+  
+  // Current summary
+  DeploymentSummary summary = 6;
+}
+
+enum DeploymentEventType {
+  DEPLOYMENT_EVENT_TYPE_UNSPECIFIED = 0;
+  DEPLOYMENT_EVENT_TYPE_STARTED = 1;
+  DEPLOYMENT_EVENT_TYPE_INSTANCE_STARTED = 2;
+  DEPLOYMENT_EVENT_TYPE_INSTANCE_SUCCEEDED = 3;
+  DEPLOYMENT_EVENT_TYPE_INSTANCE_FAILED = 4;
+  DEPLOYMENT_EVENT_TYPE_CANARY_STARTED = 5;
+  DEPLOYMENT_EVENT_TYPE_CANARY_PASSED = 6;
+  DEPLOYMENT_EVENT_TYPE_CANARY_FAILED = 7;
+  DEPLOYMENT_EVENT_TYPE_ROLLBACK_STARTED = 8;
+  DEPLOYMENT_EVENT_TYPE_COMPLETED = 9;
+  DEPLOYMENT_EVENT_TYPE_FAILED = 10;
+}
+
+// =============================================================================
+// Audit Messages
+// =============================================================================
+
+message GetAuditLogRequest {
+  // Filter by service
+  string service = 1;
+  
+  // Start timestamp
+  google.protobuf.Timestamp start_time = 2;
+  
+  // End timestamp (optional)
+  google.protobuf.Timestamp end_time = 3;
+  
+  // Filter by event type
+  repeated AuditEventType event_types = 4;
+  
+  // Maximum events to return
+  int32 limit = 5;
+}
+
+message AuditEvent {
+  // Event ID
+  string id = 1;
+  
+  // Event timestamp
+  google.protobuf.Timestamp timestamp = 2;
+  
+  // Event type
+  AuditEventType event_type = 3;
+  
+  // Service affected
+  string service = 4;
+  
+  // Actor (user or system that triggered the event)
+  string actor = 5;
+  
+  // Event details
+  map<string, string> details = 6;
+  
+  // Related deployment/rollback ID
+  string related_id = 7;
+}
+
+enum AuditEventType {
+  AUDIT_EVENT_TYPE_UNSPECIFIED = 0;
+  AUDIT_EVENT_TYPE_POLICY_DEPLOYED = 1;
+  AUDIT_EVENT_TYPE_POLICY_ROLLBACK = 2;
+  AUDIT_EVENT_TYPE_BUNDLE_PUBLISHED = 3;
+  AUDIT_EVENT_TYPE_INSTANCE_REGISTERED = 4;
+  AUDIT_EVENT_TYPE_INSTANCE_DEREGISTERED = 5;
+  AUDIT_EVENT_TYPE_HEALTH_CHECK_FAILED = 6;
+  AUDIT_EVENT_TYPE_AUTO_ROLLBACK = 7;
+}

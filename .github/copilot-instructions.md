@@ -21,6 +21,7 @@
 ### CRITICAL: Always Review Before Changes
 
 Before making any code changes, **always review these documents**:
+
 - `docs/roadmap.md` - Current phase, tasks, and priorities
 - `docs/design.md` - Architecture decisions and patterns
 - `docs/spec.md` - Requirements and specifications
@@ -49,6 +50,7 @@ These commands will hang the terminal and must be avoided:
 - **Cargo watch**: Don't use `cargo watch` or similar watch modes
 
 **Safe patterns:**
+
 ```bash
 # Good - non-interactive
 git add -A && git commit -m "feat: add feature"

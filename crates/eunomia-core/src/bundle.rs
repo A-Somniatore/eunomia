@@ -274,11 +274,10 @@ impl Bundle {
 
         // Add manifest
         let manifest = self.generate_manifest();
-        let manifest_bytes = serde_json::to_vec_pretty(&manifest).map_err(|e| {
-            crate::Error::Serialization {
+        let manifest_bytes =
+            serde_json::to_vec_pretty(&manifest).map_err(|e| crate::Error::Serialization {
                 message: format!("failed to serialize manifest: {e}"),
-            }
-        })?;
+            })?;
         Self::add_bytes_to_archive(&mut archive, ".manifest", &manifest_bytes)?;
 
         // Add policies
@@ -388,9 +387,11 @@ impl Bundle {
                 .to_string();
 
             let mut contents = String::new();
-            entry.read_to_string(&mut contents).map_err(|e| crate::Error::Io {
-                message: format!("failed to read entry contents: {e}"),
-            })?;
+            entry
+                .read_to_string(&mut contents)
+                .map_err(|e| crate::Error::Io {
+                    message: format!("failed to read entry contents: {e}"),
+                })?;
 
             let path_obj = Path::new(&path);
 
@@ -407,10 +408,9 @@ impl Bundle {
                 // Convert path back to package name
                 let package = Self::path_to_package(&path);
                 policies.insert(package, contents);
-            } else if path_obj
-                .extension()
-                .is_some_and(|ext| ext.eq_ignore_ascii_case("json") || ext.eq_ignore_ascii_case("yaml"))
-            {
+            } else if path_obj.extension().is_some_and(|ext| {
+                ext.eq_ignore_ascii_case("json") || ext.eq_ignore_ascii_case("yaml")
+            }) {
                 data_files.insert(path, contents);
             }
         }
@@ -435,8 +435,7 @@ impl Bundle {
     ///
     /// Example: `"users_service/authz.rego"` → `"users_service.authz"`
     fn path_to_package(path: &str) -> String {
-        path.trim_end_matches(".rego")
-            .replace('/', ".")
+        path.trim_end_matches(".rego").replace('/', ".")
     }
 
     /// Creates a Bundle from manifest data and file contents.
@@ -446,9 +445,7 @@ impl Bundle {
         data_files: HashMap<String, String>,
     ) -> crate::Result<Self> {
         // Extract metadata from manifest
-        let eunomia = manifest
-            .get("metadata")
-            .and_then(|m| m.get("eunomia"));
+        let eunomia = manifest.get("metadata").and_then(|m| m.get("eunomia"));
 
         let name = eunomia
             .and_then(|e| e.get("service"))
@@ -736,7 +733,10 @@ mod tests {
 
     #[test]
     fn test_package_to_path() {
-        assert_eq!(Bundle::package_to_path("users_service.authz"), "users_service/authz.rego");
+        assert_eq!(
+            Bundle::package_to_path("users_service.authz"),
+            "users_service/authz.rego"
+        );
         assert_eq!(Bundle::package_to_path("common.roles"), "common/roles.rego");
         assert_eq!(Bundle::package_to_path("policy"), "policy.rego");
         assert_eq!(
@@ -747,7 +747,10 @@ mod tests {
 
     #[test]
     fn test_path_to_package() {
-        assert_eq!(Bundle::path_to_package("users_service/authz.rego"), "users_service.authz");
+        assert_eq!(
+            Bundle::path_to_package("users_service/authz.rego"),
+            "users_service.authz"
+        );
         assert_eq!(Bundle::path_to_package("common/roles.rego"), "common.roles");
         assert_eq!(Bundle::path_to_package("policy.rego"), "policy");
     }
@@ -817,8 +820,14 @@ mod tests {
             .version("2.0.0")
             .git_commit("def456")
             .add_root("test_service")
-            .add_policy("test_service.authz", "package test_service.authz\ndefault allow := false")
-            .add_policy("common.roles", "package common.roles\nis_admin(roles) = roles[_] == \"admin\"")
+            .add_policy(
+                "test_service.authz",
+                "package test_service.authz\ndefault allow := false",
+            )
+            .add_policy(
+                "common.roles",
+                "package common.roles\nis_admin(roles) = roles[_] == \"admin\"",
+            )
             .add_data_file("test_service/data.json", r#"{"key": "value"}"#)
             .build();
 

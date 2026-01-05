@@ -20,10 +20,10 @@ This guide covers how to write, run, and maintain policy tests using the Eunomia
 
 Eunomia supports two types of policy tests:
 
-| Type | Description | Best For |
-|------|-------------|----------|
-| **Native Rego Tests** | `test_*` rules in `*_test.rego` files | Complex logic, edge cases |
-| **Fixture-Based Tests** | JSON/YAML input + expected output | Scenarios, documentation |
+| Type                    | Description                           | Best For                  |
+| ----------------------- | ------------------------------------- | ------------------------- |
+| **Native Rego Tests**   | `test_*` rules in `*_test.rego` files | Complex logic, edge cases |
+| **Fixture-Based Tests** | JSON/YAML input + expected output     | Scenarios, documentation  |
 
 Both types can be mixed in the same project and are discovered automatically.
 
@@ -54,13 +54,13 @@ println!("Found {} tests", suite.test_count());
 
 ### What Gets Discovered
 
-| Pattern | Description |
-|---------|-------------|
-| `*_test.rego` | Rego test files with `test_*` rules |
-| `*.rego` | Policy files (loaded for imports) |
-| `*_fixtures.json` | JSON fixture files |
-| `*_fixtures.yaml` | YAML fixture files |
-| `data.json` / `data.yaml` | Data files for policy context |
+| Pattern                   | Description                         |
+| ------------------------- | ----------------------------------- |
+| `*_test.rego`             | Rego test files with `test_*` rules |
+| `*.rego`                  | Policy files (loaded for imports)   |
+| `*_fixtures.json`         | JSON fixture files                  |
+| `*_fixtures.yaml`         | YAML fixture files                  |
+| `data.json` / `data.yaml` | Data files for policy context       |
 
 ---
 

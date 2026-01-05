@@ -28,7 +28,7 @@ impl Default for CacheConfig {
     fn default() -> Self {
         Self {
             dir: dirs_default_cache_dir(),
-            max_size: 1024 * 1024 * 1024, // 1GB
+            max_size: 1024 * 1024 * 1024,               // 1GB
             ttl: Duration::from_secs(7 * 24 * 60 * 60), // 7 days
             verify_checksums: true,
         }
@@ -101,9 +101,11 @@ impl BundleCache {
             path: config.dir.clone(),
             source: e,
         })?;
-        std::fs::create_dir_all(config.dir.join("bundles")).map_err(|e| RegistryError::IoError {
-            path: config.dir.join("bundles"),
-            source: e,
+        std::fs::create_dir_all(config.dir.join("bundles")).map_err(|e| {
+            RegistryError::IoError {
+                path: config.dir.join("bundles"),
+                source: e,
+            }
         })?;
         std::fs::create_dir_all(config.dir.join("signatures")).map_err(|e| {
             RegistryError::IoError {
@@ -167,11 +169,7 @@ impl BundleCache {
 
         // Check TTL
         if self.is_expired(&bundle_path)? {
-            tracing::debug!(
-                service,
-                version,
-                "Cache entry expired, removing"
-            );
+            tracing::debug!(service, version, "Cache entry expired, removing");
             self.invalidate(service, version)?;
             return Ok(None);
         }
@@ -267,10 +265,8 @@ impl BundleCache {
 
         for path in [bundle_path, manifest_path, sig_path] {
             if path.exists() {
-                std::fs::remove_file(&path).map_err(|e| RegistryError::IoError {
-                    path,
-                    source: e,
-                })?;
+                std::fs::remove_file(&path)
+                    .map_err(|e| RegistryError::IoError { path, source: e })?;
             }
         }
 
@@ -290,10 +286,8 @@ impl BundleCache {
                     path: path.clone(),
                     source: e,
                 })?;
-                std::fs::create_dir_all(&path).map_err(|e| RegistryError::IoError {
-                    path,
-                    source: e,
-                })?;
+                std::fs::create_dir_all(&path)
+                    .map_err(|e| RegistryError::IoError { path, source: e })?;
             }
         }
 
@@ -383,7 +377,10 @@ impl BundleCache {
         })?;
 
         let manifest: serde_json::Value = serde_json::from_str(&content)?;
-        Ok(manifest.get("checksum").and_then(|v| v.as_str()).map(String::from))
+        Ok(manifest
+            .get("checksum")
+            .and_then(|v| v.as_str())
+            .map(String::from))
     }
 
     /// Enforces the cache size limit by removing oldest entries.

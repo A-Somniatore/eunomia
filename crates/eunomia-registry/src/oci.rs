@@ -156,10 +156,7 @@ impl Descriptor {
     /// Returns the digest value (without algorithm prefix).
     #[must_use]
     pub fn digest_value(&self) -> &str {
-        self.digest
-            .split(':')
-            .nth(1)
-            .unwrap_or(&self.digest)
+        self.digest.split(':').nth(1).unwrap_or(&self.digest)
     }
 }
 
@@ -226,12 +223,15 @@ impl Manifest {
 
     /// Creates a manifest for an Eunomia policy bundle.
     #[must_use]
-    pub fn for_bundle(bundle_descriptor: Descriptor, signature_descriptor: Option<Descriptor>) -> Self {
+    pub fn for_bundle(
+        bundle_descriptor: Descriptor,
+        signature_descriptor: Option<Descriptor>,
+    ) -> Self {
         let mut layers = vec![bundle_descriptor];
         if let Some(sig) = signature_descriptor {
             layers.push(sig);
         }
-        
+
         Self {
             schema_version: 2,
             media_type: MediaType::new(MediaType::OCI_MANIFEST),
@@ -309,16 +309,15 @@ mod tests {
     #[test]
     fn test_media_type_eunomia_bundle() {
         let mt = MediaType::eunomia_bundle();
-        assert_eq!(mt.as_str(), "application/vnd.eunomia.policy.bundle.v1+tar.gz");
+        assert_eq!(
+            mt.as_str(),
+            "application/vnd.eunomia.policy.bundle.v1+tar.gz"
+        );
     }
 
     #[test]
     fn test_descriptor_new() {
-        let desc = Descriptor::new(
-            MediaType::eunomia_bundle(),
-            "sha256:abc123def456",
-            1024,
-        );
+        let desc = Descriptor::new(MediaType::eunomia_bundle(), "sha256:abc123def456", 1024);
         assert_eq!(desc.size, 1024);
         assert_eq!(desc.digest, "sha256:abc123def456");
         assert_eq!(desc.digest_algorithm(), "sha256");
@@ -327,12 +326,8 @@ mod tests {
 
     #[test]
     fn test_descriptor_with_annotation() {
-        let desc = Descriptor::new(
-            MediaType::eunomia_bundle(),
-            "sha256:abc123",
-            100,
-        )
-        .with_annotation("version", "1.2.0");
+        let desc = Descriptor::new(MediaType::eunomia_bundle(), "sha256:abc123", 100)
+            .with_annotation("version", "1.2.0");
 
         assert!(desc.annotations.is_some());
         let annot = desc.annotations.as_ref().unwrap();
@@ -343,7 +338,7 @@ mod tests {
     fn test_manifest_new() {
         let layer = Descriptor::new(MediaType::eunomia_bundle(), "sha256:abc", 100);
         let manifest = Manifest::new(vec![layer]);
-        
+
         assert_eq!(manifest.schema_version, 2);
         assert_eq!(manifest.layers.len(), 1);
         assert_eq!(
@@ -356,9 +351,9 @@ mod tests {
     fn test_manifest_for_bundle() {
         let bundle = Descriptor::new(MediaType::eunomia_bundle(), "sha256:bundle", 1000);
         let sig = Descriptor::new(MediaType::eunomia_signature(), "sha256:sig", 100);
-        
+
         let manifest = Manifest::for_bundle(bundle, Some(sig));
-        
+
         assert!(manifest.bundle_layer().is_some());
         assert!(manifest.signature_layer().is_some());
     }
@@ -366,8 +361,8 @@ mod tests {
     #[test]
     fn test_manifest_serialization() {
         let layer = Descriptor::new(MediaType::eunomia_bundle(), "sha256:abc", 100);
-        let manifest = Manifest::new(vec![layer])
-            .with_annotation("org.opencontainers.image.version", "1.2.0");
+        let manifest =
+            Manifest::new(vec![layer]).with_annotation("org.opencontainers.image.version", "1.2.0");
 
         let json = serde_json::to_string_pretty(&manifest).unwrap();
         assert!(json.contains("schemaVersion"));

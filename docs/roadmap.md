@@ -1,12 +1,61 @@
 # Eunomia – Development Roadmap
 
-> **Version**: 1.3.0  
+> **Version**: 1.4.0  
 > **Created**: 2026-01-04  
 > **Last Updated**: 2026-01-05  
 > **Target Completion**: Week 20 (MVP Integration with Archimedes MVP)
 
 > ✅ **CTO REVIEW (2026-01-05)**: Phase E0 complete. Shared types migration resolved.
 > All Eunomia types now use `themis-platform-types` for schema compatibility.
+
+---
+
+## 🔄 themis-platform-types v0.2.0 Migration (Required)
+
+> **When**: Week 9 (during E2 Testing Framework phase)
+> **Effort**: ~2 hours
+> **Breaking Changes**: Yes
+
+### Migration Checklist
+
+- [ ] Update `Cargo.toml` to `themis-platform-types = "0.2.0"`
+- [ ] Replace `build()` calls with `try_build()?` (build() is deprecated)
+- [ ] Update error handling to use `BuilderError` instead of `&'static str`
+- [ ] Add wildcard arms to match statements on `CallerIdentity`, `ErrorCode`
+- [ ] Update `eunomia-test` mock builders to handle new error type
+
+### Code Changes Required
+
+```rust
+// Before (v0.1.0) - in mock_identity.rs
+let input = PolicyInput::builder()
+    .caller(caller)
+    .service("my-service")
+    .try_build()?; // Returns Result<_, &'static str>
+
+// After (v0.2.0)
+use themis_platform_types::BuilderError;
+let input = PolicyInput::builder()
+    .caller(caller)
+    .service("my-service")
+    .try_build()?; // Returns Result<_, BuilderError>
+
+// Match statements need wildcard (enums are now #[non_exhaustive])
+match caller {
+    CallerIdentity::User(u) => handle_user(u),
+    CallerIdentity::Spiffe(s) => handle_service(s),
+    CallerIdentity::ApiKey(k) => handle_api_key(k),
+    CallerIdentity::Anonymous => handle_anon(),
+    _ => unreachable!("unknown identity type"), // Future-proof
+}
+```
+
+### New Features Available
+
+- `Versioned<T>` wrapper for policy decision auditing
+- `SchemaMetadata` for version tracking in bundles
+- Proper `BuilderError` with descriptive field names
+- Fixed SemVer pre-release comparison for policy versioning
 
 ---
 
@@ -107,6 +156,7 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > ✅ **Completed**: All 331 tests passing
 
 **Migration Notes:**
+
 - `CallerIdentity` now uses tuple variants with inner structs (`User(UserIdentity)`, etc.)
 - `CallerIdentity::user()` takes `(user_id, email)` instead of `(user_id, roles)`
 - Use `CallerIdentity::spiffe_full()` for full SPIFFE details
@@ -538,7 +588,21 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 > **Note**: While Archimedes completes OPA integration, Eunomia team works on:
 
-**Week 13-14: Documentation & Examples**
+**Week 13: CTO Review Action Items** ⚠️ FROM REVIEW
+
+> **Reference**: [CTO Project Review (2026-01-05)](~/Documents/projects/Startups/ThemisPlatform/docs/reviews/2026-01-05-cto-project-review.md)
+
+- [ ] Remove deprecated local type modules from `eunomia-core`:
+  - [ ] Delete `src/identity.rs` (local CallerIdentity - now using shared)
+  - [ ] Delete `src/input.rs` (local PolicyInput - now using shared)
+  - [ ] Delete `src/decision.rs` (local AuthorizationDecision - now using shared)
+  - [ ] Update `src/lib.rs` to remove deprecated module declarations
+  - [ ] Ensure all re-exports come from `themis-platform-types`
+- [ ] Update `eunomia-test` mock builders if affected by module removal
+- [ ] Run full test suite to verify no regressions
+- [ ] Update documentation to remove references to deprecated modules
+
+**Week 14: Documentation & Examples**
 
 - [ ] Create comprehensive policy authoring guide
 - [ ] Build example policy repository with common patterns

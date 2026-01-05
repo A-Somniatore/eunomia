@@ -86,10 +86,7 @@ async fn run_async(args: &PublishArgs) -> Result<()> {
     let bundle = Bundle::from_file(&args.bundle).context("Failed to load bundle")?;
     println!("✓");
 
-    let service = args
-        .service
-        .clone()
-        .unwrap_or_else(|| bundle.name.clone());
+    let service = args.service.clone().unwrap_or_else(|| bundle.name.clone());
 
     let version = args
         .version
@@ -156,7 +153,10 @@ async fn run_async(args: &PublishArgs) -> Result<()> {
     println!("  Pull:   {}/{service}:{version}", args.registry);
     println!();
     println!("To fetch this bundle:");
-    println!("  eunomia fetch --registry {} --service {service} --version {version}", args.registry);
+    println!(
+        "  eunomia fetch --registry {} --service {service} --version {version}",
+        args.registry
+    );
 
     Ok(())
 }

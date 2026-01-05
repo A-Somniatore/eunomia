@@ -100,8 +100,7 @@ pub fn run(args: BuildArgs) -> Result<()> {
     // Create output directory if needed
     if let Some(parent) = output_path.parent() {
         if !parent.exists() {
-            fs::create_dir_all(parent)
-                .context("Failed to create output directory")?;
+            fs::create_dir_all(parent).context("Failed to create output directory")?;
         }
     }
 

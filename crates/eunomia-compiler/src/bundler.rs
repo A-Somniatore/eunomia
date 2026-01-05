@@ -201,16 +201,15 @@ impl Bundler {
             } else if let Some(name) = path.file_name() {
                 let name_str = name.to_string_lossy();
                 if name_str == "data.json" || name_str == "data.yaml" {
-                    let content = std::fs::read_to_string(&path).map_err(|e| CompilerError::Io {
-                        path: path.clone(),
-                        source: e,
-                    })?;
+                    let content =
+                        std::fs::read_to_string(&path).map_err(|e| CompilerError::Io {
+                            path: path.clone(),
+                            source: e,
+                        })?;
                     // Use relative path from the policy root as the data path
                     let relative_path = path.strip_prefix(dir).unwrap_or(&path);
-                    self.data_files.push((
-                        relative_path.to_string_lossy().to_string(),
-                        content,
-                    ));
+                    self.data_files
+                        .push((relative_path.to_string_lossy().to_string(), content));
                 }
             }
         }
@@ -344,9 +343,11 @@ impl Bundler {
     /// ```
     pub fn compile_to_file(self, output_path: impl AsRef<Path>) -> Result<Bundle> {
         let bundle = self.compile()?;
-        bundle.write_to_file(output_path).map_err(|e| CompilerError::BundleError {
-            message: format!("failed to write bundle: {e}"),
-        })?;
+        bundle
+            .write_to_file(output_path)
+            .map_err(|e| CompilerError::BundleError {
+                message: format!("failed to write bundle: {e}"),
+            })?;
         Ok(bundle)
     }
 }

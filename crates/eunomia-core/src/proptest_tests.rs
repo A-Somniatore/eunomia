@@ -121,7 +121,8 @@ proptest! {
             .operation_id(operation_id)
             .method(method)
             .path(path)
-            .build();
+            .try_build()
+            .unwrap();
 
         let json = serde_json::to_string(&input).unwrap();
         let deserialized: PolicyInput = serde_json::from_str(&json).unwrap();
@@ -290,7 +291,8 @@ mod additional_tests {
             .method("GET")
             .path("/test")
             .headers(headers.clone())
-            .build();
+            .try_build()
+            .unwrap();
 
         let json = serde_json::to_string(&input).unwrap();
         let deserialized: PolicyInput = serde_json::from_str(&json).unwrap();
@@ -334,8 +336,8 @@ mod additional_tests {
     /// Test PolicyDecision with all optional fields.
     #[test]
     fn test_authorization_decision_full() {
-        let decision = PolicyDecision::allow("users_service.authz", "1.2.3")
-            .with_evaluation_time(500_000);
+        let decision =
+            PolicyDecision::allow("users_service.authz", "1.2.3").with_evaluation_time(500_000);
 
         assert!(decision.is_allowed());
         assert_eq!(decision.policy_version, "1.2.3");

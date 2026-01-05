@@ -240,11 +240,7 @@ impl TlsConfig {
 
     /// Sets client certificate and key paths for mTLS.
     #[must_use]
-    pub fn with_client_cert(
-        mut self,
-        cert: impl Into<PathBuf>,
-        key: impl Into<PathBuf>,
-    ) -> Self {
+    pub fn with_client_cert(mut self, cert: impl Into<PathBuf>, key: impl Into<PathBuf>) -> Self {
         self.client_cert = Some(cert.into());
         self.client_key = Some(key.into());
         self
@@ -276,15 +272,13 @@ mod tests {
 
     #[test]
     fn test_config_with_namespace() {
-        let config = RegistryConfig::new("https://example.com")
-            .with_namespace("policies");
+        let config = RegistryConfig::new("https://example.com").with_namespace("policies");
         assert_eq!(config.namespace, "policies");
     }
 
     #[test]
     fn test_repository_name_with_namespace() {
-        let config = RegistryConfig::new("https://example.com")
-            .with_namespace("eunomia");
+        let config = RegistryConfig::new("https://example.com").with_namespace("eunomia");
         assert_eq!(
             config.repository_name("users-service"),
             "eunomia/users-service"
@@ -321,7 +315,7 @@ mod tests {
         let tls = TlsConfig::new()
             .with_ca_cert("/path/to/ca.crt")
             .with_client_cert("/path/to/client.crt", "/path/to/client.key");
-        
+
         assert_eq!(tls.ca_cert, Some(PathBuf::from("/path/to/ca.crt")));
         assert_eq!(tls.client_cert, Some(PathBuf::from("/path/to/client.crt")));
         assert_eq!(tls.client_key, Some(PathBuf::from("/path/to/client.key")));

@@ -109,11 +109,7 @@ async fn run_async(args: &FetchArgs) -> Result<()> {
     print!("Checking bundle existence... ");
     if !client.exists(&args.service, &resolved_version).await? {
         println!("✗");
-        anyhow::bail!(
-            "Bundle not found: {}:{}",
-            args.service,
-            resolved_version
-        );
+        anyhow::bail!("Bundle not found: {}:{}", args.service, resolved_version);
     }
     println!("✓");
 

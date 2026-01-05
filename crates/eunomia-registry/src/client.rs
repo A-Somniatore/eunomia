@@ -200,9 +200,11 @@ impl RegistryClient {
         let manifest = self.fetch_manifest(service, version).await?;
 
         // Find bundle layer
-        let bundle_layer = manifest.bundle_layer().ok_or_else(|| RegistryError::InvalidBundle {
-            message: "Manifest does not contain a bundle layer".to_string(),
-        })?;
+        let bundle_layer = manifest
+            .bundle_layer()
+            .ok_or_else(|| RegistryError::InvalidBundle {
+                message: "Manifest does not contain a bundle layer".to_string(),
+            })?;
 
         // Fetch bundle blob
         let bundle_data = self.fetch_blob(service, &bundle_layer.digest).await?;
@@ -230,9 +232,10 @@ impl RegistryClient {
         }
 
         // Parse bundle
-        let bundle = Bundle::from_bytes(&bundle_data).map_err(|e| RegistryError::InvalidBundle {
-            message: format!("Failed to parse bundle: {e}"),
-        })?;
+        let bundle =
+            Bundle::from_bytes(&bundle_data).map_err(|e| RegistryError::InvalidBundle {
+                message: format!("Failed to parse bundle: {e}"),
+            })?;
 
         // Cache if enabled
         if let Some(ref cache) = self.cache {
@@ -274,12 +277,19 @@ impl RegistryClient {
             .await?;
 
         // Create manifest
-        let bundle_descriptor = Descriptor::new(MediaType::eunomia_bundle(), &bundle_digest, bundle_size)
-            .with_annotation("org.opencontainers.image.title", format!("{service}-{version}.bundle.tar.gz"));
+        let bundle_descriptor =
+            Descriptor::new(MediaType::eunomia_bundle(), &bundle_digest, bundle_size)
+                .with_annotation(
+                    "org.opencontainers.image.title",
+                    format!("{service}-{version}.bundle.tar.gz"),
+                );
 
         let manifest = Manifest::for_bundle(bundle_descriptor, None)
             .with_annotation("org.opencontainers.image.version", version)
-            .with_annotation("org.opencontainers.image.created", chrono::Utc::now().to_rfc3339());
+            .with_annotation(
+                "org.opencontainers.image.created",
+                chrono::Utc::now().to_rfc3339(),
+            );
 
         // Push manifest
         self.push_manifest(service, version, &manifest).await?;
@@ -326,7 +336,11 @@ impl RegistryClient {
     }
 
     /// Fetches a manifest from the registry.
-    async fn fetch_manifest(&self, service: &str, version: &str) -> Result<Manifest, RegistryError> {
+    async fn fetch_manifest(
+        &self,
+        service: &str,
+        version: &str,
+    ) -> Result<Manifest, RegistryError> {
         let repo = self.config.repository_name(service);
         let url = format!("{}/v2/{repo}/manifests/{version}", self.config.url);
 
@@ -373,7 +387,11 @@ impl RegistryClient {
             });
         }
 
-        response.bytes().await.map(|b| b.to_vec()).map_err(Into::into)
+        response
+            .bytes()
+            .await
+            .map(|b| b.to_vec())
+            .map_err(Into::into)
     }
 
     /// Uploads a blob to the registry.
@@ -496,13 +514,12 @@ impl RegistryClient {
                 builder = builder.add_root_certificate(cert);
             }
 
-            if let (Some(ref cert_path), Some(ref key_path)) =
-                (&tls.client_cert, &tls.client_key)
-            {
-                let mut cert_pem = std::fs::read(cert_path).map_err(|e| RegistryError::IoError {
-                    path: cert_path.clone(),
-                    source: e,
-                })?;
+            if let (Some(ref cert_path), Some(ref key_path)) = (&tls.client_cert, &tls.client_key) {
+                let mut cert_pem =
+                    std::fs::read(cert_path).map_err(|e| RegistryError::IoError {
+                        path: cert_path.clone(),
+                        source: e,
+                    })?;
                 let key_pem = std::fs::read(key_path).map_err(|e| RegistryError::IoError {
                     path: key_path.clone(),
                     source: e,
@@ -518,10 +535,12 @@ impl RegistryClient {
             }
         }
 
-        builder.build().map_err(|e| RegistryError::ConnectionFailed {
-            url: config.url.clone(),
-            source: e,
-        })
+        builder
+            .build()
+            .map_err(|e| RegistryError::ConnectionFailed {
+                url: config.url.clone(),
+                source: e,
+            })
     }
 
     /// Creates authentication headers based on configuration.
@@ -537,19 +556,21 @@ impl RegistryClient {
                 );
                 headers.insert(
                     AUTHORIZATION,
-                    HeaderValue::from_str(&format!("Basic {credentials}"))
-                        .map_err(|_| RegistryError::AuthenticationFailed {
+                    HeaderValue::from_str(&format!("Basic {credentials}")).map_err(|_| {
+                        RegistryError::AuthenticationFailed {
                             message: "Invalid credentials".to_string(),
-                        })?,
+                        }
+                    })?,
                 );
             }
             RegistryAuth::Bearer { token } => {
                 headers.insert(
                     AUTHORIZATION,
-                    HeaderValue::from_str(&format!("Bearer {token}"))
-                        .map_err(|_| RegistryError::AuthenticationFailed {
+                    HeaderValue::from_str(&format!("Bearer {token}")).map_err(|_| {
+                        RegistryError::AuthenticationFailed {
                             message: "Invalid token".to_string(),
-                        })?,
+                        }
+                    })?,
                 );
             }
             RegistryAuth::AwsEcr { .. } | RegistryAuth::GcpArtifact { .. } => {
@@ -605,7 +626,7 @@ mod tests {
             .with_auth(RegistryAuth::basic("user", "pass"));
         let client = RegistryClient::new(config).unwrap();
         let headers = client.auth_headers().unwrap();
-        
+
         assert!(headers.contains_key(AUTHORIZATION));
         let auth = headers.get(AUTHORIZATION).unwrap().to_str().unwrap();
         assert!(auth.starts_with("Basic "));
@@ -613,11 +634,11 @@ mod tests {
 
     #[test]
     fn test_auth_headers_bearer() {
-        let config = RegistryConfig::new("https://example.com")
-            .with_auth(RegistryAuth::bearer("my-token"));
+        let config =
+            RegistryConfig::new("https://example.com").with_auth(RegistryAuth::bearer("my-token"));
         let client = RegistryClient::new(config).unwrap();
         let headers = client.auth_headers().unwrap();
-        
+
         assert!(headers.contains_key(AUTHORIZATION));
         let auth = headers.get(AUTHORIZATION).unwrap().to_str().unwrap();
         assert_eq!(auth, "Bearer my-token");

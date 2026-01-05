@@ -1044,14 +1044,14 @@ Examples:
 
 **API Operations**:
 
-| Operation    | HTTP Method | Endpoint                                    |
-| ------------ | ----------- | ------------------------------------------- |
-| Check exists | HEAD        | `/v2/<name>/manifests/<reference>`          |
-| Get manifest | GET         | `/v2/<name>/manifests/<reference>`          |
-| Push blob    | POST/PUT    | `/v2/<name>/blobs/uploads/`                 |
-| Pull blob    | GET         | `/v2/<name>/blobs/<digest>`                 |
-| List tags    | GET         | `/v2/<name>/tags/list`                      |
-| Delete tag   | DELETE      | `/v2/<name>/manifests/<reference>`          |
+| Operation    | HTTP Method | Endpoint                           |
+| ------------ | ----------- | ---------------------------------- |
+| Check exists | HEAD        | `/v2/<name>/manifests/<reference>` |
+| Get manifest | GET         | `/v2/<name>/manifests/<reference>` |
+| Push blob    | POST/PUT    | `/v2/<name>/blobs/uploads/`        |
+| Pull blob    | GET         | `/v2/<name>/blobs/<digest>`        |
+| List tags    | GET         | `/v2/<name>/tags/list`             |
+| Delete tag   | DELETE      | `/v2/<name>/manifests/<reference>` |
 
 **Client Configuration**:
 
@@ -1189,23 +1189,23 @@ The `.manifest` file follows OPA's bundle specification with Eunomia extensions:
 
 **OPA Standard Fields**:
 
-| Field      | Type       | Description                        |
-| ---------- | ---------- | ---------------------------------- |
-| `revision` | string     | Unique bundle revision (timestamp) |
-| `roots`    | string[]   | Root documents exposed by bundle   |
-| `metadata` | object     | Custom metadata (extensible)       |
+| Field      | Type     | Description                        |
+| ---------- | -------- | ---------------------------------- |
+| `revision` | string   | Unique bundle revision (timestamp) |
+| `roots`    | string[] | Root documents exposed by bundle   |
+| `metadata` | object   | Custom metadata (extensible)       |
 
 **Eunomia Extension Fields** (under `metadata.eunomia`):
 
-| Field            | Type   | Description                           |
-| ---------------- | ------ | ------------------------------------- |
-| `version`        | string | Semantic version (SemVer 2.0)         |
-| `service`        | string | Target service name                   |
-| `git_commit`     | string | Source commit SHA                     |
-| `git_repository` | string | Source repository URL                 |
+| Field            | Type   | Description                          |
+| ---------------- | ------ | ------------------------------------ |
+| `version`        | string | Semantic version (SemVer 2.0)        |
+| `service`        | string | Target service name                  |
+| `git_commit`     | string | Source commit SHA                    |
+| `git_repository` | string | Source repository URL                |
 | `created_at`     | string | Bundle creation timestamp (RFC 3339) |
-| `author`         | string | Bundle author/team                    |
-| `change_summary` | string | Description of changes                |
+| `author`         | string | Bundle author/team                   |
+| `change_summary` | string | Description of changes               |
 
 ### 8.3 Compilation Process
 
@@ -1978,10 +1978,10 @@ let custom = MockApiKey::new("key-123")
 
 **Factory Methods Available**:
 
-| Type         | Factory Methods                                            |
-| ------------ | ---------------------------------------------------------- |
-| `MockUser`   | `admin()`, `viewer()`, `editor()`, `guest()`, `super_admin()` |
-| `MockSpiffe` | `users_service()`, `orders_service()`, `gateway()`         |
+| Type         | Factory Methods                                                     |
+| ------------ | ------------------------------------------------------------------- |
+| `MockUser`   | `admin()`, `viewer()`, `editor()`, `guest()`, `super_admin()`       |
+| `MockSpiffe` | `users_service()`, `orders_service()`, `gateway()`                  |
 | `MockApiKey` | `read_only()`, `full_access()`, `read_service()`, `write_service()` |
 
 #### 11.0.4 Test Utilities

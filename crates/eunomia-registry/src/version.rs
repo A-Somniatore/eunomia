@@ -69,24 +69,27 @@ impl VersionQuery {
 
         match parts.len() {
             1 => {
-                let major = parts[0].parse::<u64>().map_err(|_| {
-                    RegistryError::InvalidReference {
-                        reference: input.to_string(),
-                    }
-                })?;
+                let major =
+                    parts[0]
+                        .parse::<u64>()
+                        .map_err(|_| RegistryError::InvalidReference {
+                            reference: input.to_string(),
+                        })?;
                 Ok(Self::Major(major))
             }
             2 => {
-                let major = parts[0].parse::<u64>().map_err(|_| {
-                    RegistryError::InvalidReference {
-                        reference: input.to_string(),
-                    }
-                })?;
-                let minor = parts[1].parse::<u64>().map_err(|_| {
-                    RegistryError::InvalidReference {
-                        reference: input.to_string(),
-                    }
-                })?;
+                let major =
+                    parts[0]
+                        .parse::<u64>()
+                        .map_err(|_| RegistryError::InvalidReference {
+                            reference: input.to_string(),
+                        })?;
+                let minor =
+                    parts[1]
+                        .parse::<u64>()
+                        .map_err(|_| RegistryError::InvalidReference {
+                            reference: input.to_string(),
+                        })?;
                 Ok(Self::Minor(major, minor))
             }
             3 => Ok(Self::Exact(format!("v{version_str}"))),
@@ -188,9 +191,7 @@ impl VersionResolver {
                     })
                 }
             }
-            VersionQuery::Latest => {
-                Self::find_latest(available_tags, service)
-            }
+            VersionQuery::Latest => Self::find_latest(available_tags, service),
             VersionQuery::Major(major) => {
                 Self::find_latest_in_major(*major, available_tags, service)
             }
@@ -201,10 +202,7 @@ impl VersionResolver {
     }
 
     /// Finds the latest version from available tags.
-    fn find_latest(
-        tags: &[impl AsRef<str>],
-        service: &str,
-    ) -> Result<String, RegistryError> {
+    fn find_latest(tags: &[impl AsRef<str>], service: &str) -> Result<String, RegistryError> {
         let mut semver_tags: Vec<(u64, u64, u64, &str)> = tags
             .iter()
             .filter_map(|t| {
@@ -220,13 +218,14 @@ impl VersionResolver {
                 .reverse()
         });
 
-        semver_tags.first().map(|(_, _, _, tag)| (*tag).to_string()).ok_or_else(|| {
-            RegistryError::VersionResolutionFailed {
+        semver_tags
+            .first()
+            .map(|(_, _, _, tag)| (*tag).to_string())
+            .ok_or_else(|| RegistryError::VersionResolutionFailed {
                 service: service.to_string(),
                 query: "latest".to_string(),
                 message: "No valid semantic versions found".to_string(),
-            }
-        })
+            })
     }
 
     /// Finds the latest version within a major version.
@@ -250,13 +249,14 @@ impl VersionResolver {
 
         matching.sort_by(|a, b| a.0.cmp(&b.0).then_with(|| a.1.cmp(&b.1)).reverse());
 
-        matching.first().map(|(_, _, tag)| (*tag).to_string()).ok_or_else(|| {
-            RegistryError::VersionResolutionFailed {
+        matching
+            .first()
+            .map(|(_, _, tag)| (*tag).to_string())
+            .ok_or_else(|| RegistryError::VersionResolutionFailed {
                 service: service.to_string(),
                 query: format!("v{major}"),
                 message: format!("No versions found for major version {major}"),
-            }
-        })
+            })
     }
 
     /// Finds the latest version within a minor version.
@@ -281,13 +281,14 @@ impl VersionResolver {
 
         matching.sort_by(|a, b| a.0.cmp(&b.0).reverse());
 
-        matching.first().map(|(_, tag)| (*tag).to_string()).ok_or_else(|| {
-            RegistryError::VersionResolutionFailed {
+        matching
+            .first()
+            .map(|(_, tag)| (*tag).to_string())
+            .ok_or_else(|| RegistryError::VersionResolutionFailed {
                 service: service.to_string(),
                 query: format!("v{major}.{minor}"),
                 message: format!("No versions found for v{major}.{minor}.x"),
-            }
-        })
+            })
     }
 
     /// Parses a semantic version string into (major, minor, patch).
@@ -419,9 +420,15 @@ mod tests {
     #[test]
     fn test_version_query_display() {
         assert_eq!(VersionQuery::Latest.to_string(), "latest");
-        assert_eq!(VersionQuery::Exact("v1.2.3".to_string()).to_string(), "v1.2.3");
+        assert_eq!(
+            VersionQuery::Exact("v1.2.3".to_string()).to_string(),
+            "v1.2.3"
+        );
         assert_eq!(VersionQuery::Major(1).to_string(), "v1");
         assert_eq!(VersionQuery::Minor(1, 2).to_string(), "v1.2");
-        assert_eq!(VersionQuery::Digest("sha256:abc".to_string()).to_string(), "sha256:abc");
+        assert_eq!(
+            VersionQuery::Digest("sha256:abc".to_string()).to_string(),
+            "sha256:abc"
+        );
     }
 }

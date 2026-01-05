@@ -1,0 +1,51 @@
+[package]
+name = "eunomia-distributor"
+description = "Policy distribution for Eunomia - gRPC push to Archimedes instances"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+eunomia-core = { workspace = true }
+eunomia-registry = { workspace = true }
+
+# Async runtime
+tokio = { workspace = true }
+async-trait = { workspace = true }
+futures = { workspace = true }
+
+# gRPC
+tonic = { workspace = true }
+prost = { workspace = true }
+
+# Serialization
+serde = { workspace = true }
+serde_json = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Logging
+tracing = { workspace = true }
+
+# Time
+chrono = { workspace = true }
+
+# HTTP client (for health checks)
+reqwest = { workspace = true }
+url = { workspace = true }
+
+# UUID for request IDs
+uuid = { workspace = true }
+
+[dev-dependencies]
+tokio-test = "0.4"
+tempfile = { workspace = true }
+
+[build-dependencies]
+tonic-build = "0.12"
+
+[lints]
+workspace = true

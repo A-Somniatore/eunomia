@@ -6,6 +6,7 @@ members = [
     "crates/eunomia-test",
     "crates/eunomia-registry",
     "crates/eunomia-cli",
+    "crates/eunomia-distributor",
 ]
 
 [workspace.package]
@@ -76,8 +77,16 @@ eunomia-core = { path = "crates/eunomia-core" }
 eunomia-compiler = { path = "crates/eunomia-compiler" }
 eunomia-test = { path = "crates/eunomia-test" }
 eunomia-registry = { path = "crates/eunomia-registry" }
+eunomia-distributor = { path = "crates/eunomia-distributor" }
+
+# Async utilities
+async-trait = "0.1"
+futures = "0.3"
 
 # Shared platform types (from Themis team)
+# NOTE: In production CI, this should use a git reference:
+#   themis-platform-types = { git = "https://github.com/A-Somniatore/themis-platform-types", tag = "v0.2.0" }
+# Path reference is used for local monorepo development.
 themis-platform-types = { path = "../themis-platform-types" }
 
 [workspace.lints.rust]
