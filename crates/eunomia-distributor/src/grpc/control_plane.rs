@@ -11,7 +11,13 @@ use futures::Stream;
 use tonic::{Request, Response, Status};
 use tracing::{debug, info, instrument, warn};
 
-use super::types::*;
+use super::types::{
+    DeployPolicyRequest, DeployPolicyResponse, DeploymentEvent,
+    DeploymentSummary, GetInstanceHealthRequest, GetPolicyStatusRequest, GrpcDeploymentState,
+    GrpcHealthState, GrpcStrategyType, InstanceDeploymentResult, InstanceHealthResponse,
+    InstanceInfo, InstancePolicyStatus, ListInstancesRequest, ListInstancesResponse,
+    PolicyStatusResponse, RollbackPolicyRequest, RollbackPolicyResponse, WatchDeploymentRequest,
+};
 use crate::{DeploymentState, DeploymentStrategy, Distributor, HealthState};
 
 /// Control Plane gRPC service implementation.
@@ -55,19 +61,20 @@ impl ControlPlane for ControlPlaneService {
         );
 
         // Convert gRPC strategy to internal strategy
+        #[allow(clippy::cast_sign_loss)]
         let strategy = req.strategy.map_or_else(DeploymentStrategy::immediate, |s| {
             match s.strategy_type {
                 GrpcStrategyType::Canary => DeploymentStrategy::canary(
-                    s.canary_percentage as u32,
-                    Duration::from_secs(s.batch_delay_seconds as u64),
+                    s.canary_percentage.unsigned_abs(),
+                    Duration::from_secs(s.batch_delay_seconds.unsigned_abs()),
                 )
-                .with_max_failures(s.max_failures as u32)
+                .with_max_failures(s.max_failures.unsigned_abs())
                 .with_auto_rollback(s.auto_rollback),
                 GrpcStrategyType::Rolling => DeploymentStrategy::rolling(
-                    s.rolling_batch_size as usize,
-                    Duration::from_secs(s.batch_delay_seconds as u64),
+                    s.rolling_batch_size.unsigned_abs() as usize,
+                    Duration::from_secs(s.batch_delay_seconds.unsigned_abs()),
                 )
-                .with_max_failures(s.max_failures as u32)
+                .with_max_failures(s.max_failures.unsigned_abs())
                 .with_auto_rollback(s.auto_rollback),
                 _ => DeploymentStrategy::immediate(),
             }
@@ -79,6 +86,7 @@ impl ControlPlane for ControlPlaneService {
             .deploy(&req.service, &req.version, strategy)
             .await;
 
+        #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
         match result {
             Ok(status) => {
                 let response = DeployPolicyResponse {
@@ -96,7 +104,7 @@ impl ControlPlane for ControlPlaneService {
                         .instance_results
                         .into_iter()
                         .map(|r| InstanceDeploymentResult {
-                            instance_id: r.instance_id.to_string(),
+                            instance_id: r.instance_id.clone(),
                             success: matches!(
                                 r.status,
                                 crate::InstanceResultStatus::Success
@@ -113,8 +121,8 @@ impl ControlPlane for ControlPlaneService {
                 Ok(Response::new(response))
             }
             Err(e) => {
-                warn!("Deploy policy failed: {}", e);
-                Err(Status::internal(format!("Deployment failed: {}", e)))
+                warn!("Deploy policy failed: {e}");
+                Err(Status::internal(format!("Deployment failed: {e}")))
             }
         }
     }
@@ -135,6 +143,7 @@ impl ControlPlane for ControlPlaneService {
             .rollback(&req.service, &req.target_version)
             .await;
 
+        #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
         match result {
             Ok(status) => {
                 let response = RollbackPolicyResponse {
@@ -152,7 +161,7 @@ impl ControlPlane for ControlPlaneService {
                         .instance_results
                         .into_iter()
                         .map(|r| InstanceDeploymentResult {
-                            instance_id: r.instance_id.to_string(),
+                            instance_id: r.instance_id.clone(),
                             success: matches!(
                                 r.status,
                                 crate::InstanceResultStatus::Success
@@ -169,8 +178,8 @@ impl ControlPlane for ControlPlaneService {
                 Ok(Response::new(response))
             }
             Err(e) => {
-                warn!("Rollback policy failed: {}", e);
-                Err(Status::internal(format!("Rollback failed: {}", e)))
+                warn!("Rollback policy failed: {e}");
+                Err(Status::internal(format!("Rollback failed: {e}")))
             }
         }
     }
@@ -187,7 +196,7 @@ impl ControlPlane for ControlPlaneService {
             .distributor
             .get_status(&req.service)
             .await
-            .map_err(|e| Status::internal(format!("Failed to get status: {}", e)))?;
+            .map_err(|e| Status::internal(format!("Failed to get status: {e}")))?;
 
         let state = match status.state {
             DeploymentState::Pending => GrpcDeploymentState::Pending,
@@ -211,12 +220,11 @@ impl ControlPlane for ControlPlaneService {
                 let health = match inst.status.to_health_state() {
                     HealthState::Unknown => GrpcHealthState::Unknown,
                     HealthState::Healthy => GrpcHealthState::Healthy,
-                    HealthState::Unhealthy => GrpcHealthState::Unhealthy,
+                    HealthState::Unhealthy | HealthState::Unreachable => GrpcHealthState::Unhealthy,
                     HealthState::Degraded => GrpcHealthState::Degraded,
-                    HealthState::Unreachable => GrpcHealthState::Unhealthy,
                 };
                 InstancePolicyStatus {
-                    instance_id: inst.id.to_string(),
+                    instance_id: inst.id.clone(),
                     version: inst.status.policy_version().unwrap_or_default().to_string(),
                     health,
                     last_updated: None,
@@ -253,7 +261,7 @@ impl ControlPlane for ControlPlaneService {
             self.distributor
                 .list_instances(&req.service_filter)
                 .await
-                .map_err(|e| Status::internal(format!("Failed to list instances: {}", e)))?
+                .map_err(|e| Status::internal(format!("Failed to list instances: {e}")))?
         };
 
         // Filter by health if specified
@@ -279,12 +287,11 @@ impl ControlPlane for ControlPlaneService {
                     let health = match inst.status.to_health_state() {
                         HealthState::Unknown => GrpcHealthState::Unknown,
                         HealthState::Healthy => GrpcHealthState::Healthy,
-                        HealthState::Unhealthy => GrpcHealthState::Unhealthy,
+                        HealthState::Unhealthy | HealthState::Unreachable => GrpcHealthState::Unhealthy,
                         HealthState::Degraded => GrpcHealthState::Degraded,
-                        HealthState::Unreachable => GrpcHealthState::Unhealthy,
                     };
                     InstanceInfo {
-                        instance_id: inst.id.to_string(),
+                        instance_id: inst.id.clone(),
                         endpoint: format!("{}:{}", inst.endpoint.host, inst.endpoint.port),
                         services: inst.metadata.service.clone().into_iter().collect(),
                         health,
@@ -372,7 +379,7 @@ pub trait ControlPlane: Send + Sync + 'static {
     ) -> Result<Response<Self::WatchDeploymentStream>, Status>;
 }
 
-/// gRPC server wrapper for ControlPlane service.
+/// gRPC server wrapper for `ControlPlane` service.
 pub struct ControlPlaneServiceServer<T: ControlPlane> {
     inner: T,
 }
@@ -384,10 +391,7 @@ impl<T: ControlPlane> ControlPlaneServiceServer<T> {
     }
 }
 
-impl<T: ControlPlane> Clone for ControlPlaneServiceServer<T>
-where
-    T: Clone,
-{
+impl<T: ControlPlane + Clone> Clone for ControlPlaneServiceServer<T> {
     fn clone(&self) -> Self {
         Self {
             inner: self.inner.clone(),
@@ -430,8 +434,6 @@ impl<T: ControlPlane + Clone> tonic::server::NamedService for ControlPlaneServic
 
 #[cfg(test)]
 mod tests {
-    use super::*;
-
     // Integration tests would go here
     // They require setting up a Distributor with a registry
 }

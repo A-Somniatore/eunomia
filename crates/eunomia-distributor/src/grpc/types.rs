@@ -107,9 +107,8 @@ impl From<crate::HealthState> for GrpcHealthState {
         match value {
             crate::HealthState::Unknown => Self::Unknown,
             crate::HealthState::Healthy => Self::Healthy,
-            crate::HealthState::Unhealthy => Self::Unhealthy,
+            crate::HealthState::Unhealthy | crate::HealthState::Unreachable => Self::Unhealthy,
             crate::HealthState::Degraded => Self::Degraded,
-            crate::HealthState::Unreachable => Self::Unhealthy,
         }
     }
 }

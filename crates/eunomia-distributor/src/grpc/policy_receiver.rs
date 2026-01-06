@@ -8,7 +8,11 @@ use std::sync::Arc;
 use tonic::{Request, Response, Status};
 use tracing::{debug, info, instrument};
 
-use super::types::*;
+use super::types::{
+    CurrentPolicyResponse, GetCurrentPolicyRequest, GrpcHealthState, HealthCheckRequest,
+    HealthCheckResponse, ServiceHealthStatus, UpdatePolicyRequest,
+    UpdatePolicyResponse,
+};
 use crate::{Distributor, HealthState};
 
 /// Policy Receiver gRPC service implementation.
@@ -211,7 +215,7 @@ fn sha256_hex(data: &[u8]) -> String {
     hex::encode(hasher.finalize())
 }
 
-/// gRPC server wrapper for PolicyReceiver service.
+/// gRPC server wrapper for `PolicyReceiver` service.
 pub struct PolicyReceiverServiceServer<T: PolicyReceiver> {
     inner: T,
 }
@@ -223,10 +227,7 @@ impl<T: PolicyReceiver> PolicyReceiverServiceServer<T> {
     }
 }
 
-impl<T: PolicyReceiver> Clone for PolicyReceiverServiceServer<T>
-where
-    T: Clone,
-{
+impl<T: PolicyReceiver + Clone> Clone for PolicyReceiverServiceServer<T> {
     fn clone(&self) -> Self {
         Self {
             inner: self.inner.clone(),

@@ -4,6 +4,7 @@ pub mod build;
 pub mod fetch;
 pub mod publish;
 pub mod push;
+pub mod rollback;
 pub mod sign;
 pub mod status;
 pub mod test;
@@ -43,6 +44,9 @@ pub enum Commands {
 
     /// Push a policy to Archimedes instances
     Push(push::PushArgs),
+
+    /// Rollback a policy to a previous version
+    Rollback(rollback::RollbackArgs),
 
     /// Check deployment status
     Status(status::StatusArgs),

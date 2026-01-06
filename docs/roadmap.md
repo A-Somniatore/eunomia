@@ -773,7 +773,13 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 - [ ] Design multi-cluster policy distribution (for future)
 - [ ] Prototype policy inheritance patterns
 - [ ] Research external data integration (IdP roles)
-- [ ] Support Archimedes team with OPA integration questions
+- [x] Support Archimedes team with OPA integration questions
+- [x] Add `eunomia status` CLI command for deployment monitoring
+  > **Completed**: Added status command with text/JSON output, service filtering, verbose mode
+- [x] Create `eunomia-audit` crate for audit logging
+  > **Completed**: Added 4 event types (Policy, Bundle, Distribution, Authorization),
+  > flexible logger with backend abstraction, TracingBackend and InMemoryBackend,
+  > event schema definitions, 25 unit tests
 
 ### Week 17: Push Integration
 
