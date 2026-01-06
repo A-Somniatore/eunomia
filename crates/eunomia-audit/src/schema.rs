@@ -71,7 +71,7 @@ impl AuditMetadata {
 
     /// Sets the process ID.
     #[must_use]
-    pub fn pid(mut self, pid: u32) -> Self {
+    pub const fn pid(mut self, pid: u32) -> Self {
         self.pid = Some(pid);
         self
     }

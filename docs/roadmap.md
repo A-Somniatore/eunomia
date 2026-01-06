@@ -588,7 +588,7 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 ### Week 10: Control Plane API
 
-> 🔄 **In Progress (2026-01-05)**: Core distributor crate created, gRPC API designed.
+> ✅ **Completed (2026-01-06)**: gRPC server implementation complete with tonic.
 
 - [x] Design gRPC API (protobuf)
   > **Completed**: Created `proto/control_plane.proto` with:
@@ -611,13 +611,18 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > - Deployment strategies: Immediate, Canary, Rolling
   > - `PolicyPusher` for pushing bundles to instances
   > - `DeploymentScheduler` with priority queue
-  > - 84 tests passing
-- [ ] Implement bundle management endpoints (gRPC server implementation)
-  > **Pending**: Actual tonic gRPC server implementation (protobuf types currently manual)
+  > - 99 tests passing
+- [x] Implement bundle management endpoints (gRPC server implementation)
+  > **Completed (2026-01-06)**: Created `grpc` module with tonic services:
+  > - `ControlPlaneService`: DeployPolicy, RollbackPolicy, GetPolicyStatus, ListInstances
+  > - `PolicyReceiverService`: UpdatePolicy, GetCurrentPolicy, HealthCheck
+  > - `GrpcServer`: Configurable server with keepalive, message sizes
+  > - Manual gRPC types matching protobuf definitions
+  > - Checksum validation with SHA-256
 
 ### Week 11: Instance Discovery
 
-> 🔄 **Mostly Complete**: Static and DNS discovery implemented, K8s pending.
+> ✅ **Mostly Complete**: Static and DNS discovery implemented, K8s deferred to E4.
 
 - [x] Track Archimedes instances
   > **Completed**: Created `instance.rs` with:
@@ -651,7 +656,7 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 ### Week 12: Push Distribution
 
-> 🔄 **Partially Complete**: Core push logic implemented, CLI pending.
+> ✅ **Complete**: Core push logic and CLI implemented.
 
 - [x] Implement push scheduler
   > **Completed**: Created `scheduler.rs` with:
@@ -694,15 +699,14 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 > ✅ **Status**: Phase E3 Complete!
 >
 > - Week 9: Registry client with OCI support, versioning, caching
-> - Week 10: Control plane API design, state tracking, health checks
-> - Week 11: Instance discovery with Static and DNS sources, K8s stub ready
+> - Week 10: Control plane gRPC server with ControlPlane and PolicyReceiver services
+> - Week 11: Instance discovery with Static and DNS sources
 > - Week 12: Push distribution with scheduler, parallel deployment, CLI
 > - Week 13: CTO review items complete - deprecated types removed
 > - Week 14: Documentation & examples complete - authoring guide, examples, migration guide
 >
-> **Remaining for E4 integration:**
-> - gRPC server implementation using tonic (when needed for control plane service)
-> - Kubernetes service discovery (when K8s cluster available)
+> **Deferred to E4 integration:**
+> - Kubernetes service discovery (when K8s cluster available for testing)
 
 ---
 

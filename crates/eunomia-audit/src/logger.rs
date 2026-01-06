@@ -83,12 +83,12 @@ impl AuditLogger {
     }
 
     /// Enables or disables the logger.
-    pub fn set_enabled(&mut self, enabled: bool) {
+    pub const fn set_enabled(&mut self, enabled: bool) {
         self.enabled = enabled;
     }
 
     /// Sets the minimum severity level for logging.
-    pub fn set_min_severity(&mut self, severity: crate::event::EventSeverity) {
+    pub const fn set_min_severity(&mut self, severity: crate::event::EventSeverity) {
         self.min_severity = severity;
     }
 
@@ -146,7 +146,7 @@ impl AuditLogger {
         self.backends.len()
     }
 
-    fn should_log_severity(&self, severity: crate::event::EventSeverity) -> bool {
+    const fn should_log_severity(&self, severity: crate::event::EventSeverity) -> bool {
         use crate::event::EventSeverity;
 
         let severity_level = match severity {
@@ -195,14 +195,14 @@ impl AuditLoggerBuilder {
 
     /// Enables or disables the logger.
     #[must_use]
-    pub fn enabled(mut self, enabled: bool) -> Self {
+    pub const fn enabled(mut self, enabled: bool) -> Self {
         self.enabled = enabled;
         self
     }
 
     /// Sets the minimum severity level.
     #[must_use]
-    pub fn min_severity(mut self, severity: crate::event::EventSeverity) -> Self {
+    pub const fn min_severity(mut self, severity: crate::event::EventSeverity) -> Self {
         self.min_severity = severity;
         self
     }
@@ -225,7 +225,7 @@ pub struct TracingBackend;
 impl TracingBackend {
     /// Creates a new tracing backend.
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self
     }
 }
@@ -273,19 +273,27 @@ impl Default for InMemoryBackend {
 impl InMemoryBackend {
     /// Creates a new in-memory backend.
     #[must_use]
-    pub fn new() -> Self {
+    pub const fn new() -> Self {
         Self {
             events: std::sync::Mutex::new(Vec::new()),
         }
     }
 
     /// Returns all logged events.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the mutex is poisoned.
     #[must_use]
     pub fn events(&self) -> Vec<String> {
         self.events.lock().unwrap().clone()
     }
 
     /// Clears all logged events.
+    ///
+    /// # Panics
+    ///
+    /// Panics if the mutex is poisoned.
     pub fn clear(&self) {
         self.events.lock().unwrap().clear();
     }
