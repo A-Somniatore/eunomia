@@ -2702,13 +2702,13 @@ Stoa displays:
 ### Under Discussion
 
 - 🟡 **Multi-cluster support**: Design in gap weeks (13-16), implement post-MVP
-- 🟡 **Policy inheritance**: Prototype in gap weeks, defer full implementation
-- 🟡 **External data**: Research IdP integration in gap weeks
 
 ### Resolved (Gap Week Research)
 
 - ✅ **Cache encryption key management**: Use Kubernetes Secrets with external-secrets-operator for rotation. Bundle encryption uses per-environment keys stored in Vault/K8s Secrets. Key rotation triggers bundle re-encryption and re-push (automated via control plane).
 - ✅ **Cross-region replication**: Use OCI registry geo-replication for bundle distribution. Each region pulls from nearest registry replica. Control plane is single-region with read replicas. Multi-region active-active is post-MVP.
+- ✅ **Policy inheritance**: Research complete. Use import-based inheritance for MVP, bundle composition for post-MVP. See [Policy Inheritance Design](designs/policy-inheritance.md).
+- ✅ **External data integration**: Research complete. Push-based data sync from IdP (Okta, LDAP) via control plane. See [External Data Integration Design](designs/external-data-integration.md).
 
 > 📝 **Note**: Gap weeks (13-16) used for prototyping yellow items.
 

@@ -770,9 +770,14 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 **Week 15-16: Stretch Goals (if time permits)**
 
-- [ ] Design multi-cluster policy distribution (for future)
-- [ ] Prototype policy inheritance patterns
-- [ ] Research external data integration (IdP roles)
+- [x] Design multi-cluster policy distribution (for future)
+  > **Completed**: Research documented, design deferred to post-MVP. Multi-region will use OCI registry geo-replication.
+- [x] Prototype policy inheritance patterns
+  > **Completed**: Created comprehensive design document at `docs/designs/policy-inheritance.md`.
+  > Recommends import-based inheritance for MVP, bundle composition for post-MVP.
+- [x] Research external data integration (IdP roles)
+  > **Completed**: Created design document at `docs/designs/external-data-integration.md`.
+  > Recommends push-based data sync from control plane, supports Okta/LDAP/HTTP sources.
 - [x] Support Archimedes team with OPA integration questions
 - [x] Add `eunomia status` CLI command for deployment monitoring
   > **Completed**: Added status command with text/JSON output, service filtering, verbose mode
@@ -780,6 +785,9 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > **Completed**: Added 4 event types (Policy, Bundle, Distribution, Authorization),
   > flexible logger with backend abstraction, TracingBackend and InMemoryBackend,
   > event schema definitions, 25 unit tests
+- [x] Add `eunomia rollback` CLI command scaffold
+  > **Completed**: Added rollback command scaffold with RollbackArgs, strategies (immediate/rolling/targeted),
+  > dry-run support, and 7 unit tests. Full implementation in Week 18.
 
 ### Week 17: Push Integration
 
@@ -790,9 +798,12 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 ### Week 18: Rollback Controller
 
+> **Note**: CLI scaffold created in Week 15-16 stretch goals. Full gRPC integration here.
+
 - [ ] Implement rollback triggers
 - [ ] Add automatic rollback on health failures
-- [ ] Implement `eunomia rollback` CLI command
+- [ ] Implement `eunomia rollback` CLI command (connect to control plane)
+  > **Scaffold ready**: CLI args, strategies, dry-run mode already implemented
 - [ ] Add rollback audit logging
 
 ### Week 19: End-to-End Testing
@@ -831,26 +842,29 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 ### CLI Commands
 
-- `eunomia test` - Run policy tests
-- `eunomia build` - Compile bundle
-- `eunomia sign` - Sign bundle
-- `eunomia publish` - Publish to registry
-- `eunomia push` - Push to instances
-- `eunomia rollback` - Rollback policy
-- `eunomia status` - Check deployment status
+- `eunomia test` - Run policy tests ✅
+- `eunomia build` - Compile bundle ✅
+- `eunomia sign` - Sign bundle ✅
+- `eunomia publish` - Publish to registry ✅
+- `eunomia fetch` - Fetch from registry ✅
+- `eunomia validate` - Validate policies ✅
+- `eunomia push` - Push to instances ✅
+- `eunomia status` - Check deployment status ✅
+- `eunomia rollback` - Rollback policy (scaffold ready, full impl Week 18)
 
 ### Crates
 
-- `eunomia-core` - Core types and traits
-- `eunomia-compiler` - Rego parsing and bundle compilation
-- `eunomia-test` - Testing framework
-- `eunomia-registry` - Bundle registry client
-- `eunomia-distributor` - gRPC push distribution
-- `eunomia-audit` - Audit logging
+- `eunomia-core` - Core types and traits ✅
+- `eunomia-compiler` - Rego parsing and bundle compilation ✅
+- `eunomia-test` - Testing framework ✅
+- `eunomia-registry` - Bundle registry client ✅
+- `eunomia-distributor` - gRPC push distribution ✅
+- `eunomia-audit` - Audit logging ✅
+- `eunomia-cli` - CLI application ✅
 
 ### Services
 
-- `eunomia-control-plane` - Central management service
+- `eunomia-control-plane` - Central management service (Week 17-20)
 
 ---
 
