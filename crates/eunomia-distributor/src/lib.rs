@@ -63,6 +63,7 @@
 pub mod config;
 pub mod discovery;
 pub mod error;
+pub mod grpc;
 pub mod health;
 pub mod instance;
 pub mod pusher;

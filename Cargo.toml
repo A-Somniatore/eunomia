@@ -7,6 +7,7 @@ members = [
     "crates/eunomia-registry",
     "crates/eunomia-cli",
     "crates/eunomia-distributor",
+    "crates/eunomia-audit",
 ]
 
 [workspace.package]
@@ -81,6 +82,7 @@ eunomia-compiler = { path = "crates/eunomia-compiler" }
 eunomia-test = { path = "crates/eunomia-test" }
 eunomia-registry = { path = "crates/eunomia-registry" }
 eunomia-distributor = { path = "crates/eunomia-distributor" }
+eunomia-audit = { path = "crates/eunomia-audit" }
 
 # Async utilities
 async-trait = "0.1"

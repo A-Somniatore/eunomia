@@ -43,6 +43,10 @@ hickory-resolver = { workspace = true }
 # UUID for request IDs
 uuid = { workspace = true }
 
+# Hashing for checksums
+sha2 = { workspace = true }
+hex = { workspace = true }
+
 [dev-dependencies]
 tokio-test = "0.4"
 tempfile = { workspace = true }
