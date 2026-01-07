@@ -1,12 +1,15 @@
 # Eunomia – Development Roadmap
 
-> **Version**: 1.5.0  
+> **Version**: 1.6.0  
 > **Created**: 2026-01-04  
-> **Last Updated**: 2026-01-05  
+> **Last Updated**: 2026-01-07  
 > **Target Completion**: Week 20 (MVP Integration with Archimedes MVP)
 
 > ✅ **CTO REVIEW (2026-01-05)**: Phase E0 complete. Shared types migration resolved.
 > All Eunomia types now use `themis-platform-types` for schema compatibility.
+
+> ✅ **ARCHITECTURE REVIEW (2026-01-07)**: Grade B+. All immediate fixes completed.
+> See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed findings and recommendations.
 
 ---
 
@@ -696,7 +699,7 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 **Criteria**: Control plane is operational, bundles can be pushed to instances
 
-> ✅ **Status**: Phase E3 Complete!
+> ✅ **Status**: Phase E3 Complete! (2026-01-07)
 >
 > - Week 9: Registry client with OCI support, versioning, caching
 > - Week 10: Control plane gRPC server with ControlPlane and PolicyReceiver services
@@ -704,9 +707,12 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 > - Week 12: Push distribution with scheduler, parallel deployment, CLI
 > - Week 13: CTO review items complete - deprecated types removed
 > - Week 14: Documentation & examples complete - authoring guide, examples, migration guide
+> - Week 15-16: Stretch goals complete - policy inheritance design, external data design, audit crate
+> - **Architecture Review (2026-01-07)**: Grade B+. All immediate fixes applied.
 >
 > **Deferred to E4 integration:**
 > - Kubernetes service discovery (when K8s cluster available for testing)
+> - gRPC integration tests (Week 17)
 
 ---
 
@@ -795,6 +801,8 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 - [ ] Verify mTLS authentication
 - [ ] Test hot-reload scenarios
 - [ ] Validate signature verification
+- [ ] **Add gRPC integration tests with mock Archimedes** (from arch review)
+- [ ] **Add graceful shutdown handling to gRPC server** (from arch review)
 
 ### Week 18: Rollback Controller
 
@@ -805,6 +813,7 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 - [ ] Implement `eunomia rollback` CLI command (connect to control plane)
   > **Scaffold ready**: CLI args, strategies, dry-run mode already implemented
 - [ ] Add rollback audit logging
+- [ ] **Complete streaming for deployment events** (from arch review)
 
 ### Week 19: End-to-End Testing
 
@@ -812,6 +821,8 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 - [ ] Performance benchmarks
 - [ ] Load testing with multiple instances
 - [ ] Error scenario testing
+- [ ] **Performance benchmarking with SLO targets** (from arch review)
+- [ ] **Document latency SLOs for push operations**
 
 ### Week 20: Documentation & Polish
 
@@ -824,6 +835,46 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 ### Phase E4 Milestone
 
 **Criteria**: Full Archimedes integration complete, production-ready
+
+---
+
+## Pre-v1.0.0 Requirements (from Architecture Review)
+
+> **Reference**: [ARCHITECTURE.md](ARCHITECTURE.md) - Review conducted 2026-01-07
+
+These items MUST be completed before tagging v1.0.0:
+
+### Security Requirements
+
+| Task | Effort | Priority | Status |
+|------|--------|----------|--------|
+| Security audit for bundle signing | 4 hrs | Critical | ⏳ Pending |
+| Add rate limiting to gRPC endpoints | 4 hrs | High | ⏳ Pending |
+| mTLS verification testing | 2 hrs | High | ⏳ Pending |
+
+### Observability Requirements
+
+| Task | Effort | Priority | Status |
+|------|--------|----------|--------|
+| Add OpenTelemetry metrics | 8 hrs | High | ⏳ Pending |
+| Establish performance benchmarks | 4 hrs | Medium | ⏳ Pending |
+| Define latency SLOs for operations | 2 hrs | Medium | ⏳ Pending |
+
+### Operational Requirements
+
+| Task | Effort | Priority | Status |
+|------|--------|----------|--------|
+| Kubernetes service discovery | 8 hrs | Medium | ⏳ Pending |
+| Graceful shutdown for gRPC server | 2 hrs | Medium | ⏳ Pending |
+| Cross-platform testing (Linux, macOS, Windows) | 4 hrs | Medium | ⏳ Pending |
+
+### Documentation Requirements
+
+| Task | Effort | Priority | Status |
+|------|--------|----------|--------|
+| Production deployment guide | 4 hrs | High | ⏳ Pending |
+| Troubleshooting runbook | 3 hrs | High | ⏳ Pending |
+| Performance tuning guide | 2 hrs | Medium | ⏳ Pending |
 
 ---
 
