@@ -1501,57 +1501,100 @@ pub async fn load_policy(service: &str, config: &PolicyConfig) -> Result<Policy,
 
 ### 9.5 Rollback Mechanism
 
+The `RollbackController` manages rollback operations, including version history tracking, auto-rollback on health failures, and cooldown management.
+
 ```rust
+/// Configuration for the rollback controller.
+pub struct RollbackConfig {
+    /// Enable automatic rollback on health failures.
+    pub auto_rollback_enabled: bool,
+    /// Number of consecutive health check failures before triggering auto-rollback.
+    pub failure_threshold: u32,
+    /// Time window for counting failures.
+    pub failure_window: Duration,
+    /// Cooldown period between auto-rollbacks.
+    pub cooldown_period: Duration,
+    /// Maximum rollback history entries to keep per service.
+    pub max_history_entries: usize,
+}
+
+/// Controller for managing rollbacks.
 pub struct RollbackController {
-    state: DeploymentState,
-    distributor: PolicyDistributor,
+    config: RollbackConfig,
+    state: Arc<RwLock<RollbackState>>,
+    audit_logger: Option<Arc<AuditLogger>>,
 }
 
 impl RollbackController {
-    pub async fn rollback(&self, service: &str, target_version: &str) -> Result<RollbackReport, RollbackError> {
-        // 1. Fetch previous bundle from registry
-        let bundle = self.registry.fetch_bundle(service, target_version).await?;
+    /// Creates a new rollback controller with optional audit logging.
+    pub fn with_audit_logger(config: RollbackConfig, logger: Arc<AuditLogger>) -> Self;
 
-        // 2. Verify bundle integrity
-        bundle.verify()?;
+    /// Records a successful deployment for version tracking.
+    pub fn record_deployment(&self, service: &str, version: &str, deployment_id: &str);
 
-        // 3. Update deployment state
-        self.state.mark_rollback_in_progress(service).await?;
+    /// Records a health check failure for auto-rollback evaluation.
+    pub fn record_health_failure(&self, service: &str);
 
-        // 4. Push old version to all instances (immediately, no canary)
-        let report = self.distributor.push_immediate(&bundle).await?;
+    /// Checks if an auto-rollback should be triggered.
+    /// Returns Some(target_version) if conditions are met.
+    pub fn should_auto_rollback(&self, service: &str) -> Option<String>;
 
-        // 5. Update state
-        self.state.mark_rollback_complete(service, &report).await?;
+    /// Validates and logs the start of a rollback.
+    pub fn prepare_rollback(&self, trigger: &RollbackTrigger) -> Result<String>;
 
-        // 6. Emit audit event
-        self.audit.log(AuditEvent::PolicyRollback {
-            service: service.to_string(),
-            from_version: self.state.current_version(service).await?,
-            to_version: target_version.to_string(),
-            reason: "manual rollback",
-        }).await?;
+    /// Records a completed rollback with audit logging.
+    pub fn record_rollback(&self, result: RollbackResult);
 
-        Ok(report)
-    }
+    /// Gets the previous version for rollback targeting.
+    pub fn get_previous_version(&self, service: &str) -> Option<String>;
 
-    pub async fn auto_rollback_on_failure(&self, service: &str, health_check: &HealthCheck) -> Result<(), RollbackError> {
-        let previous = self.state.previous_version(service).await?;
-
-        if let Some(prev_version) = previous {
-            tracing::warn!(
-                service = service,
-                current = %self.state.current_version(service).await?,
-                rolling_back_to = %prev_version,
-                "auto-rollback triggered due to health check failures"
-            );
-
-            self.rollback(service, &prev_version).await?;
-        }
-
-        Ok(())
-    }
+    /// Validates that a rollback can be performed.
+    pub fn validate_rollback(&self, trigger: &RollbackTrigger) -> Result<()>;
 }
+```
+
+#### Rollback Triggers
+
+```rust
+/// Trigger types for initiating a rollback.
+pub struct RollbackTrigger {
+    pub service: String,
+    pub target_version: String,
+    pub reason: String,
+    pub is_automatic: bool,
+    pub target_instances: Option<Vec<String>>,
+    pub force: bool,  // Bypass validation checks
+}
+
+impl RollbackTrigger {
+    /// Manual rollback with validation.
+    pub fn manual(service: &str, target_version: &str, reason: &str) -> Self;
+
+    /// Forced rollback that bypasses validation.
+    pub fn forced(service: &str, target_version: &str, reason: &str) -> Self;
+
+    /// Automatic rollback triggered by health monitor.
+    pub fn automatic(service: &str, target_version: &str, reason: &str) -> Self;
+}
+```
+
+#### Auto-Rollback Flow
+
+```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│  Health Monitor │────▶│ RollbackController│────▶│   Distributor   │
+│                 │     │                  │     │                 │
+│ record_failure()│     │ should_auto_     │     │  rollback()     │
+│                 │     │   rollback()     │     │                 │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+                               │
+                               ▼
+                        ┌──────────────────┐
+                        │   AuditLogger    │
+                        │                  │
+                        │ rollback_started │
+                        │ rollback_complete│
+                        └──────────────────┘
 ```
 
 ---
@@ -1576,9 +1619,95 @@ service ControlPlane {
   rpc ListInstances(ListInstancesRequest) returns (ListInstancesResponse);
   rpc GetInstanceHealth(GetInstanceHealthRequest) returns (InstanceHealth);
 
+  // Event streaming
+  rpc WatchDeployment(WatchDeploymentRequest) returns (stream DeploymentEvent);
+
   // Audit
   rpc GetAuditLog(GetAuditLogRequest) returns (stream AuditEvent);
 }
+}
+
+### 10.1.1 Deployment Event Streaming
+
+The `EventBus` provides real-time streaming of deployment events to connected clients.
+
+```rust
+/// Event types for deployment lifecycle events.
+pub enum EventType {
+    DeploymentStarted,
+    InstanceUpdateStarted,
+    InstanceUpdateCompleted,
+    InstanceUpdateFailed,
+    InstanceSkipped,
+    BatchCompleted,
+    CanaryValidationStarted,
+    CanaryValidationPassed,
+    CanaryValidationFailed,
+    DeploymentCompleted,
+    DeploymentFailed,
+    RollbackStarted,
+    RollbackCompleted,
+}
+
+/// Deployment event data.
+pub struct DeploymentEventData {
+    pub deployment_id: String,
+    pub event_type: EventType,
+    pub timestamp: DateTime<Utc>,
+    pub service: String,
+    pub version: String,
+    pub instance_id: Option<String>,
+    pub message: String,
+    pub progress: Option<u8>,
+    pub metadata: Option<serde_json::Value>,
+}
+
+/// Event bus for publishing and subscribing to deployment events.
+pub struct EventBus {
+    sender: broadcast::Sender<DeploymentEventData>,
+}
+
+impl EventBus {
+    /// Creates a new event bus with the given capacity.
+    pub fn new(capacity: usize) -> Self;
+
+    /// Publishes an event to all subscribers.
+    pub fn publish(&self, event: DeploymentEventData) -> usize;
+
+    /// Subscribes to receive events.
+    pub fn subscribe(&self) -> EventSubscriber;
+}
+
+/// Filtered event subscriber.
+impl EventSubscriber {
+    /// Receives the next event.
+    pub async fn recv(&mut self) -> Option<DeploymentEventData>;
+
+    /// Filters events for a specific deployment.
+    pub fn filter_deployment(self, deployment_id: String) -> FilteredSubscriber;
+
+    /// Filters events for a specific service.
+    pub fn filter_service(self, service: String) -> FilteredSubscriber;
+}
+```
+
+#### Event Flow
+
+```
+┌─────────────────┐     ┌──────────────────┐     ┌─────────────────┐
+│   Distributor   │────▶│    EventBus      │────▶│  gRPC Stream    │
+│                 │     │                  │     │                 │
+│  push_to_inst() │     │   broadcast      │     │ WatchDeployment │
+│                 │     │   channel        │     │                 │
+└─────────────────┘     └──────────────────┘     └─────────────────┘
+                               │
+                    ┌──────────┴──────────┐
+                    ▼                     ▼
+            ┌──────────────┐      ┌──────────────┐
+            │ Subscriber 1 │      │ Subscriber 2 │
+            │  (filtered)  │      │  (all events)│
+            └──────────────┘      └──────────────┘
+```
 
 message DeployPolicyRequest {
   string service = 1;

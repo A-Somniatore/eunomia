@@ -898,16 +898,42 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 - Distributor unit tests: 24 tests (existing)
 - **Total new tests added in Week 17: 22 tests**
 
-### Week 18: Rollback Controller
+### Week 18: Rollback Controller ✅ COMPLETE
 
 > **Note**: CLI scaffold created in Week 15-16 stretch goals. Full gRPC integration here.
 
-- [ ] Implement rollback triggers
-- [ ] Add automatic rollback on health failures
-- [ ] Implement `eunomia rollback` CLI command (connect to control plane)
-  > **Scaffold ready**: CLI args, strategies, dry-run mode already implemented
-- [ ] Add rollback audit logging
-- [ ] **Complete streaming for deployment events** (from arch review)
+- [x] Implement rollback triggers
+  - `RollbackTrigger::manual()`, `RollbackTrigger::forced()`, `RollbackTrigger::automatic()`
+  - Force flag to bypass validation
+  - Target instances support
+- [x] Add automatic rollback on health failures
+  - `RollbackController` with configurable thresholds
+  - Failure window and cooldown period
+  - Version history tracking
+- [x] Implement `eunomia rollback` CLI command (connect to control plane)
+  - Added `--endpoints` arg for target specification
+  - Async execution via Distributor
+  - Text and JSON output formats
+- [x] Add rollback audit logging
+  - Integrated `AuditLogger` with `RollbackController`
+  - `DistributionEvent::rollback_started` and `rollback_completed` events
+  - `prepare_rollback()` logs start, `record_rollback()` logs completion
+- [x] **Complete streaming for deployment events** (from arch review)
+  - Created `EventBus` using tokio broadcast channels
+  - `DeploymentEventData` with 13 event types
+  - `EventSubscriber` with filtering by deployment/service
+  - `WatchDeployment` gRPC streaming endpoint
+
+**Week 18 Implementation Summary:**
+
+| Component | Files | Tests | Lines |
+|-----------|-------|-------|-------|
+| RollbackController | `rollback.rs` | 22 | ~1100 |
+| EventBus | `events.rs` | 12 | ~450 |
+| CLI Integration | `commands/rollback.rs` | 6 | ~480 |
+| Control Plane | `control_plane.rs` | 40 | +100 |
+
+**Total new tests in Week 18: 9 integration tests + 12 event tests + 2 audit tests = 23 tests**
 
 ### Week 19: End-to-End Testing
 
@@ -995,7 +1021,7 @@ These items MUST be completed before tagging v1.0.0:
 - `eunomia validate` - Validate policies ✅
 - `eunomia push` - Push to instances ✅
 - `eunomia status` - Check deployment status ✅
-- `eunomia rollback` - Rollback policy (scaffold ready, full impl Week 18)
+- `eunomia rollback` - Rollback policy ✅
 
 ### Crates
 
