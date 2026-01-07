@@ -2,17 +2,41 @@
 //!
 //! This module provides the main server struct that binds both
 //! `ControlPlane` and `PolicyReceiver` services.
+//!
+//! ## mTLS Support
+//!
+//! The server supports mutual TLS (mTLS) for secure communication:
+//!
+//! ```rust,ignore
+//! let config = GrpcServerConfig::default()
+//!     .with_tls(TlsConfig {
+//!         cert_pem: include_str!("server.crt").to_string(),
+//!         key_pem: include_str!("server.key").to_string(),
+//!         ca_cert_pem: Some(include_str!("ca.crt").to_string()),
+//!     });
+//! ```
 
 use std::net::SocketAddr;
 use std::sync::Arc;
 use std::time::Duration;
 
 use tokio::sync::oneshot;
-use tonic::transport::Server;
+use tonic::transport::{Certificate, Identity, Server, ServerTlsConfig};
 use tracing::{info, warn};
 
 use super::control_plane::ControlPlaneService;
 use crate::Distributor;
+
+/// TLS configuration for the gRPC server.
+#[derive(Debug, Clone)]
+pub struct TlsConfig {
+    /// Server certificate in PEM format.
+    pub cert_pem: String,
+    /// Server private key in PEM format.
+    pub key_pem: String,
+    /// Optional CA certificate for client verification (enables mTLS).
+    pub ca_cert_pem: Option<String>,
+}
 
 /// gRPC server configuration.
 #[derive(Debug, Clone)]
@@ -37,6 +61,8 @@ pub struct GrpcServerConfig {
     pub enable_reflection: bool,
     /// Enable health check service.
     pub enable_health_check: bool,
+    /// TLS configuration for secure connections.
+    pub tls_config: Option<TlsConfig>,
 }
 
 impl Default for GrpcServerConfig {
@@ -52,6 +78,7 @@ impl Default for GrpcServerConfig {
             max_send_message_size: Some(4 * 1024 * 1024), // 4MB
             enable_reflection: true,
             enable_health_check: true,
+            tls_config: None,
         }
     }
 }
@@ -93,6 +120,27 @@ impl GrpcServerConfig {
     pub fn with_reflection(mut self, enable: bool) -> Self {
         self.enable_reflection = enable;
         self
+    }
+
+    /// Configure TLS for secure connections.
+    ///
+    /// If `ca_cert_pem` is provided in the config, mutual TLS (mTLS)
+    /// is enabled and clients must present valid certificates.
+    pub fn with_tls(mut self, tls: TlsConfig) -> Self {
+        self.tls_config = Some(tls);
+        self
+    }
+
+    /// Check if TLS is enabled.
+    pub fn is_tls_enabled(&self) -> bool {
+        self.tls_config.is_some()
+    }
+
+    /// Check if mTLS (mutual TLS) is enabled.
+    pub fn is_mtls_enabled(&self) -> bool {
+        self.tls_config
+            .as_ref()
+            .is_some_and(|tls| tls.ca_cert_pem.is_some())
     }
 }
 
@@ -161,9 +209,40 @@ impl GrpcServer {
 
         let addr = self.config.bind_address;
 
-        info!("Starting gRPC server on {}", addr);
+        // Configure TLS if enabled
+        let tls_config = if let Some(ref tls) = self.config.tls_config {
+            let identity = Identity::from_pem(tls.cert_pem.as_bytes(), tls.key_pem.as_bytes());
+            let mut server_tls = ServerTlsConfig::new().identity(identity);
+
+            // Enable mTLS if CA cert provided
+            if let Some(ref ca_cert) = tls.ca_cert_pem {
+                let ca_cert = Certificate::from_pem(ca_cert.as_bytes());
+                server_tls = server_tls.client_ca_root(ca_cert);
+                info!("mTLS enabled - client certificates will be verified");
+            }
+
+            Some(server_tls)
+        } else {
+            None
+        };
+
+        let tls_mode = if self.config.is_mtls_enabled() {
+            "mTLS"
+        } else if self.config.is_tls_enabled() {
+            "TLS"
+        } else {
+            "insecure"
+        };
+        info!("Starting gRPC server on {} ({})", addr, tls_mode);
 
         let mut builder = Server::builder();
+
+        // Apply TLS configuration
+        if let Some(tls) = tls_config {
+            builder = builder
+                .tls_config(tls)
+                .map_err(|e| GrpcServerError::TlsConfig(e.to_string()))?;
+        }
 
         // Apply TCP settings
         if self.config.tcp_nodelay {
@@ -230,6 +309,10 @@ pub enum GrpcServerError {
     #[error("transport error: {0}")]
     Transport(#[from] tonic::transport::Error),
 
+    /// TLS configuration error.
+    #[error("TLS configuration error: {0}")]
+    TlsConfig(String),
+
     /// Internal error.
     #[error("internal error: {0}")]
     Internal(String),
@@ -246,6 +329,9 @@ mod tests {
         assert!(config.tcp_nodelay);
         assert!(config.enable_reflection);
         assert_eq!(config.max_recv_message_size, Some(4 * 1024 * 1024));
+        assert!(config.tls_config.is_none());
+        assert!(!config.is_tls_enabled());
+        assert!(!config.is_mtls_enabled());
     }
 
     #[test]
@@ -267,5 +353,44 @@ mod tests {
     fn test_config_disable_keepalive() {
         let config = GrpcServerConfig::default().without_tcp_keepalive();
         assert!(config.tcp_keepalive.is_none());
+    }
+
+    #[test]
+    fn test_tls_config_server_only() {
+        let config = GrpcServerConfig::default().with_tls(TlsConfig {
+            cert_pem: "-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----".to_string(),
+            key_pem: "-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----".to_string(),
+            ca_cert_pem: None,
+        });
+
+        assert!(config.is_tls_enabled());
+        assert!(!config.is_mtls_enabled());
+    }
+
+    #[test]
+    fn test_mtls_config() {
+        let config = GrpcServerConfig::default().with_tls(TlsConfig {
+            cert_pem: "-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----".to_string(),
+            key_pem: "-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----".to_string(),
+            ca_cert_pem: Some(
+                "-----BEGIN CERTIFICATE-----\nca\n-----END CERTIFICATE-----".to_string(),
+            ),
+        });
+
+        assert!(config.is_tls_enabled());
+        assert!(config.is_mtls_enabled());
+    }
+
+    #[test]
+    fn test_tls_config_struct() {
+        let tls = TlsConfig {
+            cert_pem: "cert".to_string(),
+            key_pem: "key".to_string(),
+            ca_cert_pem: Some("ca".to_string()),
+        };
+
+        assert_eq!(tls.cert_pem, "cert");
+        assert_eq!(tls.key_pem, "key");
+        assert_eq!(tls.ca_cert_pem, Some("ca".to_string()));
     }
 }

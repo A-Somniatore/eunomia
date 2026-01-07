@@ -33,4 +33,4 @@ pub mod types;
 
 pub use control_plane::{ControlPlane, ControlPlaneService, ControlPlaneServiceServer};
 pub use policy_receiver::{PolicyReceiver, PolicyReceiverService, PolicyReceiverServiceServer};
-pub use server::{GrpcServer, GrpcServerConfig, GrpcServerError, GrpcServerHandle};
+pub use server::{GrpcServer, GrpcServerConfig, GrpcServerError, GrpcServerHandle, TlsConfig};

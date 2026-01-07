@@ -806,7 +806,9 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > - Control Plane Service: deploy, rollback, status, list instances
   > - Policy Receiver Service: update, checksum validation, health checks
   > - Type conversions and server configuration
-- [ ] **Add graceful shutdown handling to gRPC server** (from arch review)
+- [x] **Add graceful shutdown handling to gRPC server** (from arch review)
+  > **Already implemented**: `GrpcServerHandle::shutdown()` triggers graceful shutdown via oneshot channel.
+  > Server uses `serve_with_shutdown()` with signal handler support.
 
 ### Week 18: Rollback Controller
 
