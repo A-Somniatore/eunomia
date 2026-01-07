@@ -13,6 +13,39 @@
 
 ---
 
+## 🚨 Multi-Language Requirement Awareness (2026-01-08)
+
+> **Source**: [Staff Engineer Multi-Language Review](../../docs/reviews/2026-01-08-multi-language-requirement-review.md)
+> **Impact on Eunomia**: Minimal - OPA policies are language-agnostic
+> **Related**: [ADR-009](../../docs/decisions/009-archimedes-sidecar-multi-language.md)
+
+### What This Means for Eunomia
+
+The Archimedes sidecar pattern (A10-A12) enables non-Rust services to use the platform. Eunomia's role remains unchanged:
+
+| Eunomia Responsibility | Multi-Language Impact |
+|-----------------------|----------------------|
+| Policy authoring (Rego) | ✅ No change - Rego is language-agnostic |
+| Bundle compilation | ✅ No change - OPA bundles work everywhere |
+| Push to Archimedes | ✅ No change - Sidecar uses same gRPC endpoint |
+| `PolicyInput` schema | ✅ Already defined in `themis-platform-types` |
+
+### Coordination Points
+
+| Week | Archimedes Phase | Eunomia Action |
+|------|-----------------|----------------|
+| 37-39 | A10: Sidecar | Verify policy push works to sidecar |
+| 43-46 | A12: Integration | Participate in multi-language E2E tests |
+
+### No Eunomia Changes Required
+
+The existing Eunomia implementation fully supports the multi-language sidecar pattern because:
+1. OPA/Rego policies evaluate `PolicyInput` JSON - language of caller doesn't matter
+2. Bundle format is standard OPA - sidecar loads same bundles as native Archimedes
+3. Push mechanism targets Archimedes endpoint - sidecar exposes same interface
+
+---
+
 ## 🔄 themis-platform-types v0.2.1 Production Readiness (Coming Soon)
 
 > **When**: Before production release
@@ -97,7 +130,50 @@ match caller {
 
 ---
 
-## 🔧 Staff Engineer Code Review (2026-01-07)
+## � Spec vs Implementation Gap Analysis (2026-01-07)
+
+> **Source**: Architecture Review comparing spec.md to actual implementation
+> **Overall Score**: B+ (Ready for MVP, gaps before v1.0.0)
+
+### ✅ Fully Implemented (Matches Spec)
+
+| Spec Requirement | Evidence |
+|------------------|----------|
+| Git-backed policy management | Policy directory structure, CI pipeline |
+| OPA/Rego as policy language | `regorus` integration in eunomia-compiler |
+| Per-operationId authorization | `PolicyInput.operation_id` from themis-platform-types |
+| Policy validation & testing | `eunomia test` CLI, 420+ tests |
+| Bundle compilation | OPA-compatible tar.gz with `.manifest` |
+| Bundle signing (Ed25519) | `eunomia sign` CLI, signature verification |
+| Hybrid push/pull distribution | `eunomia push` + registry pull fallback |
+| Semantic versioning | `VersionResolver` in registry client |
+| Local caching | `BundleCache` with LRU eviction |
+| Atomic policy updates | Rollback controller, version history |
+| SPIFFE identity integration | `CallerIdentity::Spiffe` variant |
+| mTLS support | `TlsConfig` with client cert/key |
+
+### ⚠️ Partially Implemented (Gaps)
+
+| Spec Requirement | Gap | Impact |
+|------------------|-----|--------|
+| **Audit logging** (Spec §10.1) | `eunomia-audit` crate exists but NOT wired to CLI/distributor operations | **Medium** - Policy changes not logged in production |
+| **Kubernetes discovery** (Spec §7.2) | Stub only, not implemented | **Medium** - Manual endpoint config required |
+| **Integration tests** (Spec §12.2) | Uses mocks only, no real Archimedes | **Medium** - Untested in real environment |
+
+### ❌ Not Implemented (Missing from Spec)
+
+| Spec Requirement | Priority | Effort |
+|------------------|----------|--------|
+| **OpenTelemetry metrics** (Spec §10.2) | Critical for v1.0 | 8 hrs |
+| **Rate limiting on gRPC** (Spec §11) | Critical for v1.0 | 4 hrs |
+| **Performance benchmarks** (Spec §12.3) | High | 4 hrs |
+| **Security audit of bundle signing** | Critical for v1.0 | 4 hrs |
+| **Production deployment guide** | High | 4 hrs |
+| **Cross-platform testing** | Medium | 4 hrs |
+
+---
+
+## �🔧 Staff Engineer Code Review (2026-01-07)
 
 > **Source**: Staff Engineer Cross-Component Review
 > **Status**: Tracked for team action
