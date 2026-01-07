@@ -124,4 +124,4 @@ jobs:
         run: cargo install cargo-audit
 
       - name: Run security audit
-        run: cargo audit || true  # Don't fail on audit warnings initially
+        run: cargo audit

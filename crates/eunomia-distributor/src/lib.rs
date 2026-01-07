@@ -51,14 +51,7 @@
 //! ```
 
 #![forbid(unsafe_code)]
-#![warn(missing_docs)]
-// Allow some clippy lints for initial development - will tighten before release
-#![allow(clippy::missing_errors_doc)]
-#![allow(clippy::missing_const_for_fn)]
-#![allow(clippy::must_use_candidate)]
-#![allow(clippy::return_self_not_must_use)]
-#![allow(clippy::significant_drop_tightening)]
-#![allow(clippy::unused_async)]
+#![warn(missing_docs, unused_results)]
 
 pub mod config;
 pub mod discovery;

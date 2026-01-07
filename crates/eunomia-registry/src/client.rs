@@ -1,7 +1,8 @@
 //! OCI Distribution API client for bundle registry operations.
 //!
 //! This module provides the main client interface for interacting with
-//! OCI-compatible container registries.
+//! OCI-compatible container registries, with exponential backoff retry logic
+//! for transient failures.
 
 use crate::cache::BundleCache;
 use crate::config::{RegistryAuth, RegistryConfig};
@@ -11,6 +12,40 @@ use crate::version::{VersionQuery, VersionResolver};
 use eunomia_core::Bundle;
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION, CONTENT_TYPE};
 use sha2::{Digest, Sha256};
+use std::time::Duration;
+
+/// Configuration for retry behavior with exponential backoff.
+#[derive(Debug, Clone, Copy)]
+struct RetryConfig {
+    /// Maximum number of retry attempts (not including initial request).
+    max_retries: u32,
+    /// Initial delay between retries.
+    initial_delay: Duration,
+    /// Maximum delay between retries.
+    max_delay: Duration,
+}
+
+impl Default for RetryConfig {
+    fn default() -> Self {
+        Self {
+            max_retries: 3,
+            initial_delay: Duration::from_millis(100),
+            max_delay: Duration::from_secs(10),
+        }
+    }
+}
+
+impl RetryConfig {
+    /// Calculates the delay for a given attempt number using exponential backoff.
+    fn delay_for_attempt(&self, attempt: u32) -> Duration {
+        // Exponential backoff: initial_delay * 2^attempt, capped at max_delay
+        let base_delay_ms = self.initial_delay.as_millis() as u64;
+        let exponential_ms = base_delay_ms
+            .saturating_mul(2u64.saturating_pow(attempt))
+            .min(self.max_delay.as_millis() as u64);
+        Duration::from_millis(exponential_ms)
+    }
+}
 
 /// Client for interacting with OCI-compatible bundle registries.
 #[derive(Debug)]
@@ -335,8 +370,52 @@ impl RegistryClient {
         Ok(())
     }
 
-    /// Fetches a manifest from the registry.
+    /// Fetches a manifest from the registry with exponential backoff retry.
     async fn fetch_manifest(
+        &self,
+        service: &str,
+        version: &str,
+    ) -> Result<Manifest, RegistryError> {
+        let retry_config = RetryConfig::default();
+        let mut last_error = None;
+
+        for attempt in 0..=retry_config.max_retries {
+            let result = self.fetch_manifest_internal(service, version).await;
+
+            match result {
+                Ok(manifest) => return Ok(manifest),
+                Err(e) => {
+                    if let RegistryError::HttpError { status, .. } = &e {
+                        // Don't retry on 4xx errors (except rate limiting)
+                        if *status != 429 && (*status < 500 || *status == 404) {
+                            return Err(e);
+                        }
+                    }
+
+                    last_error = Some(e);
+
+                    // If we have more retries left, sleep and retry
+                    if attempt < retry_config.max_retries {
+                        let delay = retry_config.delay_for_attempt(attempt);
+                        tracing::warn!(
+                            attempt = attempt + 1,
+                            delay_ms = delay.as_millis(),
+                            "Retrying manifest fetch after transient error"
+                        );
+                        tokio::time::sleep(delay).await;
+                    }
+                }
+            }
+        }
+
+        Err(last_error.unwrap_or_else(|| RegistryError::ConnectionFailed {
+            url: self.config.url.clone(),
+            source: reqwest::Client::new().get("").build().unwrap_err(),
+        }))
+    }
+
+    /// Internal implementation of manifest fetching (without retry logic).
+    async fn fetch_manifest_internal(
         &self,
         service: &str,
         version: &str,
@@ -368,8 +447,47 @@ impl RegistryClient {
         response.json().await.map_err(Into::into)
     }
 
-    /// Fetches a blob from the registry.
+    /// Fetches a blob from the registry with exponential backoff retry.
     async fn fetch_blob(&self, service: &str, digest: &str) -> Result<Vec<u8>, RegistryError> {
+        let retry_config = RetryConfig::default();
+        let mut last_error = None;
+
+        for attempt in 0..=retry_config.max_retries {
+            let result = self.fetch_blob_internal(service, digest).await;
+
+            match result {
+                Ok(blob) => return Ok(blob),
+                Err(e) => {
+                    if let RegistryError::HttpError { status, .. } = &e {
+                        // Don't retry on 4xx errors (except rate limiting)
+                        if *status != 429 && (*status < 500 || *status == 404) {
+                            return Err(e);
+                        }
+                    }
+
+                    last_error = Some(e);
+
+                    if attempt < retry_config.max_retries {
+                        let delay = retry_config.delay_for_attempt(attempt);
+                        tracing::warn!(
+                            attempt = attempt + 1,
+                            delay_ms = delay.as_millis(),
+                            "Retrying blob fetch after transient error"
+                        );
+                        tokio::time::sleep(delay).await;
+                    }
+                }
+            }
+        }
+
+        Err(last_error.unwrap_or_else(|| RegistryError::ConnectionFailed {
+            url: self.config.url.clone(),
+            source: reqwest::Client::new().get("").build().unwrap_err(),
+        }))
+    }
+
+    /// Internal implementation of blob fetching (without retry logic).
+    async fn fetch_blob_internal(&self, service: &str, digest: &str) -> Result<Vec<u8>, RegistryError> {
         let repo = self.config.repository_name(service);
         let url = format!("{}/v2/{repo}/blobs/{digest}", self.config.url);
 
