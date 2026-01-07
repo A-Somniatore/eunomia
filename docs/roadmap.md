@@ -798,7 +798,10 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 ### Week 17: Push Integration
 
 - [ ] Test bundle push to Archimedes instances
-- [ ] Verify mTLS authentication
+- [x] Verify mTLS authentication
+  > **Completed (2026-01-07)**: Added `TlsConfig` struct with mTLS support.
+  > Server uses `Identity` and `Certificate` from tonic for TLS/mTLS configuration.
+  > Added `is_tls_enabled()` and `is_mtls_enabled()` methods with 4 unit tests.
 - [ ] Test hot-reload scenarios
 - [ ] Validate signature verification
 - [x] **Add gRPC integration tests with mock Archimedes** (from arch review)
