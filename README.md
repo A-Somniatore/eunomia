@@ -43,16 +43,16 @@ eunomia push bundle.tar.gz --endpoints http://localhost:8080
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
-| [Design Document](docs/design.md) | Architecture and implementation details |
-| [Specification](docs/spec.md) | Requirements and policy conventions |
-| [Roadmap](docs/roadmap.md) | Development timeline and status |
-| [Policy Authoring Guide](docs/policy-authoring-guide.md) | How to write Rego policies |
-| [Testing Guide](docs/testing-guide.md) | Policy testing best practices |
-| [Migration Guide](docs/migration-guide.md) | Migrating from other auth systems |
-| [Architecture Review](docs/ARCHITECTURE.md) | Code quality and recommendations |
-| [Contributing](CONTRIBUTING.md) | Development guidelines |
+| Document                                                 | Description                             |
+| -------------------------------------------------------- | --------------------------------------- |
+| [Design Document](docs/design.md)                        | Architecture and implementation details |
+| [Specification](docs/spec.md)                            | Requirements and policy conventions     |
+| [Roadmap](docs/roadmap.md)                               | Development timeline and status         |
+| [Policy Authoring Guide](docs/policy-authoring-guide.md) | How to write Rego policies              |
+| [Testing Guide](docs/testing-guide.md)                   | Policy testing best practices           |
+| [Migration Guide](docs/migration-guide.md)               | Migrating from other auth systems       |
+| [Architecture Review](docs/ARCHITECTURE.md)              | Code quality and recommendations        |
+| [Contributing](CONTRIBUTING.md)                          | Development guidelines                  |
 
 ## Architecture Overview
 
@@ -84,17 +84,17 @@ eunomia push bundle.tar.gz --endpoints http://localhost:8080
 
 ## CLI Commands
 
-| Command | Description |
-|---------|-------------|
-| `eunomia validate <path>` | Validate Rego policy syntax and lint rules |
-| `eunomia test <path>` | Run policy tests (`*_test.rego` files) |
-| `eunomia build` | Compile policies into OPA bundle |
-| `eunomia sign <bundle>` | Sign bundle with Ed25519 key |
-| `eunomia publish <bundle>` | Publish bundle to OCI registry |
-| `eunomia fetch <service>` | Fetch bundle from registry |
-| `eunomia push <bundle>` | Push bundle to Archimedes instances |
-| `eunomia status` | Check deployment status |
-| `eunomia rollback` | Rollback to previous policy version |
+| Command                    | Description                                |
+| -------------------------- | ------------------------------------------ |
+| `eunomia validate <path>`  | Validate Rego policy syntax and lint rules |
+| `eunomia test <path>`      | Run policy tests (`*_test.rego` files)     |
+| `eunomia build`            | Compile policies into OPA bundle           |
+| `eunomia sign <bundle>`    | Sign bundle with Ed25519 key               |
+| `eunomia publish <bundle>` | Publish bundle to OCI registry             |
+| `eunomia fetch <service>`  | Fetch bundle from registry                 |
+| `eunomia push <bundle>`    | Push bundle to Archimedes instances        |
+| `eunomia status`           | Check deployment status                    |
+| `eunomia rollback`         | Rollback to previous policy version        |
 
 ## Key Features
 
@@ -154,15 +154,15 @@ eunomia/
 
 ## Crate Overview
 
-| Crate | Description |
-|-------|-------------|
-| `eunomia-core` | Core types (`Bundle`, `Policy`), signing (`BundleSigner`/`BundleVerifier`), shared types from `themis-platform-types` |
-| `eunomia-compiler` | Rego parsing via `regorus`, policy validation, linting, semantic analysis, bundle compilation |
-| `eunomia-test` | Test discovery, runner, fixtures, mock identities, coverage analysis |
-| `eunomia-registry` | OCI registry client, version resolution, LRU caching |
-| `eunomia-distributor` | gRPC control plane, instance discovery, deployment strategies, rollback controller |
-| `eunomia-audit` | Audit event types, logging backends, structured event emission |
-| `eunomia-cli` | Command-line interface for all operations |
+| Crate                 | Description                                                                                                           |
+| --------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| `eunomia-core`        | Core types (`Bundle`, `Policy`), signing (`BundleSigner`/`BundleVerifier`), shared types from `themis-platform-types` |
+| `eunomia-compiler`    | Rego parsing via `regorus`, policy validation, linting, semantic analysis, bundle compilation                         |
+| `eunomia-test`        | Test discovery, runner, fixtures, mock identities, coverage analysis                                                  |
+| `eunomia-registry`    | OCI registry client, version resolution, LRU caching                                                                  |
+| `eunomia-distributor` | gRPC control plane, instance discovery, deployment strategies, rollback controller                                    |
+| `eunomia-audit`       | Audit event types, logging backends, structured event emission                                                        |
+| `eunomia-cli`         | Command-line interface for all operations                                                                             |
 
 ## Related Projects
 

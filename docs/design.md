@@ -1603,7 +1603,7 @@ impl RollbackTrigger {
 
 ### 10.1 Control Plane API
 
-```protobuf
+````protobuf
 // proto/control_plane.proto
 syntax = "proto3";
 
@@ -1689,7 +1689,7 @@ impl EventSubscriber {
     /// Filters events for a specific service.
     pub fn filter_service(self, service: String) -> FilteredSubscriber;
 }
-```
+````
 
 #### Event Flow
 
@@ -1710,39 +1710,40 @@ impl EventSubscriber {
 ```
 
 message DeployPolicyRequest {
-  string service = 1;
-  string version = 2;
-  DeploymentStrategy strategy = 3;
+string service = 1;
+string version = 2;
+DeploymentStrategy strategy = 3;
 }
 
 message DeploymentStrategy {
-  enum Type {
-    IMMEDIATE = 0;
-    CANARY = 1;
-    ROLLING = 2;
-  }
-  Type type = 1;
-  int32 canary_percentage = 2;
-  Duration canary_duration = 3;
-  int32 batch_size = 4;
+enum Type {
+IMMEDIATE = 0;
+CANARY = 1;
+ROLLING = 2;
+}
+Type type = 1;
+int32 canary_percentage = 2;
+Duration canary_duration = 3;
+int32 batch_size = 4;
 }
 
 message PolicyStatus {
-  string service = 1;
-  string current_version = 2;
-  string previous_version = 3;
-  DeploymentState state = 4;
-  repeated InstancePolicyStatus instances = 5;
+string service = 1;
+string current_version = 2;
+string previous_version = 3;
+DeploymentState state = 4;
+repeated InstancePolicyStatus instances = 5;
 }
 
 enum DeploymentState {
-  UNKNOWN = 0;
-  DEPLOYED = 1;
-  DEPLOYING = 2;
-  ROLLING_BACK = 3;
-  FAILED = 4;
+UNKNOWN = 0;
+DEPLOYED = 1;
+DEPLOYING = 2;
+ROLLING_BACK = 3;
+FAILED = 4;
 }
-```
+
+````
 
 ### 10.2 State Management
 
@@ -1793,7 +1794,7 @@ impl DeploymentState {
         Ok(deployments.into_iter().map(Deployment::from).collect())
     }
 }
-```
+````
 
 ---
 

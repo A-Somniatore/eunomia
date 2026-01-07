@@ -234,9 +234,7 @@ fn bench_bundle_creation(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new("policies", policy_count),
             policy_count,
-            |b, &count| {
-                b.iter(|| black_box(create_bundle_with_policies(count)))
-            },
+            |b, &count| b.iter(|| black_box(create_bundle_with_policies(count))),
         );
     }
 
@@ -265,9 +263,7 @@ fn bench_bundle_signing(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new("policies", policy_count),
             &bundle,
-            |b, bundle| {
-                b.iter(|| black_box(signer.sign(bundle)))
-            },
+            |b, bundle| b.iter(|| black_box(signer.sign(bundle))),
         );
     }
 
@@ -319,9 +315,7 @@ fn bench_checksum_computation(c: &mut Criterion) {
         group.bench_with_input(
             BenchmarkId::new("policies", policy_count),
             &bundle,
-            |b, bundle| {
-                b.iter(|| black_box(bundle.compute_checksum()))
-            },
+            |b, bundle| b.iter(|| black_box(bundle.compute_checksum())),
         );
     }
 

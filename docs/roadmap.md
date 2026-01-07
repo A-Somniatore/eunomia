@@ -15,31 +15,31 @@
 
 ## 🚨 Multi-Language Requirement Awareness (2026-01-08)
 
-> **Source**: [Staff Engineer Multi-Language Review](../../docs/reviews/2026-01-08-multi-language-requirement-review.md)
-> **Impact on Eunomia**: Minimal - OPA policies are language-agnostic
+> **Source**: [Staff Engineer Multi-Language Review](../../docs/reviews/2026-01-08-multi-language-requirement-review.md) > **Impact on Eunomia**: Minimal - OPA policies are language-agnostic
 > **Related**: [ADR-009](../../docs/decisions/009-archimedes-sidecar-multi-language.md)
 
 ### What This Means for Eunomia
 
 The Archimedes sidecar pattern (A10-A12) enables non-Rust services to use the platform. Eunomia's role remains unchanged:
 
-| Eunomia Responsibility | Multi-Language Impact |
-|-----------------------|----------------------|
-| Policy authoring (Rego) | ✅ No change - Rego is language-agnostic |
-| Bundle compilation | ✅ No change - OPA bundles work everywhere |
-| Push to Archimedes | ✅ No change - Sidecar uses same gRPC endpoint |
-| `PolicyInput` schema | ✅ Already defined in `themis-platform-types` |
+| Eunomia Responsibility  | Multi-Language Impact                          |
+| ----------------------- | ---------------------------------------------- |
+| Policy authoring (Rego) | ✅ No change - Rego is language-agnostic       |
+| Bundle compilation      | ✅ No change - OPA bundles work everywhere     |
+| Push to Archimedes      | ✅ No change - Sidecar uses same gRPC endpoint |
+| `PolicyInput` schema    | ✅ Already defined in `themis-platform-types`  |
 
 ### Coordination Points
 
-| Week | Archimedes Phase | Eunomia Action |
-|------|-----------------|----------------|
-| 37-39 | A10: Sidecar | Verify policy push works to sidecar |
+| Week  | Archimedes Phase | Eunomia Action                          |
+| ----- | ---------------- | --------------------------------------- |
+| 37-39 | A10: Sidecar     | Verify policy push works to sidecar     |
 | 43-46 | A12: Integration | Participate in multi-language E2E tests |
 
 ### No Eunomia Changes Required
 
 The existing Eunomia implementation fully supports the multi-language sidecar pattern because:
+
 1. OPA/Rego policies evaluate `PolicyInput` JSON - language of caller doesn't matter
 2. Bundle format is standard OPA - sidecar loads same bundles as native Archimedes
 3. Push mechanism targets Archimedes endpoint - sidecar exposes same interface
@@ -137,39 +137,39 @@ match caller {
 
 ### ✅ Fully Implemented (Matches Spec)
 
-| Spec Requirement | Evidence |
-|------------------|----------|
-| Git-backed policy management | Policy directory structure, CI pipeline |
-| OPA/Rego as policy language | `regorus` integration in eunomia-compiler |
+| Spec Requirement              | Evidence                                              |
+| ----------------------------- | ----------------------------------------------------- |
+| Git-backed policy management  | Policy directory structure, CI pipeline               |
+| OPA/Rego as policy language   | `regorus` integration in eunomia-compiler             |
 | Per-operationId authorization | `PolicyInput.operation_id` from themis-platform-types |
-| Policy validation & testing | `eunomia test` CLI, 420+ tests |
-| Bundle compilation | OPA-compatible tar.gz with `.manifest` |
-| Bundle signing (Ed25519) | `eunomia sign` CLI, signature verification |
-| Hybrid push/pull distribution | `eunomia push` + registry pull fallback |
-| Semantic versioning | `VersionResolver` in registry client |
-| Local caching | `BundleCache` with LRU eviction |
-| Atomic policy updates | Rollback controller, version history |
-| SPIFFE identity integration | `CallerIdentity::Spiffe` variant |
-| mTLS support | `TlsConfig` with client cert/key |
+| Policy validation & testing   | `eunomia test` CLI, 420+ tests                        |
+| Bundle compilation            | OPA-compatible tar.gz with `.manifest`                |
+| Bundle signing (Ed25519)      | `eunomia sign` CLI, signature verification            |
+| Hybrid push/pull distribution | `eunomia push` + registry pull fallback               |
+| Semantic versioning           | `VersionResolver` in registry client                  |
+| Local caching                 | `BundleCache` with LRU eviction                       |
+| Atomic policy updates         | Rollback controller, version history                  |
+| SPIFFE identity integration   | `CallerIdentity::Spiffe` variant                      |
+| mTLS support                  | `TlsConfig` with client cert/key                      |
 
 ### ⚠️ Partially Implemented (Gaps)
 
-| Spec Requirement | Gap | Impact |
-|------------------|-----|--------|
-| **Audit logging** (Spec §10.1) | `eunomia-audit` crate exists but NOT wired to CLI/distributor operations | **Medium** - Policy changes not logged in production |
-| **Kubernetes discovery** (Spec §7.2) | Stub only, not implemented | **Medium** - Manual endpoint config required |
-| **Integration tests** (Spec §12.2) | Uses mocks only, no real Archimedes | **Medium** - Untested in real environment |
+| Spec Requirement                     | Gap                                                                      | Impact                                               |
+| ------------------------------------ | ------------------------------------------------------------------------ | ---------------------------------------------------- |
+| **Audit logging** (Spec §10.1)       | `eunomia-audit` crate exists but NOT wired to CLI/distributor operations | **Medium** - Policy changes not logged in production |
+| **Kubernetes discovery** (Spec §7.2) | Stub only, not implemented                                               | **Medium** - Manual endpoint config required         |
+| **Integration tests** (Spec §12.2)   | Uses mocks only, no real Archimedes                                      | **Medium** - Untested in real environment            |
 
 ### ❌ Not Implemented (Missing from Spec)
 
-| Spec Requirement | Priority | Effort |
-|------------------|----------|--------|
-| **OpenTelemetry metrics** (Spec §10.2) | Critical for v1.0 | 8 hrs |
-| **Rate limiting on gRPC** (Spec §11) | Critical for v1.0 | 4 hrs |
-| **Performance benchmarks** (Spec §12.3) | High | 4 hrs |
-| **Security audit of bundle signing** | Critical for v1.0 | 4 hrs |
-| **Production deployment guide** | High | 4 hrs |
-| **Cross-platform testing** | Medium | 4 hrs |
+| Spec Requirement                        | Priority          | Effort |
+| --------------------------------------- | ----------------- | ------ |
+| **OpenTelemetry metrics** (Spec §10.2)  | Critical for v1.0 | 8 hrs  |
+| **Rate limiting on gRPC** (Spec §11)    | Critical for v1.0 | 4 hrs  |
+| **Performance benchmarks** (Spec §12.3) | High              | 4 hrs  |
+| **Security audit of bundle signing**    | Critical for v1.0 | 4 hrs  |
+| **Production deployment guide**         | High              | 4 hrs  |
+| **Cross-platform testing**              | Medium            | 4 hrs  |
 
 ---
 
@@ -180,28 +180,28 @@ match caller {
 
 ### ✅ Verified Working
 
-| Item | Description |
-|------|-------------|
+| Item                           | Description                                                                                                                  |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
 | **Platform types integration** | `eunomia-core` correctly exports `CallerIdentity`, `PolicyInput`, `PolicyDecision`, `RequestId` from `themis-platform-types` |
-| **Bundle format** | `eunomia-core::Bundle` writes `.manifest` JSON + policies as tar.gz via `write_to_file()` |
-| **All tests passing** | 331 tests pass across workspace |
-| **Edition/MSRV** | Edition 2021, inherits workspace config ✅ |
-| **Git dependency** | Using GitHub reference for `themis-platform-types` ✅ |
+| **Bundle format**              | `eunomia-core::Bundle` writes `.manifest` JSON + policies as tar.gz via `write_to_file()`                                    |
+| **All tests passing**          | 331 tests pass across workspace                                                                                              |
+| **Edition/MSRV**               | Edition 2021, inherits workspace config ✅                                                                                   |
+| **Git dependency**             | Using GitHub reference for `themis-platform-types` ✅                                                                        |
 
 ### P1 - Eunomia-Specific Items
 
-| Item | Description | Status |
-|------|-------------|--------|
+| Item                                   | Description                                                                                                 | Status     |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------- |
 | **OPA Bundle Format Integration Test** | Create integration test: compile bundle with `eunomia-compiler`, load with `archimedes-authz::BundleLoader` | ⏳ Backlog |
-| **Registry Topology** | Document whether Eunomia registry is same as Themis registry or separate | ⏳ Backlog |
-| **Compiler warnings** | 14 warnings in `eunomia-distributor` (unused results) - cosmetic but should fix | ⏳ Low |
+| **Registry Topology**                  | Document whether Eunomia registry is same as Themis registry or separate                                    | ⏳ Backlog |
+| **Compiler warnings**                  | 14 warnings in `eunomia-distributor` (unused results) - cosmetic but should fix                             | ⏳ Low     |
 
 ### P2 - Cross-Component Items
 
-| Item | Description | Owner |
-|------|-------------|-------|
-| **gRPC vs HTTP Push** | Clarify Eunomia→Archimedes push protocol (ADR-006 says gRPC post-MVP) | Platform |
-| **Health Check Standardization** | Define standard health check pattern for K8s deployment | Platform |
+| Item                             | Description                                                           | Owner    |
+| -------------------------------- | --------------------------------------------------------------------- | -------- |
+| **gRPC vs HTTP Push**            | Clarify Eunomia→Archimedes push protocol (ADR-006 says gRPC post-MVP) | Platform |
+| **Health Check Standardization** | Define standard health check pattern for K8s deployment               | Platform |
 
 ---
 
@@ -251,12 +251,12 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 > **These practices are non-negotiable and must be followed for every change.**
 
-| Practice | Description | Reference |
-|----------|-------------|-----------|
-| **Commit Often** | Make small, focused commits. Push at least at end of each session. | [copilot-instructions.md](../.github/copilot-instructions.md#git-practices) |
-| **Test Everything** | Every change MUST include tests. TDD approach preferred. | [copilot-instructions.md](../.github/copilot-instructions.md#testing-requirements) |
+| Practice                 | Description                                                                      | Reference                                                                                |
+| ------------------------ | -------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| **Commit Often**         | Make small, focused commits. Push at least at end of each session.               | [copilot-instructions.md](../.github/copilot-instructions.md#git-practices)              |
+| **Test Everything**      | Every change MUST include tests. TDD approach preferred.                         | [copilot-instructions.md](../.github/copilot-instructions.md#testing-requirements)       |
 | **Update Documentation** | Document immediately after implementing. Update roadmap, design.md, and rustdoc. | [copilot-instructions.md](../.github/copilot-instructions.md#documentation-requirements) |
-| **Format & Lint** | Run `cargo fmt` and `cargo clippy` before every commit. | [copilot-instructions.md](../.github/copilot-instructions.md#code-formatting) |
+| **Format & Lint**        | Run `cargo fmt` and `cargo clippy` before every commit.                          | [copilot-instructions.md](../.github/copilot-instructions.md#code-formatting)            |
 
 **Pre-Push Checklist:**
 
@@ -1022,12 +1022,12 @@ cargo doc --no-deps         # ✓ Docs build
 
 **Week 18 Implementation Summary:**
 
-| Component | Files | Tests | Lines |
-|-----------|-------|-------|-------|
-| RollbackController | `rollback.rs` | 22 | ~1100 |
-| EventBus | `events.rs` | 12 | ~450 |
-| CLI Integration | `commands/rollback.rs` | 6 | ~480 |
-| Control Plane | `control_plane.rs` | 40 | +100 |
+| Component          | Files                  | Tests | Lines |
+| ------------------ | ---------------------- | ----- | ----- |
+| RollbackController | `rollback.rs`          | 22    | ~1100 |
+| EventBus           | `events.rs`            | 12    | ~450  |
+| CLI Integration    | `commands/rollback.rs` | 6     | ~480  |
+| Control Plane      | `control_plane.rs`     | 40    | +100  |
 
 **Total new tests in Week 18: 9 integration tests + 12 event tests + 2 audit tests = 23 tests**
 
@@ -1042,33 +1042,33 @@ cargo doc --no-deps         # ✓ Docs build
 
 **Week 19 Implementation Summary:**
 
-| Test Category | File | Tests Added | Description |
-|--------------|------|-------------|-------------|
-| E2E Flow | `e2e_flow.rs` | 20 | Bundle creation, signing, verification, deployment, discovery |
-| Load Testing | `load_test.rs` | 14 | Concurrent operations, throughput, simulated push, memory stability |
-| Error Scenarios | `error_scenarios.rs` | 18 | Invalid input, timeouts, crypto errors, recovery |
-| Benchmarks | `distribution_bench.rs` | 7 groups | Creation, signing, verification, checksum, serialization, keys, E2E |
+| Test Category   | File                    | Tests Added | Description                                                         |
+| --------------- | ----------------------- | ----------- | ------------------------------------------------------------------- |
+| E2E Flow        | `e2e_flow.rs`           | 20          | Bundle creation, signing, verification, deployment, discovery       |
+| Load Testing    | `load_test.rs`          | 14          | Concurrent operations, throughput, simulated push, memory stability |
+| Error Scenarios | `error_scenarios.rs`    | 18          | Invalid input, timeouts, crypto errors, recovery                    |
+| Benchmarks      | `distribution_bench.rs` | 7 groups    | Creation, signing, verification, checksum, serialization, keys, E2E |
 
 **Total new tests in Week 19: 20 E2E + 14 load + 18 error = 52 tests**
 
 **Latency SLO Targets (documented in benchmarks):**
 
-| Operation | p50 Target | p95 Target | p99 Target |
-|-----------|------------|------------|------------|
-| Bundle Creation | < 1ms | < 5ms | < 10ms |
-| Bundle Signing | < 1ms | < 2ms | < 5ms |
-| Bundle Verification | < 1ms | < 2ms | < 5ms |
-| Checksum Computation | < 500µs | < 1ms | < 2ms |
-| Serialization | < 1ms | < 2ms | < 5ms |
+| Operation            | p50 Target | p95 Target | p99 Target |
+| -------------------- | ---------- | ---------- | ---------- |
+| Bundle Creation      | < 1ms      | < 5ms      | < 10ms     |
+| Bundle Signing       | < 1ms      | < 2ms      | < 5ms      |
+| Bundle Verification  | < 1ms      | < 2ms      | < 5ms      |
+| Checksum Computation | < 500µs    | < 1ms      | < 2ms      |
+| Serialization        | < 1ms      | < 2ms      | < 5ms      |
 
 **Throughput Targets (validated in load tests):**
 
-| Operation | Minimum Target |
-|-----------|---------------|
-| Signing | > 500 ops/sec |
-| Verification | > 1000 ops/sec |
-| Checksum | > 5000 ops/sec |
-| Sustained Workflow | > 100 ops/sec |
+| Operation          | Minimum Target |
+| ------------------ | -------------- |
+| Signing            | > 500 ops/sec  |
+| Verification       | > 1000 ops/sec |
+| Checksum           | > 5000 ops/sec |
+| Sustained Workflow | > 100 ops/sec  |
 
 ### Week 20: Documentation & Polish
 
@@ -1138,6 +1138,7 @@ cargo doc --no-deps         # ✓ Docs build
 **Criteria**: Full Archimedes integration complete, production-ready
 
 > **v1.0.0 Release Criteria** (after Week 21):
+>
 > - All E4 tasks complete (Weeks 17-21)
 > - All Pre-v1.0.0 Requirements addressed (Security, Observability, Operational)
 > - Architecture Review findings resolved
@@ -1161,19 +1162,19 @@ These items MUST be completed before tagging v1.0.0:
 
 ### Observability Requirements
 
-| Task                               | Effort | Priority | Status       |
-| ---------------------------------- | ------ | -------- | ------------ |
-| Add OpenTelemetry metrics          | 8 hrs  | High     | ⏳ Week 21   |
-| Establish performance benchmarks   | 4 hrs  | Medium   | ✅ Week 19   |
-| Define latency SLOs for operations | 2 hrs  | Medium   | ✅ Week 19   |
+| Task                               | Effort | Priority | Status     |
+| ---------------------------------- | ------ | -------- | ---------- |
+| Add OpenTelemetry metrics          | 8 hrs  | High     | ⏳ Week 21 |
+| Establish performance benchmarks   | 4 hrs  | Medium   | ✅ Week 19 |
+| Define latency SLOs for operations | 2 hrs  | Medium   | ✅ Week 19 |
 
 ### Operational Requirements
 
-| Task                                           | Effort | Priority | Status      |
-| ---------------------------------------------- | ------ | -------- | ----------- |
-| Kubernetes service discovery                   | 8 hrs  | Medium   | ⏳ Week 21  |
-| Graceful shutdown for gRPC server              | 2 hrs  | Medium   | ✅ Week 17  |
-| Cross-platform testing (Linux, macOS, Windows) | 4 hrs  | Medium   | ⏳ Week 21  |
+| Task                                           | Effort | Priority | Status     |
+| ---------------------------------------------- | ------ | -------- | ---------- |
+| Kubernetes service discovery                   | 8 hrs  | Medium   | ⏳ Week 21 |
+| Graceful shutdown for gRPC server              | 2 hrs  | Medium   | ✅ Week 17 |
+| Cross-platform testing (Linux, macOS, Windows) | 4 hrs  | Medium   | ⏳ Week 21 |
 
 ### Documentation Requirements
 

@@ -176,7 +176,11 @@ async fn test_error_deploy_no_instances() {
 
     let status = response.unwrap_err();
     // Error message should indicate the issue
-    println!("Error code: {:?}, message: {}", status.code(), status.message());
+    println!(
+        "Error code: {:?}, message: {}",
+        status.code(),
+        status.message()
+    );
 }
 
 #[tokio::test]
@@ -359,7 +363,10 @@ async fn test_error_deserialize_truncated_bundle() {
     // Truncate to half
     let truncated = &bytes[0..bytes.len() / 2];
     let result = Bundle::from_bytes(truncated);
-    assert!(result.is_err(), "Truncated bundle should fail deserialization");
+    assert!(
+        result.is_err(),
+        "Truncated bundle should fail deserialization"
+    );
 }
 
 // =============================================================================
@@ -384,7 +391,10 @@ async fn test_error_recovery_after_failure() {
     // Now do valid operations - system should recover
     let signed = signer.sign(&bundle);
     let success_result = verifier.verify(&signed);
-    assert!(success_result.is_ok(), "System should recover after failure");
+    assert!(
+        success_result.is_ok(),
+        "System should recover after failure"
+    );
 }
 
 #[tokio::test]

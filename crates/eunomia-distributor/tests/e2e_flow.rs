@@ -94,7 +94,10 @@ async fn test_e2e_bundle_creation() {
     // Verify bundle contents
     assert_eq!(bundle.version, "1.0.0");
     assert_eq!(bundle.name, "test-service");
-    assert!(!bundle.policies.is_empty(), "Bundle should contain policies");
+    assert!(
+        !bundle.policies.is_empty(),
+        "Bundle should contain policies"
+    );
     assert!(
         bundle.policies.contains_key("test_service.authz"),
         "Bundle should contain test_service.authz policy"
@@ -123,7 +126,10 @@ async fn test_e2e_bundle_signing_and_verification() {
     let mut verifier = BundleVerifier::new();
     verifier.add_public_key(key_id, key_pair.verifying_key());
     let verify_result = verifier.verify(&signed_bundle);
-    assert!(verify_result.is_ok(), "Bundle should verify with correct key");
+    assert!(
+        verify_result.is_ok(),
+        "Bundle should verify with correct key"
+    );
 
     // Step 5: Verify fails with wrong key
     let wrong_key_pair = SigningKeyPair::generate();
@@ -335,10 +341,7 @@ async fn test_e2e_unsigned_bundle_verification_fails() {
     verifier.add_public_key("test-key", key_pair.verifying_key());
 
     let result = verifier.verify(&unsigned);
-    assert!(
-        result.is_err(),
-        "Unsigned bundle should fail verification"
-    );
+    assert!(result.is_err(), "Unsigned bundle should fail verification");
 }
 
 #[tokio::test]

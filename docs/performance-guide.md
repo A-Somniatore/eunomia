@@ -27,24 +27,24 @@ This guide provides recommendations for optimizing Eunomia's performance in prod
 
 Based on our benchmarks, these are the target latencies for critical operations:
 
-| Operation | p50 Target | p95 Target | p99 Target |
-|-----------|------------|------------|------------|
-| Bundle Creation | < 1ms | < 5ms | < 10ms |
-| Bundle Signing | < 1ms | < 2ms | < 5ms |
-| Bundle Verification | < 1ms | < 2ms | < 5ms |
-| Checksum Computation | < 500µs | < 1ms | < 2ms |
-| Serialization | < 1ms | < 2ms | < 5ms |
-| Single Instance Push | < 100ms | < 500ms | < 1s |
-| 10-Instance Push | < 500ms | < 2s | < 5s |
+| Operation            | p50 Target | p95 Target | p99 Target |
+| -------------------- | ---------- | ---------- | ---------- |
+| Bundle Creation      | < 1ms      | < 5ms      | < 10ms     |
+| Bundle Signing       | < 1ms      | < 2ms      | < 5ms      |
+| Bundle Verification  | < 1ms      | < 2ms      | < 5ms      |
+| Checksum Computation | < 500µs    | < 1ms      | < 2ms      |
+| Serialization        | < 1ms      | < 2ms      | < 5ms      |
+| Single Instance Push | < 100ms    | < 500ms    | < 1s       |
+| 10-Instance Push     | < 500ms    | < 2s       | < 5s       |
 
 ### Throughput Targets
 
-| Operation | Minimum Target |
-|-----------|---------------|
-| Bundle Signing | > 500 ops/sec |
-| Bundle Verification | > 1000 ops/sec |
-| Checksum Computation | > 5000 ops/sec |
-| Sustained Push Workflow | > 100 ops/sec |
+| Operation               | Minimum Target |
+| ----------------------- | -------------- |
+| Bundle Signing          | > 500 ops/sec  |
+| Bundle Verification     | > 1000 ops/sec |
+| Checksum Computation    | > 5000 ops/sec |
+| Sustained Push Workflow | > 100 ops/sec  |
 
 ---
 
@@ -65,16 +65,19 @@ ls -lh bundle.tar.gz
 **Strategies:**
 
 1. **Remove test files from bundles**
+
    ```bash
    eunomia build --policy-dir policies/ --exclude "*_test.rego"
    ```
 
 2. **Exclude development data**
+
    ```bash
    eunomia build --exclude "data/dev-*.json" --exclude "fixtures/"
    ```
 
 3. **Minimize data files**
+
    - Only include data that policies actually reference
    - Use external data loading for large datasets
    - Consider data compression for large JSON files
@@ -110,6 +113,7 @@ eunomia build --policy-dir policies/ --checksum sha256
 ### Avoid Expensive Patterns
 
 **❌ Expensive: Unbounded Recursion**
+
 ```rego
 # This can be very slow for large datasets
 all_ancestors[ancestor] {
@@ -120,6 +124,7 @@ all_ancestors[ancestor] {
 ```
 
 **✅ Better: Bounded Iteration**
+
 ```rego
 # Limit depth explicitly
 ancestors[ancestor] {
@@ -132,6 +137,7 @@ ancestors[ancestor] {
 ```
 
 **❌ Expensive: Large Comprehensions**
+
 ```rego
 # Creates full array in memory
 all_users := [u | u := data.users[_]]
@@ -139,6 +145,7 @@ count(all_users) > 1000
 ```
 
 **✅ Better: Early Termination**
+
 ```rego
 # Stops at first match
 some user in data.users
@@ -210,7 +217,7 @@ Configure for your bundle sizes:
 GrpcServerConfig {
     // Default: 4MB, increase for large bundles
     max_message_size: 16 * 1024 * 1024,  // 16MB
-    
+
     // Receive limit (for health check responses)
     max_receive_message_size: 1 * 1024 * 1024,  // 1MB
 }
@@ -222,10 +229,10 @@ GrpcServerConfig {
 GrpcServerConfig {
     // Send keepalive pings every 30s
     keepalive_interval: Duration::from_secs(30),
-    
+
     // Wait 10s for keepalive response
     keepalive_timeout: Duration::from_secs(10),
-    
+
     // Allow keepalive with no active streams
     permit_keepalive_without_calls: true,
 }
@@ -237,10 +244,10 @@ GrpcServerConfig {
 GrpcServerConfig {
     // Maximum concurrent streams per connection
     max_concurrent_streams: 100,
-    
+
     // Initial connection window size
     initial_connection_window_size: 1024 * 1024,  // 1MB
-    
+
     // Initial stream window size
     initial_stream_window_size: 512 * 1024,  // 512KB
 }
@@ -268,10 +275,10 @@ The `BundleCache` uses LRU eviction with configurable limits:
 BundleCacheConfig {
     // Maximum cache size (default: 100MB)
     max_size_bytes: 100 * 1024 * 1024,
-    
+
     // Maximum bundle age before eviction (default: 7 days)
     max_age: Duration::from_secs(7 * 24 * 60 * 60),
-    
+
     // Cache directory (default: system cache dir)
     cache_dir: PathBuf::from("/var/cache/eunomia/bundles"),
 }
@@ -279,12 +286,12 @@ BundleCacheConfig {
 
 ### Cache Tuning Recommendations
 
-| Environment | max_size_bytes | max_age | Notes |
-|-------------|---------------|---------|-------|
-| Development | 50MB | 1 day | Frequent updates |
-| Staging | 100MB | 3 days | Match production |
-| Production | 500MB | 7 days | High availability |
-| Edge/Embedded | 20MB | 1 day | Limited storage |
+| Environment   | max_size_bytes | max_age | Notes             |
+| ------------- | -------------- | ------- | ----------------- |
+| Development   | 50MB           | 1 day   | Frequent updates  |
+| Staging       | 100MB          | 3 days  | Match production  |
+| Production    | 500MB          | 7 days  | High availability |
+| Edge/Embedded | 20MB           | 1 day   | Limited storage   |
 
 ### Cache Operations
 
@@ -319,20 +326,20 @@ eunomia push bundle.tar.gz \
 
 **Recommendations:**
 
-| Cluster Size | max_concurrent | Rationale |
-|--------------|---------------|-----------|
-| 1-5 | 3 | Low overhead |
-| 6-20 | 5 | Balanced |
-| 21-50 | 10 | Network bound |
-| 50+ | 20 | Consider batching |
+| Cluster Size | max_concurrent | Rationale         |
+| ------------ | -------------- | ----------------- |
+| 1-5          | 3              | Low overhead      |
+| 6-20         | 5              | Balanced          |
+| 21-50        | 10             | Network bound     |
+| 50+          | 20             | Consider batching |
 
 ### Deployment Strategy Selection
 
-| Strategy | When to Use | Performance Impact |
-|----------|-------------|-------------------|
+| Strategy  | When to Use                  | Performance Impact    |
+| --------- | ---------------------------- | --------------------- |
 | Immediate | Small clusters, non-critical | Fastest, highest risk |
-| Canary | Production, risk-averse | Slowest, safest |
-| Rolling | Medium clusters | Balanced |
+| Canary    | Production, risk-averse      | Slowest, safest       |
+| Rolling   | Medium clusters              | Balanced              |
 
 ```bash
 # Immediate - all at once
@@ -360,20 +367,20 @@ eunomia push bundle.tar.gz \
 
 ### Memory Recommendations
 
-| Component | Minimum | Recommended | High Load |
-|-----------|---------|-------------|-----------|
-| CLI Operations | 64MB | 256MB | 512MB |
-| Distribution (10 instances) | 128MB | 512MB | 1GB |
-| Distribution (100 instances) | 512MB | 2GB | 4GB |
+| Component                    | Minimum | Recommended | High Load |
+| ---------------------------- | ------- | ----------- | --------- |
+| CLI Operations               | 64MB    | 256MB       | 512MB     |
+| Distribution (10 instances)  | 128MB   | 512MB       | 1GB       |
+| Distribution (100 instances) | 512MB   | 2GB         | 4GB       |
 
 ### CPU Recommendations
 
-| Operation | CPU Bound | Recommended Cores |
-|-----------|-----------|-------------------|
-| Policy Validation | Yes | 2-4 |
-| Bundle Signing | Yes | 2 |
-| Distribution | I/O bound | 1-2 |
-| Concurrent Push | Network bound | 2-4 |
+| Operation         | CPU Bound     | Recommended Cores |
+| ----------------- | ------------- | ----------------- |
+| Policy Validation | Yes           | 2-4               |
+| Bundle Signing    | Yes           | 2                 |
+| Distribution      | I/O bound     | 1-2               |
+| Concurrent Push   | Network bound | 2-4               |
 
 ### Kubernetes Resource Limits
 
@@ -386,14 +393,14 @@ spec:
   template:
     spec:
       containers:
-      - name: distributor
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "1Gi"
-            cpu: "1000m"
+        - name: distributor
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
 ```
 
 ---
@@ -407,27 +414,27 @@ spec:
 eunomia serve --metrics-port 9090
 ```
 
-| Metric | Description | Alert Threshold |
-|--------|-------------|-----------------|
-| `eunomia_push_duration_seconds` | Time to push bundle | p99 > 5s |
-| `eunomia_push_failures_total` | Failed push attempts | > 5/min |
-| `eunomia_bundle_size_bytes` | Bundle size | > 10MB |
-| `eunomia_instances_healthy` | Healthy instance count | < expected |
-| `eunomia_cache_hit_ratio` | Cache effectiveness | < 0.8 |
+| Metric                          | Description            | Alert Threshold |
+| ------------------------------- | ---------------------- | --------------- |
+| `eunomia_push_duration_seconds` | Time to push bundle    | p99 > 5s        |
+| `eunomia_push_failures_total`   | Failed push attempts   | > 5/min         |
+| `eunomia_bundle_size_bytes`     | Bundle size            | > 10MB          |
+| `eunomia_instances_healthy`     | Healthy instance count | < expected      |
+| `eunomia_cache_hit_ratio`       | Cache effectiveness    | < 0.8           |
 
 ### Prometheus Queries
 
 ```promql
 # Push latency percentiles
-histogram_quantile(0.99, 
+histogram_quantile(0.99,
   rate(eunomia_push_duration_seconds_bucket[5m]))
 
 # Push success rate
-sum(rate(eunomia_push_success_total[5m])) / 
+sum(rate(eunomia_push_success_total[5m])) /
 sum(rate(eunomia_push_total[5m]))
 
 # Bundle size distribution
-histogram_quantile(0.95, 
+histogram_quantile(0.95,
   sum(rate(eunomia_bundle_size_bytes_bucket[1h])) by (service))
 ```
 
@@ -461,15 +468,15 @@ cargo bench --package eunomia-distributor -- --save-baseline main
 
 ### Benchmark Categories
 
-| Benchmark | What It Measures |
-|-----------|------------------|
-| `bundle_creation` | Time to create bundle struct |
-| `bundle_signing` | Ed25519 signing performance |
-| `bundle_verification` | Signature verification |
-| `checksum_computation` | SHA-256 hashing |
-| `serialization` | Bundle to/from bytes |
-| `key_operations` | Key generation and export |
-| `end_to_end` | Complete workflow |
+| Benchmark              | What It Measures             |
+| ---------------------- | ---------------------------- |
+| `bundle_creation`      | Time to create bundle struct |
+| `bundle_signing`       | Ed25519 signing performance  |
+| `bundle_verification`  | Signature verification       |
+| `checksum_computation` | SHA-256 hashing              |
+| `serialization`        | Bundle to/from bytes         |
+| `key_operations`       | Key generation and export    |
+| `end_to_end`           | Complete workflow            |
 
 ### Interpreting Results
 
@@ -533,14 +540,14 @@ eunomia load-test \
 
 ### Environment Variables
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `EUNOMIA_MAX_CONCURRENT` | Max parallel pushes | 3 |
-| `EUNOMIA_TIMEOUT` | Default operation timeout | 30s |
-| `EUNOMIA_CACHE_SIZE` | Bundle cache max size | 100MB |
-| `EUNOMIA_CACHE_DIR` | Cache directory | System default |
-| `EUNOMIA_COMPRESS` | Enable compression | false |
-| `EUNOMIA_RETRY_COUNT` | Retry attempts | 3 |
+| Variable                 | Description               | Default        |
+| ------------------------ | ------------------------- | -------------- |
+| `EUNOMIA_MAX_CONCURRENT` | Max parallel pushes       | 3              |
+| `EUNOMIA_TIMEOUT`        | Default operation timeout | 30s            |
+| `EUNOMIA_CACHE_SIZE`     | Bundle cache max size     | 100MB          |
+| `EUNOMIA_CACHE_DIR`      | Cache directory           | System default |
+| `EUNOMIA_COMPRESS`       | Enable compression        | false          |
+| `EUNOMIA_RETRY_COUNT`    | Retry attempts            | 3              |
 
 ### CLI Flags
 
