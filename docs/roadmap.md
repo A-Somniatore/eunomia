@@ -797,13 +797,35 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 ### Week 17: Push Integration
 
-- [ ] Test bundle push to Archimedes instances
+> ✅ **Complete (2026-01-07)**: All Week 17 tasks complete with comprehensive testing.
+
+- [x] Test bundle push to Archimedes instances
+  > **Completed (2026-01-07)**: Added 10 integration tests for `PolicyPusher`:
+  > - Push to healthy/unhealthy/unreachable instances
+  > - Parallel push to multiple instances (5 concurrent)
+  > - Retry logic on connection failures
+  > - Compression and custom timeout configuration
+  > - Health check workflow before push
+  > - Initial deployment (no prior version)
+  > - Duration tracking for push metrics
 - [x] Verify mTLS authentication
   > **Completed (2026-01-07)**: Added `TlsConfig` struct with mTLS support.
   > Server uses `Identity` and `Certificate` from tonic for TLS/mTLS configuration.
   > Added `is_tls_enabled()` and `is_mtls_enabled()` methods with 4 unit tests.
-- [ ] Test hot-reload scenarios
-- [ ] Validate signature verification
+- [x] Test hot-reload scenarios
+  > **Completed (2026-01-07)**: Added 6 integration tests for hot-reload:
+  > - Sequential version updates (v1.0.0 → v2.0.0)
+  > - Rapid updates (10 consecutive versions)
+  > - Force flag for emergency rollback
+  > - Checksum validation with SHA256
+  > - Same version idempotent update
+- [x] Validate signature verification
+  > **Completed (2026-01-07)**: 10 existing tests in `eunomia-core` signing module:
+  > - Key generation and serialization
+  > - Sign/verify bundle roundtrip
+  > - Wrong key rejection
+  > - Tampered bundle detection
+  > - Multiple signatures support
 - [x] **Add gRPC integration tests with mock Archimedes** (from arch review)
   > **Completed (2026-01-07)**: Added 17 integration tests covering:
   > - Control Plane Service: deploy, rollback, status, list instances
@@ -812,6 +834,12 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 - [x] **Add graceful shutdown handling to gRPC server** (from arch review)
   > **Already implemented**: `GrpcServerHandle::shutdown()` triggers graceful shutdown via oneshot channel.
   > Server uses `serve_with_shutdown()` with signal handler support.
+
+**Week 17 Test Summary:**
+- gRPC integration tests: 31 tests (including 10 new push tests, 6 hot-reload tests)
+- Signing tests: 10 tests
+- Distributor unit tests: 24 tests (existing)
+- **Total new tests added in Week 17: 22 tests**
 
 ### Week 18: Rollback Controller
 
@@ -874,7 +902,7 @@ These items MUST be completed before tagging v1.0.0:
 | Task | Effort | Priority | Status |
 |------|--------|----------|--------|
 | Kubernetes service discovery | 8 hrs | Medium | ⏳ Pending |
-| Graceful shutdown for gRPC server | 2 hrs | Medium | ⏳ Pending |
+| Graceful shutdown for gRPC server | 2 hrs | Medium | ✅ Complete |
 | Cross-platform testing (Linux, macOS, Windows) | 4 hrs | Medium | ⏳ Pending |
 
 ### Documentation Requirements
