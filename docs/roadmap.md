@@ -1117,23 +1117,54 @@ cargo doc --no-deps         # ✓ Docs build
 
 > **Goal**: Complete all critical and high-priority items required before v1.0.0 release.
 > **Reference**: [ARCHITECTURE.md](ARCHITECTURE.md) - Pre-v1.0.0 Requirements
+>
+> **Development Practices Reminder** (apply to ALL tasks):
+> - Commit after each completed sub-task
+> - Write tests BEFORE implementing features (TDD)
+> - Update documentation immediately after implementation
+> - Run `cargo fmt && cargo clippy -- -D warnings && cargo test` before each commit
 
 - [ ] **Security Requirements**
   - [ ] Security audit for bundle signing (4 hrs) - Critical
+    - [ ] Review Ed25519 key generation
+    - [ ] Verify signature chain integrity
+    - [ ] Document signing security model in design.md
+    - [ ] Add tests for signature verification edge cases
   - [ ] Add rate limiting to gRPC endpoints (4 hrs) - High
+    - [ ] Add tower-governor or similar rate limiting middleware
+    - [ ] Configure limits per endpoint
+    - [ ] Add rate limit exceeded error handling
+    - [ ] Add tests for rate limiting behavior
   - [ ] mTLS verification testing (2 hrs) - High
+    - [ ] Add integration tests with valid/invalid client certs
+    - [ ] Test certificate expiry handling
+    - [ ] Document mTLS setup in deployment guide
 - [ ] **Observability Requirements**
   - [ ] Add OpenTelemetry metrics (8 hrs) - High
+    - [ ] Add opentelemetry-rust dependencies
+    - [ ] Define metric names (eunomia_bundle_compilation_total, etc.)
+    - [ ] Instrument compiler, registry, distributor crates
+    - [ ] Add metrics export (Prometheus, OTLP)
+    - [ ] Add tests for metric emission
   - [ ] Create metrics dashboard templates (Grafana/Prometheus)
-  - [ ] Update benchmarks status in Gap Analysis (✅ Done in Week 19)
-  - [ ] Update latency SLOs status in Gap Analysis (✅ Done in Week 19)
+    - [ ] Add grafana/ directory with JSON dashboards
+    - [ ] Document metric queries in performance-guide.md
+  - [x] Update benchmarks status in Gap Analysis (✅ Done in Week 19)
+  - [x] Update latency SLOs status in Gap Analysis (✅ Done in Week 19)
 - [ ] **Operational Requirements**
   - [ ] Implement Kubernetes service discovery (8 hrs) - Medium
+    - [ ] Add k8s-openapi dependency
+    - [ ] Implement K8s endpoint watcher
+    - [ ] Add service annotation parsing
+    - [ ] Add tests with mock K8s API
   - [ ] Cross-platform testing (Linux, macOS, Windows) (4 hrs) - Medium
-- [ ] **themis-platform-types v0.2.0 Migration** (if not already done)
+    - [ ] Set up GitHub Actions matrix builds
+    - [ ] Fix any platform-specific issues
+- [ ] **themis-platform-types v0.2.0 Migration** (if available)
   - [ ] See migration checklist in roadmap preamble
   - [ ] Update all `build()` calls to `try_build()`
   - [ ] Update error handling to use `BuilderError`
+  - [ ] Add wildcard arms to match statements
 - [ ] **Final pre-release checklist**
   - [ ] All tests passing on CI
   - [ ] No clippy warnings
@@ -1189,9 +1220,10 @@ These items MUST be completed before tagging v1.0.0:
 
 | Task                        | Effort | Priority | Status     |
 | --------------------------- | ------ | -------- | ---------- |
-| Production deployment guide | 4 hrs  | High     | ⏳ Week 20 |
-| Troubleshooting runbook     | 3 hrs  | High     | ⏳ Week 20 |
-| Performance tuning guide    | 2 hrs  | Medium   | ⏳ Week 20 |
+| Production deployment guide | 4 hrs  | High     | ✅ Week 20 |
+| Troubleshooting runbook     | 3 hrs  | High     | ✅ Week 20 |
+| Performance tuning guide    | 2 hrs  | Medium   | ✅ Week 20 |
+| Example policy repository   | 2 hrs  | Medium   | ✅ Week 20 |
 
 ---
 
