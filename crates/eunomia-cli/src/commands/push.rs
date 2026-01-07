@@ -3,10 +3,12 @@
 //! This command uses the distributor to push policy bundles to target instances
 //! using various deployment strategies.
 
+use std::sync::Arc;
 use std::time::Duration;
 
 use anyhow::{Context, Result};
 use clap::Args;
+use eunomia_audit::{AuditLogger, DistributionEvent, TracingBackend};
 use eunomia_distributor::{
     config::{DiscoveryConfig, DistributorConfig},
     discovery::DiscoverySource,
@@ -103,10 +105,37 @@ pub async fn execute(args: PushArgs) -> Result<()> {
         .await
         .context("Failed to create distributor")?;
 
+    // Initialize audit logger
+    let audit_logger = AuditLogger::builder()
+        .with_backend(Arc::new(TracingBackend::new()))
+        .build();
+
+    // Emit deployment started event
+    let started_event = DistributionEvent::deployment_started(
+        &args.service,
+        &args.version,
+        args.endpoints.len(),
+        &args.strategy,
+    );
+    if let Err(e) = audit_logger.log(&started_event) {
+        tracing::warn!("Failed to emit deployment started audit event: {e}");
+    }
+
     let result = distributor
         .deploy(&args.service, &args.version, strategy)
         .await
         .context("Deployment failed")?;
+
+    // Emit deployment completed event
+    let completed_event = DistributionEvent::deployment_completed(
+        &args.service,
+        &args.version,
+        result.successful,
+        result.failed,
+    );
+    if let Err(e) = audit_logger.log(&completed_event) {
+        tracing::warn!("Failed to emit deployment completed audit event: {e}");
+    }
 
     // Output results
     if args.output == "json" {

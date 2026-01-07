@@ -22,10 +22,12 @@
 //! eunomia rollback users-service --dry-run
 //! ```
 
+use std::sync::Arc;
 use std::time::Instant;
 
 use anyhow::{anyhow, Context, Result};
 use clap::Args;
+use eunomia_audit::{AuditLogger, DistributionEvent, TracingBackend};
 use eunomia_distributor::{
     config::{DiscoveryConfig, DistributorConfig},
     discovery::DiscoverySource,
@@ -289,6 +291,7 @@ fn run_rollback(args: &RollbackArgs, strategy: RollbackStrategy) {
 }
 
 /// Execute the rollback operation asynchronously.
+#[allow(clippy::too_many_lines)]
 async fn execute_rollback(args: &RollbackArgs, strategy: RollbackStrategy) -> Result<()> {
     let start = Instant::now();
 
@@ -324,6 +327,22 @@ async fn execute_rollback(args: &RollbackArgs, strategy: RollbackStrategy) -> Re
         .as_deref()
         .ok_or_else(|| anyhow!("Target version required. Use --version to specify."))?;
 
+    // Initialize audit logger
+    let audit_logger = AuditLogger::builder()
+        .with_backend(Arc::new(TracingBackend::new()))
+        .build();
+
+    // Emit rollback started event
+    let from_version = "unknown"; // Would come from state tracking in production
+    let started_event = DistributionEvent::rollback_started(
+        &args.service,
+        from_version,
+        target_version,
+    );
+    if let Err(e) = audit_logger.log(&started_event) {
+        tracing::warn!("Failed to emit rollback started audit event: {e}");
+    }
+
     println!("Starting rollback...");
     println!("  Service:        {}", args.service);
     println!("  Target Version: {target_version}");
@@ -341,6 +360,16 @@ async fn execute_rollback(args: &RollbackArgs, strategy: RollbackStrategy) -> Re
         .context("Rollback operation failed")?;
 
     let duration = start.elapsed();
+
+    // Emit rollback completed event
+    let completed_event = DistributionEvent::rollback_completed(
+        &args.service,
+        target_version,
+        result.failed == 0,
+    );
+    if let Err(e) = audit_logger.log(&completed_event) {
+        tracing::warn!("Failed to emit rollback completed audit event: {e}");
+    }
 
     // Collect error messages from failed instances
     let errors: Vec<String> = result

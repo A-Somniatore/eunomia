@@ -3,11 +3,13 @@
 //! Publishes policy bundles to an OCI-compatible registry.
 
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use anyhow::{Context, Result};
 use clap::Args;
 use tracing::info;
 
+use eunomia_audit::{AuditLogger, BundleEvent, TracingBackend};
 use eunomia_core::Bundle;
 use eunomia_registry::{RegistryAuth, RegistryClient, RegistryConfig};
 
@@ -157,6 +159,24 @@ async fn run_async(args: &PublishArgs) -> Result<()> {
         "  eunomia fetch --registry {} --service {service} --version {version}",
         args.registry
     );
+
+    // Emit audit event for bundle publication
+    let audit_logger = AuditLogger::builder()
+        .with_backend(Arc::new(TracingBackend::new()))
+        .build();
+
+    let bundle_size = std::fs::metadata(&args.bundle)
+        .map(|m| m.len())
+        .unwrap_or(0);
+
+    let audit_event = BundleEvent::published(&service, &version, &args.registry)
+        .with_checksum(&digest)
+        .with_size(bundle_size)
+        .with_correlation_id(&format!("publish-{service}-{version}"));
+
+    if let Err(e) = audit_logger.log(&audit_event) {
+        tracing::warn!("Failed to emit audit event for bundle publish: {e}");
+    }
 
     Ok(())
 }

@@ -720,6 +720,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "clap",
+ "eunomia-audit",
  "eunomia-compiler",
  "eunomia-core",
  "eunomia-distributor",
