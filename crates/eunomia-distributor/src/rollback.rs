@@ -118,6 +118,13 @@ impl RollbackConfigBuilder {
         self
     }
 
+    /// Sets the maximum history entries to keep per service.
+    #[must_use]
+    pub const fn max_history_entries(mut self, max: usize) -> Self {
+        self.max_history_entries = Some(max);
+        self
+    }
+
     /// Builds the configuration.
     #[must_use]
     pub fn build(self) -> RollbackConfig {
@@ -171,6 +178,19 @@ impl RollbackTrigger {
             is_automatic: false,
             target_instances: None,
             force: false,
+        }
+    }
+
+    /// Creates a forced manual rollback trigger that bypasses validation.
+    #[must_use]
+    pub fn forced(service: &str, target_version: &str, reason: &str) -> Self {
+        Self {
+            service: service.to_string(),
+            target_version: target_version.to_string(),
+            reason: reason.to_string(),
+            is_automatic: false,
+            target_instances: None,
+            force: true,
         }
     }
 

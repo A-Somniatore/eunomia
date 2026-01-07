@@ -97,17 +97,28 @@ match caller {
 
 ---
 
-## 🔧 Architecture Review Tech Debt (2026-01-07)
+## 🔧 Staff Engineer Code Review (2026-01-07)
 
-> **Source**: Senior Architect Review
-> **Status**: Tracked for future work
+> **Source**: Staff Engineer Cross-Component Review
+> **Status**: Tracked for team action
+
+### ✅ Verified Working
+
+| Item | Description |
+|------|-------------|
+| **Platform types integration** | `eunomia-core` correctly exports `CallerIdentity`, `PolicyInput`, `PolicyDecision`, `RequestId` from `themis-platform-types` |
+| **Bundle format** | `eunomia-core::Bundle` writes `.manifest` JSON + policies as tar.gz via `write_to_file()` |
+| **All tests passing** | 331 tests pass across workspace |
+| **Edition/MSRV** | Edition 2021, inherits workspace config ✅ |
+| **Git dependency** | Using GitHub reference for `themis-platform-types` ✅ |
 
 ### P1 - Eunomia-Specific Items
 
 | Item | Description | Status |
 |------|-------------|--------|
-| **OPA Bundle Format** | Ensure `eunomia-compiler` output is compatible with `archimedes-authz` loader | ⏳ Backlog |
+| **OPA Bundle Format Integration Test** | Create integration test: compile bundle with `eunomia-compiler`, load with `archimedes-authz::BundleLoader` | ⏳ Backlog |
 | **Registry Topology** | Document whether Eunomia registry is same as Themis registry or separate | ⏳ Backlog |
+| **Compiler warnings** | 14 warnings in `eunomia-distributor` (unused results) - cosmetic but should fix | ⏳ Low |
 
 ### P2 - Cross-Component Items
 

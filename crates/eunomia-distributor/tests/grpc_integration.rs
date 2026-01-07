@@ -789,3 +789,304 @@ async fn test_bundle_push_to_unhealthy_instance() {
     let push_result = result.unwrap();
     assert!(push_result.success);
 }
+
+// =============================================================================
+// Rollback Controller Integration Tests
+// =============================================================================
+
+/// Test RollbackController deployment recording and version history.
+#[tokio::test]
+async fn test_rollback_controller_version_history() {
+    use eunomia_distributor::rollback::{RollbackController, RollbackConfig};
+
+    let config = RollbackConfig::default();
+    let controller = RollbackController::new(config);
+
+    // Record multiple deployments
+    controller.record_deployment("orders-service", "1.0.0", "deploy-1");
+    controller.record_deployment("orders-service", "1.1.0", "deploy-2");
+    controller.record_deployment("orders-service", "1.2.0", "deploy-3");
+
+    // Verify version history
+    let history = controller.get_version_history("orders-service");
+    assert_eq!(history.len(), 3);
+    assert_eq!(history[0].version, "1.0.0");
+    assert_eq!(history[1].version, "1.1.0");
+    assert_eq!(history[2].version, "1.2.0");
+
+    // Verify current version
+    let current = controller.get_current_version("orders-service");
+    assert_eq!(current, Some("1.2.0".to_string()));
+
+    // Verify previous version for rollback
+    let previous = controller.get_previous_version("orders-service");
+    assert_eq!(previous, Some("1.1.0".to_string()));
+}
+
+/// Test RollbackController auto-rollback trigger.
+#[tokio::test]
+async fn test_rollback_controller_auto_rollback_trigger() {
+    use eunomia_distributor::rollback::{RollbackController, RollbackConfig};
+
+    let config = RollbackConfig::builder()
+        .auto_rollback(true)
+        .failure_threshold(3)
+        .failure_window(Duration::from_secs(60))
+        .build();
+
+    let controller = RollbackController::new(config);
+
+    // Record deployments
+    controller.record_deployment("api-service", "1.0.0", "deploy-1");
+    controller.record_deployment("api-service", "2.0.0", "deploy-2");
+
+    // Record health failures
+    controller.record_health_failure("api-service");
+    controller.record_health_failure("api-service");
+
+    // Not yet at threshold
+    assert!(controller.should_auto_rollback("api-service").is_none());
+
+    // Record third failure - should trigger
+    controller.record_health_failure("api-service");
+
+    // Now should recommend rollback
+    let target = controller.should_auto_rollback("api-service");
+    assert!(target.is_some());
+    assert_eq!(target.unwrap(), "1.0.0");
+}
+
+/// Test RollbackController validation.
+#[tokio::test]
+async fn test_rollback_controller_validation() {
+    use eunomia_distributor::rollback::{RollbackController, RollbackConfig, RollbackTrigger};
+
+    let config = RollbackConfig::default();
+    let controller = RollbackController::new(config);
+
+    // Record deployment history
+    controller.record_deployment("payments-service", "1.0.0", "d-1");
+    controller.record_deployment("payments-service", "2.0.0", "d-2");
+
+    // Valid rollback
+    let trigger = RollbackTrigger::manual("payments-service", "1.0.0", "Bug found");
+    let result = controller.validate_rollback(&trigger);
+    assert!(result.is_ok());
+
+    // Invalid rollback - version not in history
+    let trigger = RollbackTrigger::manual("payments-service", "0.5.0", "Bad version");
+    let result = controller.validate_rollback(&trigger);
+    assert!(result.is_err());
+
+    // Invalid rollback - service doesn't exist
+    let trigger = RollbackTrigger::manual("unknown-service", "1.0.0", "Unknown");
+    let result = controller.validate_rollback(&trigger);
+    assert!(result.is_err());
+}
+
+/// Test RollbackController with force flag bypasses validation.
+#[tokio::test]
+async fn test_rollback_controller_force_rollback() {
+    use eunomia_distributor::rollback::{RollbackController, RollbackConfig, RollbackTrigger};
+
+    let config = RollbackConfig::default();
+    let controller = RollbackController::new(config);
+
+    // Record deployment history
+    controller.record_deployment("auth-service", "1.0.0", "d-1");
+
+    // Try to rollback to non-existent version without force
+    let trigger = RollbackTrigger::manual("auth-service", "0.9.0", "Emergency");
+    let result = controller.validate_rollback(&trigger);
+    assert!(result.is_err());
+
+    // With force flag, should pass validation
+    let trigger = RollbackTrigger::forced("auth-service", "0.9.0", "Emergency");
+    let result = controller.validate_rollback(&trigger);
+    assert!(result.is_ok());
+}
+
+/// Test RollbackController cooldown prevents rapid rollbacks.
+#[tokio::test]
+async fn test_rollback_controller_cooldown() {
+    use eunomia_distributor::rollback::{RollbackController, RollbackConfig, RollbackResult};
+
+    let config = RollbackConfig::builder()
+        .auto_rollback(true)
+        .failure_threshold(1)
+        .cooldown_period(Duration::from_secs(300)) // 5 minute cooldown
+        .build();
+
+    let controller = RollbackController::new(config);
+
+    // Record deployments
+    controller.record_deployment("cache-service", "1.0.0", "d-1");
+    controller.record_deployment("cache-service", "2.0.0", "d-2");
+
+    // Record failure
+    controller.record_health_failure("cache-service");
+
+    // First auto-rollback should trigger
+    let target = controller.should_auto_rollback("cache-service");
+    assert!(target.is_some());
+
+    // Simulate rollback completion
+    let result = RollbackResult::success(
+        "rb-1",
+        "cache-service",
+        "2.0.0",
+        "1.0.0",
+        1,
+        Duration::from_secs(1),
+        "Auto-rollback",
+        true,
+    );
+    controller.record_rollback(result);
+
+    // Record another failure immediately
+    controller.record_health_failure("cache-service");
+
+    // Should NOT trigger due to cooldown
+    let target = controller.should_auto_rollback("cache-service");
+    assert!(target.is_none());
+}
+
+/// Test RollbackController with audit logging.
+#[tokio::test]
+async fn test_rollback_controller_audit_integration() {
+    use eunomia_distributor::rollback::{RollbackController, RollbackConfig, RollbackTrigger, RollbackResult};
+    use eunomia_audit::{AuditLogger, InMemoryBackend};
+
+    let config = RollbackConfig::default();
+    let backend = Arc::new(InMemoryBackend::new());
+    let logger = Arc::new(
+        AuditLogger::builder()
+            .with_backend(backend.clone())
+            .build(),
+    );
+
+    let controller = RollbackController::with_audit_logger(config, logger);
+
+    // Record deployments
+    controller.record_deployment("inventory-service", "1.0.0", "d-1");
+    controller.record_deployment("inventory-service", "2.0.0", "d-2");
+
+    // Prepare and execute rollback
+    let trigger = RollbackTrigger::manual("inventory-service", "1.0.0", "Performance issue");
+    let from_version = controller.prepare_rollback(&trigger).unwrap();
+    assert_eq!(from_version, "2.0.0");
+
+    // Record completion
+    let result = RollbackResult::success(
+        "rb-audit-1",
+        "inventory-service",
+        "2.0.0",
+        "1.0.0",
+        5,
+        Duration::from_secs(3),
+        "Performance issue",
+        false,
+    );
+    controller.record_rollback(result);
+
+    // Verify audit events
+    let events = backend.events();
+    assert!(events.len() >= 2); // At least started and completed
+    assert!(events.iter().any(|e| e.contains("rollback_started")));
+    assert!(events.iter().any(|e| e.contains("rollback_completed")));
+}
+
+/// Test EventBus integration with ControlPlaneService.
+#[tokio::test]
+async fn test_event_bus_control_plane_integration() {
+    use eunomia_distributor::events::{EventBus, DeploymentEventData};
+
+    let distributor = create_test_distributor(vec![]).await;
+    let event_bus = Arc::new(EventBus::new(100));
+    let service = ControlPlaneService::with_event_bus(distributor, event_bus.clone());
+
+    // Subscribe before publishing
+    let mut subscriber = event_bus.subscribe();
+
+    // Publish a test event
+    let event = DeploymentEventData::started("deploy-test", "test-svc", "1.0.0");
+    let receivers = event_bus.publish(event.clone());
+    assert_eq!(receivers, 1);
+
+    // Receive and verify
+    let received = subscriber.recv().await.unwrap();
+    assert_eq!(received.deployment_id, "deploy-test");
+    assert_eq!(received.service, "test-svc");
+}
+
+/// Test filtered event subscription.
+#[tokio::test]
+async fn test_event_bus_filtered_subscription() {
+    use eunomia_distributor::events::{EventBus, DeploymentEventData};
+
+    let event_bus = EventBus::new(100);
+
+    // Create filtered subscriber for specific deployment
+    let subscriber = event_bus.subscribe();
+    let mut filtered = subscriber.filter_deployment("target-deploy".to_string());
+
+    // Spawn publisher that sends multiple events
+    let bus_clone = event_bus.clone();
+    tokio::spawn(async move {
+        // Publish events for different deployments
+        bus_clone.publish(DeploymentEventData::started("other-deploy", "svc1", "1.0"));
+        bus_clone.publish(DeploymentEventData::started("target-deploy", "svc2", "2.0"));
+        bus_clone.publish(DeploymentEventData::completed("target-deploy", "svc2", "2.0"));
+        bus_clone.publish(DeploymentEventData::started("another-deploy", "svc3", "3.0"));
+    });
+
+    // Should only receive target-deploy events
+    let e1 = filtered.recv().await.unwrap();
+    assert_eq!(e1.deployment_id, "target-deploy");
+    assert_eq!(e1.service, "svc2");
+
+    let e2 = filtered.recv().await.unwrap();
+    assert_eq!(e2.deployment_id, "target-deploy");
+}
+
+/// Test RollbackResult tracking.
+#[tokio::test]
+async fn test_rollback_result_tracking() {
+    use eunomia_distributor::rollback::{RollbackController, RollbackConfig, RollbackResult};
+
+    let config = RollbackConfig::builder()
+        .max_history_entries(5)
+        .build();
+
+    let controller = RollbackController::new(config);
+
+    // Record deployments
+    controller.record_deployment("tracking-svc", "1.0.0", "d-1");
+    controller.record_deployment("tracking-svc", "2.0.0", "d-2");
+
+    // Record multiple rollbacks
+    for i in 0..3 {
+        let result = RollbackResult::success(
+            &format!("rb-{i}"),
+            "tracking-svc",
+            "2.0.0",
+            "1.0.0",
+            3,
+            Duration::from_secs(2),
+            &format!("Rollback #{i}"),
+            false,
+        );
+        controller.record_rollback(result);
+
+        // Re-deploy between rollbacks
+        controller.record_deployment("tracking-svc", "2.0.0", &format!("d-{}", i + 3));
+    }
+
+    // Verify rollback history
+    let history = controller.get_rollback_history();
+    assert_eq!(history.len(), 3);
+
+    // Verify service-specific history
+    let svc_history = controller.get_rollback_history_for_service("tracking-svc");
+    assert_eq!(svc_history.len(), 3);
+}
