@@ -1,0 +1,23 @@
+[bundle]
+name = "microservices"
+version = "1.0.0"
+description = "Service-to-service authorization for microservices"
+
+[bundle.roots]
+authz = "authz.rego"
+service_mesh = "service_mesh.rego"
+
+[bundle.data]
+services = "data/service_registry.json"
+
+[build]
+target = "rego"
+optimize = true
+
+[test]
+verbose = true
+coverage = true
+
+[distribution]
+strategy = "canary"
+canary_percentage = 10

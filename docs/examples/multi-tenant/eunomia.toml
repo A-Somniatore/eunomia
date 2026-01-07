@@ -1,0 +1,22 @@
+[bundle]
+name = "multi-tenant"
+version = "1.0.0"
+description = "Multi-tenant SaaS authorization policy"
+
+[bundle.roots]
+authz = "authz.rego"
+tenant = "tenant.rego"
+
+[bundle.data]
+permissions = "data/permissions.json"
+
+[build]
+target = "rego"
+optimize = true
+
+[test]
+verbose = true
+coverage = true
+
+[distribution]
+strategy = "rolling"

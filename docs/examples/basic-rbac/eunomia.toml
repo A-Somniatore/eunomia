@@ -1,0 +1,21 @@
+[bundle]
+name = "basic-rbac"
+version = "1.0.0"
+description = "Simple role-based access control policy"
+
+[bundle.roots]
+authz = "authz.rego"
+
+[bundle.data]
+roles = "data/roles.json"
+
+[build]
+target = "rego"
+optimize = true
+
+[test]
+verbose = true
+coverage = true
+
+[distribution]
+strategy = "immediate"

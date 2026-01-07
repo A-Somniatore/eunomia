@@ -1,0 +1,84 @@
+{
+  "api-gateway": {
+    "description": "API Gateway service",
+    "allowed_dependencies": ["users-service", "orders-service", "products-service"],
+    "dependency_config": {
+      "users-service": {
+        "allowed_methods": ["GetUser", "ValidateToken", "GetUserProfile"]
+      },
+      "orders-service": {
+        "allowed_methods": ["CreateOrder", "GetOrder", "ListOrders"]
+      },
+      "products-service": {
+        "allowed_methods": ["GetProduct", "ListProducts", "SearchProducts"]
+      }
+    }
+  },
+  "orders-service": {
+    "description": "Order management service",
+    "allowed_dependencies": ["users-service", "products-service", "inventory-service", "payments-service"],
+    "dependency_config": {
+      "users-service": {
+        "allowed_methods": ["GetUser", "GetUserAddress"]
+      },
+      "products-service": {
+        "allowed_methods": ["GetProduct", "GetProductPrice"]
+      },
+      "inventory-service": {
+        "allowed_methods": ["ReserveStock", "ReleaseStock", "CheckAvailability"]
+      },
+      "payments-service": {
+        "allowed_methods": ["ProcessPayment", "RefundPayment"]
+      }
+    }
+  },
+  "users-service": {
+    "description": "User management service",
+    "allowed_dependencies": ["notifications-service"],
+    "dependency_config": {
+      "notifications-service": {
+        "allowed_methods": ["SendEmail", "SendSMS"]
+      }
+    }
+  },
+  "products-service": {
+    "description": "Product catalog service",
+    "allowed_dependencies": ["inventory-service"],
+    "dependency_config": {
+      "inventory-service": {
+        "allowed_methods": ["CheckAvailability"]
+      }
+    }
+  },
+  "inventory-service": {
+    "description": "Inventory management service",
+    "allowed_dependencies": ["notifications-service"],
+    "dependency_config": {
+      "notifications-service": {
+        "allowed_methods": ["SendAlert"]
+      }
+    }
+  },
+  "payments-service": {
+    "description": "Payment processing service",
+    "allowed_dependencies": ["notifications-service", "audit-service"],
+    "dependency_config": {
+      "notifications-service": {
+        "allowed_methods": ["SendEmail", "SendSMS"]
+      },
+      "audit-service": {
+        "allowed_methods": ["*"]
+      }
+    }
+  },
+  "notifications-service": {
+    "description": "Notification delivery service",
+    "allowed_dependencies": [],
+    "dependency_config": {}
+  },
+  "audit-service": {
+    "description": "Audit logging service",
+    "allowed_dependencies": [],
+    "dependency_config": {}
+  }
+}
