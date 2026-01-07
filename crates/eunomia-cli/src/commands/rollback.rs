@@ -22,8 +22,15 @@
 //! eunomia rollback users-service --dry-run
 //! ```
 
-use anyhow::{anyhow, Result};
+use std::time::Instant;
+
+use anyhow::{anyhow, Context, Result};
 use clap::Args;
+use eunomia_distributor::{
+    config::{DiscoveryConfig, DistributorConfig},
+    discovery::DiscoverySource,
+    Distributor,
+};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 
@@ -71,6 +78,10 @@ pub struct RollbackArgs {
     /// Specific instance endpoints to rollback (targeted strategy only)
     #[arg(long, help = "Specific instances to rollback (for targeted strategy)")]
     pub instances: Option<Vec<String>>,
+
+    /// Target endpoints (comma-separated host:port)
+    #[arg(long, value_delimiter = ',')]
+    pub endpoints: Vec<String>,
 
     /// Output format
     #[arg(
@@ -274,27 +285,129 @@ fn run_dry_run(
 }
 
 fn run_rollback(args: &RollbackArgs, strategy: RollbackStrategy) {
-    // TODO: Implement actual rollback via control plane gRPC
-    // This is a scaffold for Week 18 implementation
+    // Execute rollback via Distributor
+    let rt = tokio::runtime::Runtime::new().expect("Failed to create tokio runtime");
 
-    eprintln!("Error: Rollback execution not yet implemented.");
-    eprintln!("This command will be fully implemented in Week 18.");
-    eprintln!();
-    eprintln!("Planned functionality:");
-    eprintln!("  1. Connect to control plane at {}", args.control_plane);
-    eprintln!(
-        "  2. Fetch version history for service '{}'",
-        args.service
-    );
-    eprintln!(
-        "  3. Initiate {} rollback to {}",
-        strategy,
-        args.version.as_deref().unwrap_or("previous version")
-    );
-    eprintln!("  4. Monitor rollback progress");
-    eprintln!("  5. Report results");
-    eprintln!();
-    eprintln!("Use --dry-run to preview the rollback plan.");
+    if let Err(e) = rt.block_on(execute_rollback(args, strategy)) {
+        eprintln!("Rollback failed: {e:#}");
+        std::process::exit(1);
+    }
+}
+
+/// Execute the rollback operation asynchronously.
+async fn execute_rollback(args: &RollbackArgs, strategy: RollbackStrategy) -> Result<()> {
+    let start = Instant::now();
+
+    // Build discovery configuration from endpoints
+    let discovery_config = if args.endpoints.is_empty() {
+        return Err(anyhow!(
+            "No endpoints specified. Use --endpoints to provide target hosts."
+        ));
+    } else {
+        DiscoveryConfig {
+            source: DiscoverySource::Static {
+                endpoints: args.endpoints.clone(),
+            },
+            refresh_interval: std::time::Duration::from_secs(30),
+            cache_enabled: true,
+            cache_ttl: std::time::Duration::from_secs(60),
+        }
+    };
+
+    // Build distributor configuration
+    let config = DistributorConfig::builder()
+        .discovery(discovery_config)
+        .build();
+
+    // Create distributor
+    let distributor = Distributor::new(config)
+        .await
+        .context("Failed to create distributor")?;
+
+    // Determine target version
+    let target_version = args
+        .version
+        .as_deref()
+        .ok_or_else(|| anyhow!("Target version required. Use --version to specify."))?;
+
+    println!("Starting rollback...");
+    println!("  Service:        {}", args.service);
+    println!("  Target Version: {target_version}");
+    println!("  Strategy:       {strategy}");
+    println!("  Endpoints:      {:?}", args.endpoints);
+    if let Some(reason) = &args.reason {
+        println!("  Reason:         {reason}");
+    }
+    println!();
+
+    // Execute rollback
+    let result = distributor
+        .rollback(&args.service, target_version)
+        .await
+        .context("Rollback operation failed")?;
+
+    let duration = start.elapsed();
+
+    // Collect error messages from failed instances
+    let errors: Vec<String> = result
+        .instance_results
+        .iter()
+        .filter_map(|r| {
+            if let eunomia_distributor::InstanceResultStatus::Failed(msg) = &r.status {
+                Some(format!("{}: {}", r.instance_id, msg))
+            } else {
+                None
+            }
+        })
+        .collect();
+
+    let total_instances = result.successful + result.failed + result.skipped;
+
+    // Output results
+    if args.output == "json" {
+        let output = RollbackResult {
+            service: args.service.clone(),
+            from_version: "unknown".to_string(), // Would come from state tracking
+            to_version: target_version.to_string(),
+            strategy: strategy.to_string(),
+            instances_rolled_back: result.successful,
+            instances_failed: result.failed,
+            duration_ms: duration.as_millis() as u64,
+            dry_run: false,
+            reason: args.reason.clone(),
+        };
+        println!("{}", serde_json::to_string_pretty(&output)?);
+    } else {
+        println!("Rollback Complete");
+        println!("=================");
+        println!("Service:             {}", args.service);
+        println!("Target Version:      {target_version}");
+        println!("Strategy:            {strategy}");
+        println!("Duration:            {}ms", duration.as_millis());
+        println!();
+        println!("Results:");
+        println!("  Total Instances:   {total_instances}");
+        println!("  Succeeded:         {}", result.successful);
+        println!("  Failed:            {}", result.failed);
+
+        if !errors.is_empty() {
+            println!();
+            println!("Errors:");
+            for error in &errors {
+                println!("  ✗ {error}");
+            }
+        }
+
+        if result.failed == 0 {
+            println!();
+            println!("✓ Rollback completed successfully.");
+        } else {
+            println!();
+            println!("⚠ Rollback completed with {} failures.", result.failed);
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
