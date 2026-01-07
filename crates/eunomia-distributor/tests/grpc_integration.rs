@@ -529,3 +529,263 @@ fn test_health_state_conversion() {
         GrpcHealthState::Degraded
     );
 }
+
+// =============================================================================
+// Bundle Push Tests (PolicyPusher Integration)
+// =============================================================================
+
+/// Test pushing a policy bundle to a healthy instance.
+#[tokio::test]
+async fn test_bundle_push_to_healthy_instance() {
+    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
+    use eunomia_distributor::instance::{Instance, InstanceMetadata, InstanceStatus};
+
+    let pusher = PolicyPusher::new(PushConfig::default());
+
+    // Create a healthy instance
+    let mut instance = Instance::new("archimedes-1", "localhost:9091")
+        .with_metadata(InstanceMetadata::for_service("payment-service"));
+    instance.update_status(InstanceStatus::Healthy {
+        policy_version: Some("v1.0.0".to_string()),
+        last_check: std::time::Instant::now(),
+    });
+
+    // Push new version
+    let result = pusher.push(&instance, "payment-service", "v2.0.0").await;
+
+    assert!(result.is_ok());
+    let push_result = result.unwrap();
+    assert!(push_result.success);
+    assert_eq!(push_result.version, "v2.0.0");
+    assert_eq!(push_result.instance_id, "archimedes-1");
+    assert_eq!(push_result.attempts, 1);
+    assert!(push_result.error.is_none());
+}
+
+/// Test pushing to multiple instances in parallel.
+#[tokio::test]
+async fn test_bundle_push_to_multiple_instances() {
+    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
+    use eunomia_distributor::instance::{Instance, InstanceMetadata, InstanceStatus};
+
+    let pusher = PolicyPusher::new(PushConfig::default());
+
+    // Create multiple healthy instances
+    let instances: Vec<Instance> = (1..=5)
+        .map(|i| {
+            let mut inst = Instance::new(
+                format!("archimedes-{}", i),
+                format!("192.168.1.{}:9091", i),
+            )
+            .with_metadata(InstanceMetadata::for_service("users-service"));
+            inst.update_status(InstanceStatus::Healthy {
+                policy_version: Some("v1.0.0".to_string()),
+                last_check: std::time::Instant::now(),
+            });
+            inst
+        })
+        .collect();
+
+    // Push to all instances concurrently
+    let futures: Vec<_> = instances
+        .iter()
+        .map(|inst| pusher.push(inst, "users-service", "v2.0.0"))
+        .collect();
+
+    let results = futures::future::join_all(futures).await;
+
+    // All pushes should succeed
+    for (i, result) in results.iter().enumerate() {
+        assert!(result.is_ok(), "Push to instance {} should succeed", i + 1);
+        let push_result = result.as_ref().unwrap();
+        assert!(
+            push_result.success,
+            "Instance {} push should report success",
+            i + 1
+        );
+        assert_eq!(push_result.version, "v2.0.0");
+    }
+}
+
+/// Test pushing to unreachable instance triggers retry logic.
+#[tokio::test]
+async fn test_bundle_push_retry_on_unreachable() {
+    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
+    use eunomia_distributor::instance::{Instance, InstanceStatus};
+
+    // Configure for quick retries
+    let config = PushConfig::builder()
+        .max_retries(3)
+        .retry_delay(Duration::from_millis(10))
+        .build();
+    let pusher = PolicyPusher::new(config);
+
+    // Create an unreachable instance
+    let mut instance = Instance::new("archimedes-down", "192.168.1.99:9091");
+    instance.update_status(InstanceStatus::Unreachable {
+        last_error: "Connection refused".to_string(),
+        since: std::time::Instant::now(),
+        failure_count: 5,
+    });
+
+    // Push should fail after retries
+    let result = pusher.push(&instance, "test-service", "v1.0.0").await;
+
+    assert!(result.is_ok()); // Returns Ok with failure status
+    let push_result = result.unwrap();
+    assert!(!push_result.success);
+    assert!(push_result.error.is_some());
+    let error_msg = push_result.error.as_ref().unwrap();
+    assert!(error_msg.contains("unreachable") || error_msg.contains("Unreachable"));
+}
+
+/// Test push with compression enabled.
+#[tokio::test]
+async fn test_bundle_push_with_compression() {
+    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
+    use eunomia_distributor::instance::{Instance, InstanceMetadata, InstanceStatus};
+
+    let config = PushConfig::builder()
+        .compression(true)
+        .build();
+    let pusher = PolicyPusher::new(config);
+
+    let mut instance = Instance::new("archimedes-1", "localhost:9091")
+        .with_metadata(InstanceMetadata::for_service("orders-service"));
+    instance.update_status(InstanceStatus::Healthy {
+        policy_version: Some("v1.0.0".to_string()),
+        last_check: std::time::Instant::now(),
+    });
+
+    let result = pusher.push(&instance, "orders-service", "v1.1.0").await;
+
+    assert!(result.is_ok());
+    assert!(result.unwrap().success);
+}
+
+/// Test push with custom timeouts.
+#[tokio::test]
+async fn test_bundle_push_custom_timeouts() {
+    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
+    use eunomia_distributor::instance::{Instance, InstanceMetadata, InstanceStatus};
+
+    let config = PushConfig::builder()
+        .connect_timeout(Duration::from_secs(5))
+        .request_timeout(Duration::from_secs(15))
+        .build();
+    let pusher = PolicyPusher::new(config);
+
+    let mut instance = Instance::new("archimedes-1", "localhost:9091")
+        .with_metadata(InstanceMetadata::for_service("inventory-service"));
+    instance.update_status(InstanceStatus::Healthy {
+        policy_version: Some("v2.0.0".to_string()),
+        last_check: std::time::Instant::now(),
+    });
+
+    let result = pusher.push(&instance, "inventory-service", "v2.1.0").await;
+
+    assert!(result.is_ok());
+    let push_result = result.unwrap();
+    assert!(push_result.success);
+    assert!(push_result.duration < Duration::from_secs(5)); // Should complete quickly
+}
+
+/// Test health check before push.
+#[tokio::test]
+async fn test_bundle_push_health_check_workflow() {
+    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
+    use eunomia_distributor::instance::{Instance, InstanceMetadata, InstanceStatus};
+    use eunomia_distributor::health::HealthState;
+
+    let pusher = PolicyPusher::new(PushConfig::default());
+
+    let mut instance = Instance::new("archimedes-1", "localhost:9091")
+        .with_metadata(InstanceMetadata::for_service("auth-service"));
+    instance.update_status(InstanceStatus::Healthy {
+        policy_version: Some("v1.0.0".to_string()),
+        last_check: std::time::Instant::now(),
+    });
+
+    // First, check health
+    let health = pusher.health_check(&instance).await;
+    assert!(health.is_ok());
+    let health_check = health.unwrap();
+    assert_eq!(health_check.state, HealthState::Healthy);
+    assert_eq!(health_check.policy_version, Some("v1.0.0".to_string()));
+
+    // Then push if healthy
+    if health_check.state == HealthState::Healthy {
+        let result = pusher.push(&instance, "auth-service", "v1.1.0").await;
+        assert!(result.is_ok());
+        assert!(result.unwrap().success);
+    }
+}
+
+/// Test push to instance with no prior policy version.
+#[tokio::test]
+async fn test_bundle_push_initial_deployment() {
+    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
+    use eunomia_distributor::instance::{Instance, InstanceMetadata, InstanceStatus};
+
+    let pusher = PolicyPusher::new(PushConfig::default());
+
+    // Instance with no prior policy version (fresh deployment)
+    let mut instance = Instance::new("archimedes-new", "localhost:9092")
+        .with_metadata(InstanceMetadata::for_service("new-service"));
+    instance.update_status(InstanceStatus::Healthy {
+        policy_version: None, // No prior version
+        last_check: std::time::Instant::now(),
+    });
+
+    let result = pusher.push(&instance, "new-service", "v1.0.0").await;
+
+    assert!(result.is_ok());
+    let push_result = result.unwrap();
+    assert!(push_result.success);
+    assert_eq!(push_result.version, "v1.0.0");
+}
+
+/// Test push metrics (duration tracking).
+#[tokio::test]
+async fn test_bundle_push_tracks_duration() {
+    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
+    use eunomia_distributor::instance::{Instance, InstanceStatus};
+
+    let pusher = PolicyPusher::new(PushConfig::default());
+
+    let mut instance = Instance::new("archimedes-1", "localhost:9091");
+    instance.update_status(InstanceStatus::Healthy {
+        policy_version: Some("v1.0.0".to_string()),
+        last_check: std::time::Instant::now(),
+    });
+
+    let result = pusher.push(&instance, "metrics-service", "v1.0.0").await;
+
+    assert!(result.is_ok());
+    let push_result = result.unwrap();
+    assert!(push_result.duration > Duration::ZERO);
+    assert!(push_result.duration < Duration::from_secs(10)); // Reasonable upper bound
+}
+
+/// Test push to unhealthy instance.
+#[tokio::test]
+async fn test_bundle_push_to_unhealthy_instance() {
+    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
+    use eunomia_distributor::instance::{Instance, InstanceStatus};
+
+    let pusher = PolicyPusher::new(PushConfig::default());
+
+    let mut instance = Instance::new("archimedes-sick", "localhost:9091");
+    instance.update_status(InstanceStatus::Unhealthy {
+        reason: "High memory usage".to_string(),
+        since: std::time::Instant::now(),
+    });
+
+    // Push should still be attempted to unhealthy (but not unreachable) instances
+    let result = pusher.push(&instance, "test-service", "v1.0.0").await;
+
+    assert!(result.is_ok());
+    // Unhealthy instances might still accept pushes (they're reachable)
+    let push_result = result.unwrap();
+    assert!(push_result.success);
+}
