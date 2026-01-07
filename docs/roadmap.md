@@ -1,9 +1,9 @@
 # Eunomia – Development Roadmap
 
-> **Version**: 1.6.0  
+> **Version**: 1.7.0  
 > **Created**: 2026-01-04  
-> **Last Updated**: 2026-01-07  
-> **Target Completion**: Week 20 (MVP Integration with Archimedes MVP)
+> **Last Updated**: 2026-01-08  
+> **Target Completion**: Week 21 (v1.0.0 Release)
 
 > ✅ **CTO REVIEW (2026-01-05)**: Phase E0 complete. Shared types migration resolved.
 > All Eunomia types now use `themis-platform-types` for schema compatibility.
@@ -243,9 +243,9 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 | E1: Foundation              | 3 weeks  | 2-4   | Core types, Rego parsing, validation      |
 | E2: Testing Framework       | 4 weeks  | 5-8   | Test runner, fixtures, bundle compilation |
 | E3: Registry & Distribution | 4 weeks  | 9-12  | Registry client, push distribution        |
-| E4: Archimedes Integration  | 4 weeks  | 17-20 | Full integration with Archimedes OPA      |
+| E4: Archimedes Integration  | 5 weeks  | 17-21 | Full integration, hardening, v1.0.0       |
 
-**Total**: ~16 weeks of active development (with gap weeks 13-16 for Archimedes catch-up)
+**Total**: ~17 weeks of active development (with gap weeks 13-16 for Archimedes catch-up)
 
 ### Development Practices (MANDATORY)
 
@@ -1072,15 +1072,76 @@ cargo doc --no-deps         # ✓ Docs build
 
 ### Week 20: Documentation & Polish
 
-- [ ] Update all documentation
-- [ ] Add example policy repository
-- [ ] Create troubleshooting guide
-- [ ] Performance tuning guide
-- [ ] Release v1.0.0
+> **Goal**: Complete all documentation and prepare for v1.0.0 release.
+
+- [ ] **Update all documentation**
+  - [ ] Review and update design.md with final implementation details
+  - [ ] Ensure spec.md matches actual implementation
+  - [ ] Update README.md with current architecture
+  - [ ] Add API documentation for all public interfaces
+- [ ] **Add example policy repository**
+  - [ ] Create standalone example repo structure
+  - [ ] Include CI/CD pipeline example with GitHub Actions
+  - [ ] Add deployment scripts for common scenarios
+- [ ] **Create troubleshooting guide** (`docs/troubleshooting-guide.md`)
+  - [ ] Common error messages and resolutions
+  - [ ] Debugging policy evaluation issues
+  - [ ] Bundle distribution failure scenarios
+  - [ ] mTLS connection problems
+- [ ] **Create performance tuning guide** (`docs/performance-guide.md`)
+  - [ ] Bundle size optimization techniques
+  - [ ] gRPC server tuning (message sizes, keepalive)
+  - [ ] Cache configuration recommendations
+  - [ ] Concurrent deployment settings
+- [ ] **Create production deployment guide** (`docs/deployment-guide.md`)
+  - [ ] Kubernetes deployment manifests
+  - [ ] Docker compose examples
+  - [ ] Environment variable reference
+  - [ ] Health check configuration
+- [ ] **Wire audit logging to CLI commands**
+  - [ ] Integrate `eunomia-audit` with `eunomia publish`
+  - [ ] Integrate `eunomia-audit` with `eunomia push`
+  - [ ] Integrate `eunomia-audit` with `eunomia rollback`
+- [ ] **Update Gap Analysis status** in roadmap.md
+
+### Week 21: Pre-Release Hardening (v1.0.0 Requirements)
+
+> **Goal**: Complete all critical and high-priority items required before v1.0.0 release.
+> **Reference**: [ARCHITECTURE.md](ARCHITECTURE.md) - Pre-v1.0.0 Requirements
+
+- [ ] **Security Requirements**
+  - [ ] Security audit for bundle signing (4 hrs) - Critical
+  - [ ] Add rate limiting to gRPC endpoints (4 hrs) - High
+  - [ ] mTLS verification testing (2 hrs) - High
+- [ ] **Observability Requirements**
+  - [ ] Add OpenTelemetry metrics (8 hrs) - High
+  - [ ] Create metrics dashboard templates (Grafana/Prometheus)
+  - [ ] Update benchmarks status in Gap Analysis (✅ Done in Week 19)
+  - [ ] Update latency SLOs status in Gap Analysis (✅ Done in Week 19)
+- [ ] **Operational Requirements**
+  - [ ] Implement Kubernetes service discovery (8 hrs) - Medium
+  - [ ] Cross-platform testing (Linux, macOS, Windows) (4 hrs) - Medium
+- [ ] **themis-platform-types v0.2.0 Migration** (if not already done)
+  - [ ] See migration checklist in roadmap preamble
+  - [ ] Update all `build()` calls to `try_build()`
+  - [ ] Update error handling to use `BuilderError`
+- [ ] **Final pre-release checklist**
+  - [ ] All tests passing on CI
+  - [ ] No clippy warnings
+  - [ ] Documentation builds without errors
+  - [ ] Security audit findings addressed
+  - [ ] CHANGELOG.md prepared
+  - [ ] Tag v1.0.0-rc.1 for release candidate testing
 
 ### Phase E4 Milestone
 
 **Criteria**: Full Archimedes integration complete, production-ready
+
+> **v1.0.0 Release Criteria** (after Week 21):
+> - All E4 tasks complete (Weeks 17-21)
+> - All Pre-v1.0.0 Requirements addressed (Security, Observability, Operational)
+> - Architecture Review findings resolved
+> - Release candidate tested in staging environment
 
 ---
 
@@ -1094,44 +1155,44 @@ These items MUST be completed before tagging v1.0.0:
 
 | Task                                | Effort | Priority | Status     |
 | ----------------------------------- | ------ | -------- | ---------- |
-| Security audit for bundle signing   | 4 hrs  | Critical | ⏳ Pending |
-| Add rate limiting to gRPC endpoints | 4 hrs  | High     | ⏳ Pending |
-| mTLS verification testing           | 2 hrs  | High     | ⏳ Pending |
+| Security audit for bundle signing   | 4 hrs  | Critical | ⏳ Week 21 |
+| Add rate limiting to gRPC endpoints | 4 hrs  | High     | ⏳ Week 21 |
+| mTLS verification testing           | 2 hrs  | High     | ⏳ Week 21 |
 
 ### Observability Requirements
 
-| Task                               | Effort | Priority | Status     |
-| ---------------------------------- | ------ | -------- | ---------- |
-| Add OpenTelemetry metrics          | 8 hrs  | High     | ⏳ Pending |
-| Establish performance benchmarks   | 4 hrs  | Medium   | ⏳ Pending |
-| Define latency SLOs for operations | 2 hrs  | Medium   | ⏳ Pending |
+| Task                               | Effort | Priority | Status       |
+| ---------------------------------- | ------ | -------- | ------------ |
+| Add OpenTelemetry metrics          | 8 hrs  | High     | ⏳ Week 21   |
+| Establish performance benchmarks   | 4 hrs  | Medium   | ✅ Week 19   |
+| Define latency SLOs for operations | 2 hrs  | Medium   | ✅ Week 19   |
 
 ### Operational Requirements
 
 | Task                                           | Effort | Priority | Status      |
 | ---------------------------------------------- | ------ | -------- | ----------- |
-| Kubernetes service discovery                   | 8 hrs  | Medium   | ⏳ Pending  |
-| Graceful shutdown for gRPC server              | 2 hrs  | Medium   | ✅ Complete |
-| Cross-platform testing (Linux, macOS, Windows) | 4 hrs  | Medium   | ⏳ Pending  |
+| Kubernetes service discovery                   | 8 hrs  | Medium   | ⏳ Week 21  |
+| Graceful shutdown for gRPC server              | 2 hrs  | Medium   | ✅ Week 17  |
+| Cross-platform testing (Linux, macOS, Windows) | 4 hrs  | Medium   | ⏳ Week 21  |
 
 ### Documentation Requirements
 
 | Task                        | Effort | Priority | Status     |
 | --------------------------- | ------ | -------- | ---------- |
-| Production deployment guide | 4 hrs  | High     | ⏳ Pending |
-| Troubleshooting runbook     | 3 hrs  | High     | ⏳ Pending |
-| Performance tuning guide    | 2 hrs  | Medium   | ⏳ Pending |
+| Production deployment guide | 4 hrs  | High     | ⏳ Week 20 |
+| Troubleshooting runbook     | 3 hrs  | High     | ⏳ Week 20 |
+| Performance tuning guide    | 2 hrs  | Medium   | ⏳ Week 20 |
 
 ---
 
 ## Milestones Summary
 
-| Milestone        | Target  | Criteria                                         |
-| ---------------- | ------- | ------------------------------------------------ |
-| E1: Parsing      | Week 4  | Rego policies parsed correctly                   |
-| E2: Testing      | Week 8  | Policy tests execute and report, bundles created |
-| E3: Distribution | Week 12 | Control plane operational, push working          |
-| E4: Integrated   | Week 20 | Full Archimedes integration complete             |
+| Milestone        | Target  | Criteria                                          |
+| ---------------- | ------- | ------------------------------------------------- |
+| E1: Parsing      | Week 4  | Rego policies parsed correctly                    |
+| E2: Testing      | Week 8  | Policy tests execute and report, bundles created  |
+| E3: Distribution | Week 12 | Control plane operational, push working           |
+| E4: Integrated   | Week 21 | Full Archimedes integration, v1.0.0 release-ready |
 
 ---
 
