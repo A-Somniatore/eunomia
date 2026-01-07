@@ -801,7 +801,11 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 - [ ] Verify mTLS authentication
 - [ ] Test hot-reload scenarios
 - [ ] Validate signature verification
-- [ ] **Add gRPC integration tests with mock Archimedes** (from arch review)
+- [x] **Add gRPC integration tests with mock Archimedes** (from arch review)
+  > **Completed (2026-01-07)**: Added 17 integration tests covering:
+  > - Control Plane Service: deploy, rollback, status, list instances
+  > - Policy Receiver Service: update, checksum validation, health checks
+  > - Type conversions and server configuration
 - [ ] **Add graceful shutdown handling to gRPC server** (from arch review)
 
 ### Week 18: Rollback Controller
