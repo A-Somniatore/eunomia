@@ -171,6 +171,26 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 **Total**: ~16 weeks of active development (with gap weeks 13-16 for Archimedes catch-up)
 
+### Development Practices (MANDATORY)
+
+> **These practices are non-negotiable and must be followed for every change.**
+
+| Practice | Description | Reference |
+|----------|-------------|-----------|
+| **Commit Often** | Make small, focused commits. Push at least at end of each session. | [copilot-instructions.md](../.github/copilot-instructions.md#git-practices) |
+| **Test Everything** | Every change MUST include tests. TDD approach preferred. | [copilot-instructions.md](../.github/copilot-instructions.md#testing-requirements) |
+| **Update Documentation** | Document immediately after implementing. Update roadmap, design.md, and rustdoc. | [copilot-instructions.md](../.github/copilot-instructions.md#documentation-requirements) |
+| **Format & Lint** | Run `cargo fmt` and `cargo clippy` before every commit. | [copilot-instructions.md](../.github/copilot-instructions.md#code-formatting) |
+
+**Pre-Push Checklist:**
+
+```bash
+cargo fmt --check           # ✓ Code formatted
+cargo clippy -- -D warnings # ✓ No warnings
+cargo test                  # ✓ All tests pass
+cargo doc --no-deps         # ✓ Docs build
+```
+
 ### Cross-Component Timeline Alignment
 
 **MVP Timeline (Weeks 1-20):**
