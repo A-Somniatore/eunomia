@@ -10,8 +10,7 @@ use tracing::{debug, info, instrument};
 
 use super::types::{
     CurrentPolicyResponse, GetCurrentPolicyRequest, GrpcHealthState, HealthCheckRequest,
-    HealthCheckResponse, ServiceHealthStatus, UpdatePolicyRequest,
-    UpdatePolicyResponse,
+    HealthCheckResponse, ServiceHealthStatus, UpdatePolicyRequest, UpdatePolicyResponse,
 };
 use crate::{Distributor, HealthState};
 
@@ -28,7 +27,8 @@ pub struct PolicyReceiverService {
 
 impl std::fmt::Debug for PolicyReceiverService {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("PolicyReceiverService").finish_non_exhaustive()
+        f.debug_struct("PolicyReceiverService")
+            .finish_non_exhaustive()
     }
 }
 
@@ -122,12 +122,22 @@ impl PolicyReceiver for PolicyReceiverService {
         let req = request.into_inner();
         debug!("GetCurrentPolicy request: service={}", req.service);
 
-        let status = self.distributor.get_status(&req.service).await.map_err(|e| {
-            Status::not_found(format!("No policy found for service {}: {}", req.service, e))
-        })?;
+        let status = self
+            .distributor
+            .get_status(&req.service)
+            .await
+            .map_err(|e| {
+                Status::not_found(format!(
+                    "No policy found for service {}: {}",
+                    req.service, e
+                ))
+            })?;
 
         let version = status.current_version.ok_or_else(|| {
-            Status::not_found(format!("No policy version found for service: {}", req.service))
+            Status::not_found(format!(
+                "No policy version found for service: {}",
+                req.service
+            ))
         })?;
 
         let response = CurrentPolicyResponse {

@@ -408,10 +408,12 @@ impl RegistryClient {
             }
         }
 
-        Err(last_error.unwrap_or_else(|| RegistryError::ConnectionFailed {
-            url: self.config.url.clone(),
-            source: reqwest::Client::new().get("").build().unwrap_err(),
-        }))
+        Err(
+            last_error.unwrap_or_else(|| RegistryError::ConnectionFailed {
+                url: self.config.url.clone(),
+                source: reqwest::Client::new().get("").build().unwrap_err(),
+            }),
+        )
     }
 
     /// Internal implementation of manifest fetching (without retry logic).
@@ -480,14 +482,20 @@ impl RegistryClient {
             }
         }
 
-        Err(last_error.unwrap_or_else(|| RegistryError::ConnectionFailed {
-            url: self.config.url.clone(),
-            source: reqwest::Client::new().get("").build().unwrap_err(),
-        }))
+        Err(
+            last_error.unwrap_or_else(|| RegistryError::ConnectionFailed {
+                url: self.config.url.clone(),
+                source: reqwest::Client::new().get("").build().unwrap_err(),
+            }),
+        )
     }
 
     /// Internal implementation of blob fetching (without retry logic).
-    async fn fetch_blob_internal(&self, service: &str, digest: &str) -> Result<Vec<u8>, RegistryError> {
+    async fn fetch_blob_internal(
+        &self,
+        service: &str,
+        digest: &str,
+    ) -> Result<Vec<u8>, RegistryError> {
         let repo = self.config.repository_name(service);
         let url = format!("{}/v2/{repo}/blobs/{digest}", self.config.url);
 

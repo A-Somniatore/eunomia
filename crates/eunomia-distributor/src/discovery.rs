@@ -290,11 +290,12 @@ impl DnsDiscovery {
         use hickory_resolver::config::NameServerConfig;
         use std::net::SocketAddr;
 
-        let addr: SocketAddr = resolver_addr.parse().map_err(|e| {
-            DistributorError::InvalidConfig {
-                reason: format!("Invalid resolver address: {e}"),
-            }
-        })?;
+        let addr: SocketAddr =
+            resolver_addr
+                .parse()
+                .map_err(|e| DistributorError::InvalidConfig {
+                    reason: format!("Invalid resolver address: {e}"),
+                })?;
 
         let mut config = ResolverConfig::new();
         config.add_name_server(NameServerConfig::new(
@@ -324,12 +325,15 @@ impl DnsDiscovery {
                         let instance_id = format!("dns-{host}-{ip}");
 
                         let mut metadata = InstanceMetadata::default();
-                        metadata.annotations.insert("dns.host".to_string(), host.clone());
-                        metadata.annotations.insert("dns.resolved_ip".to_string(), ip.to_string());
+                        metadata
+                            .annotations
+                            .insert("dns.host".to_string(), host.clone());
+                        metadata
+                            .annotations
+                            .insert("dns.resolved_ip".to_string(), ip.to_string());
 
-                        instances.push(
-                            Instance::new(instance_id, endpoint).with_metadata(metadata),
-                        );
+                        instances
+                            .push(Instance::new(instance_id, endpoint).with_metadata(metadata));
                     }
                 }
                 Err(e) => {
@@ -550,11 +554,8 @@ mod tests {
 
     #[test]
     fn test_dns_discovery_with_valid_resolver() {
-        let result = DnsDiscovery::with_resolver(
-            vec!["example.com".to_string()],
-            8080,
-            "8.8.8.8:53",
-        );
+        let result =
+            DnsDiscovery::with_resolver(vec!["example.com".to_string()], 8080, "8.8.8.8:53");
         assert!(result.is_ok());
     }
 
@@ -562,14 +563,17 @@ mod tests {
     async fn test_dns_discovery_localhost() {
         // This test resolves localhost which should work on any system
         let discovery = DnsDiscovery::new(vec!["localhost".to_string()], 8080);
-        
+
         // Refresh to resolve
         discovery.refresh().await.unwrap();
-        
+
         let instances = discovery.all_instances().await.unwrap();
         // localhost should resolve to at least one address (127.0.0.1 or ::1)
-        assert!(!instances.is_empty(), "localhost should resolve to at least one IP");
-        
+        assert!(
+            !instances.is_empty(),
+            "localhost should resolve to at least one IP"
+        );
+
         // Check instance metadata
         let first = &instances[0];
         assert!(first.id.starts_with("dns-localhost-"));
@@ -583,10 +587,10 @@ mod tests {
             vec!["this-host-definitely-does-not-exist-12345.invalid".to_string()],
             8080,
         );
-        
+
         // Refresh should not fail, but return empty results
         discovery.refresh().await.unwrap();
-        
+
         let instances = discovery.all_instances().await.unwrap();
         assert!(instances.is_empty());
     }
@@ -601,13 +605,13 @@ mod tests {
             ],
             9090,
         );
-        
+
         discovery.refresh().await.unwrap();
-        
+
         let instances = discovery.all_instances().await.unwrap();
         // Should have at least the localhost resolution
         assert!(!instances.is_empty());
-        
+
         // All instances should have port 9090
         for instance in &instances {
             assert!(instance.endpoint.to_string().contains(":9090"));

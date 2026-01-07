@@ -15,12 +15,14 @@ organizations to define base policies that service-specific policies can extend.
 ### Problem Statement
 
 As the number of services grows, common patterns emerge:
+
 - All services need admin access rules
 - All services need audit logging rules
 - All services need rate limiting rules
 - Service-specific rules add to (not replace) common rules
 
 Without inheritance, each service duplicates common rules, leading to:
+
 - Inconsistent enforcement
 - Maintenance burden
 - Drift between services
@@ -106,12 +108,14 @@ allow if {
 }
 ```
 
-**Pros**: 
+**Pros**:
+
 - Works with current Rego/OPA
 - Explicit about what's inherited
 - Easy to test
 
 **Cons**:
+
 - Requires explicit imports in every service
 - No automatic inheritance
 
@@ -164,10 +168,12 @@ rate_limit := effective_config.rate_limits.default
 ```
 
 **Pros**:
+
 - Dynamic configuration without policy changes
 - Clear override semantics
 
 **Cons**:
+
 - Logic in data, harder to review
 - Less explicit than code
 
@@ -188,17 +194,17 @@ spec:
     - common/authz.rego
     - common/audit.rego
     - common/rate-limit.rego
-  
+
   # Service policies
   policies:
     - services/users-service/authz.rego
-  
+
   # Composition rules
   composition:
     # How to combine allow decisions
-    allow: any  # any base OR service allow = allow
-    # How to combine deny decisions  
-    deny: any   # any base OR service deny = deny
+    allow: any # any base OR service allow = allow
+    # How to combine deny decisions
+    deny: any # any base OR service deny = deny
     # Final: allow AND NOT deny
 ```
 
@@ -226,7 +232,7 @@ impl Bundler {
         self.composition = Some(composition);
         self
     }
-    
+
     fn generate_entrypoint(&self) -> String {
         // Generate wrapper policy that combines base + service
         format!(r#"
@@ -401,14 +407,14 @@ fn test_policy_inheritance_chain() {
         .add_policy("common/authz.rego")
         .add_policy("services/users-service/authz.rego")
         .build();
-    
+
     // Test that base rules apply
     let result = suite.evaluate(json!({
         "caller": {"type": "user", "roles": ["admin"]},
         "operation_id": "anything"
     }));
     assert!(result.allow);
-    
+
     // Test that service rules extend
     let result = suite.evaluate(json!({
         "caller": {"type": "user", "user_id": "u1", "roles": []},
@@ -484,19 +490,19 @@ spec:
       role: base
     - path: common/audit.rego
       role: base
-    
+
     # Service policies (extend base)
     - path: services/users-service/authz.rego
       role: service
-  
+
   # Data files
   data:
     - path: services/users-service/data.json
-  
+
   # How to compose decisions
   composition:
     entrypoint: users_service.authz.final_allow
-    
+
     # Or auto-generate entrypoint with strategy
     # strategy:
     #   allow: any  # OR across all policies
@@ -508,16 +514,19 @@ spec:
 ## 9. Implementation Phases
 
 ### Phase 1: MVP (Current)
+
 - [x] Import-based inheritance (manual)
 - [x] Common policy modules in examples
 - [x] Documentation of patterns
 
 ### Phase 2: Post-MVP (E5)
+
 - [ ] `--check-inheritance` CLI flag
 - [ ] Inheritance visualization
 - [ ] Bundle composition config
 
 ### Phase 3: Advanced (E6+)
+
 - [ ] Auto-generated entrypoints
 - [ ] Inheritance conflict detection
 - [ ] Policy lineage in audit logs

@@ -119,7 +119,10 @@ pub async fn execute(args: PushArgs) -> Result<()> {
 }
 
 fn print_deployment_header(args: &PushArgs) {
-    println!("🚀 Deploying policy to {} instances...", args.endpoints.len());
+    println!(
+        "🚀 Deploying policy to {} instances...",
+        args.endpoints.len()
+    );
     println!("   Service: {}", args.service);
     println!("   Version: {}", args.version);
     println!("   Strategy: {}", args.strategy);
@@ -214,9 +217,7 @@ fn parse_strategy(args: &PushArgs) -> Result<DeploymentStrategy> {
         "rolling" => {
             DeploymentStrategy::rolling(args.batch_size, Duration::from_secs(args.batch_delay))
         }
-        other => anyhow::bail!(
-            "Unknown strategy '{other}'. Use: immediate, canary, or rolling"
-        ),
+        other => anyhow::bail!("Unknown strategy '{other}'. Use: immediate, canary, or rolling"),
     };
 
     if args.auto_rollback {

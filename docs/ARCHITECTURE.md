@@ -15,19 +15,19 @@ This document tracks architectural concerns identified in the codebase review co
 
 ### High Priority Fixes
 
-| Issue | Status | Details |
-|-------|--------|---------|
-| `unwrap()` in engine.rs | ✅ Fixed | Replaced with let-else pattern in `is_valid_identifier()` |
-| README cleanup | ✅ Fixed | Removed extraneous conversation text |
-| CI audit fails silently | ✅ Fixed | Removed `\|\| true` - now properly fails on vulnerabilities |
+| Issue                        | Status   | Details                                                               |
+| ---------------------------- | -------- | --------------------------------------------------------------------- |
+| `unwrap()` in engine.rs      | ✅ Fixed | Replaced with let-else pattern in `is_valid_identifier()`             |
+| README cleanup               | ✅ Fixed | Removed extraneous conversation text                                  |
+| CI audit fails silently      | ✅ Fixed | Removed `\|\| true` - now properly fails on vulnerabilities           |
 | Clippy allows in distributor | ✅ Fixed | Removed 6 allow directives; now warns on missing_docs, unused_results |
 
 ### Medium Priority Improvements
 
-| Issue | Status | Details |
-|-------|--------|---------|
+| Issue                | Status   | Details                                                              |
+| -------------------- | -------- | -------------------------------------------------------------------- |
 | Registry retry logic | ✅ Added | Exponential backoff with configurable max_retries, smart retry logic |
-| Retry configuration | ✅ Added | RetryConfig with 3 default retries, 100ms-10s backoff window |
+| Retry configuration  | ✅ Added | RetryConfig with 3 default retries, 100ms-10s backoff window         |
 
 ---
 
@@ -41,23 +41,23 @@ None currently. All immediate fixes have been completed.
 
 ### Short-Term (E4 Phase, Weeks 17-20)
 
-| # | Task | Effort | Priority | Impact |
-|---|------|--------|----------|--------|
-| 1 | Add gRPC integration tests | 4 hrs | High | Ensures distributor works with real Archimedes |
-| 2 | Complete rollback implementation | 4 hrs | High | Finishes Week 18 deliverables |
-| 3 | Implement streaming for deployment events | 3 hrs | Medium | Enables real-time deployment status |
-| 4 | Add graceful shutdown handling | 2 hrs | Medium | Prevents resource leaks in gRPC server |
+| #   | Task                                      | Effort | Priority | Impact                                         |
+| --- | ----------------------------------------- | ------ | -------- | ---------------------------------------------- |
+| 1   | Add gRPC integration tests                | 4 hrs  | High     | Ensures distributor works with real Archimedes |
+| 2   | Complete rollback implementation          | 4 hrs  | High     | Finishes Week 18 deliverables                  |
+| 3   | Implement streaming for deployment events | 3 hrs  | Medium   | Enables real-time deployment status            |
+| 4   | Add graceful shutdown handling            | 2 hrs  | Medium   | Prevents resource leaks in gRPC server         |
 
 ### Pre-Release (Before v1.0.0)
 
-| # | Task | Effort | Priority | Impact |
-|---|------|--------|----------|--------|
-| 5 | Add OpenTelemetry metrics | 8 hrs | High | Critical for production observability |
-| 6 | Add rate limiting to gRPC | 4 hrs | High | Prevents DoS attacks |
-| 7 | Implement K8s discovery | 8 hrs | Medium | Enables Kubernetes deployments |
-| 8 | Remove deprecated local types | 2 hrs | Low | Cleans up technical debt |
-| 9 | Performance benchmarking | 4 hrs | Medium | Identifies optimization opportunities |
-| 10 | Security audit for bundle signing | 4 hrs | High | Validates cryptographic implementation |
+| #   | Task                              | Effort | Priority | Impact                                 |
+| --- | --------------------------------- | ------ | -------- | -------------------------------------- |
+| 5   | Add OpenTelemetry metrics         | 8 hrs  | High     | Critical for production observability  |
+| 6   | Add rate limiting to gRPC         | 4 hrs  | High     | Prevents DoS attacks                   |
+| 7   | Implement K8s discovery           | 8 hrs  | Medium   | Enables Kubernetes deployments         |
+| 8   | Remove deprecated local types     | 2 hrs  | Low      | Cleans up technical debt               |
+| 9   | Performance benchmarking          | 4 hrs  | Medium   | Identifies optimization opportunities  |
+| 10  | Security audit for bundle signing | 4 hrs  | High     | Validates cryptographic implementation |
 
 ---
 
@@ -116,6 +116,7 @@ None currently. All immediate fixes have been completed.
 
 **Status**: Good  
 **Recommendation**: Consider feature flags for optional functionality:
+
 - `metrics` - OpenTelemetry support
 - `k8s` - Kubernetes discovery
 - `tls` - mTLS support
@@ -126,24 +127,24 @@ None currently. All immediate fixes have been completed.
 
 ### Code Quality
 
-| Metric | Value | Target |
-|--------|-------|--------|
-| Lines of Code | ~24,500 | <30,000 |
-| Source Files | 69 | <100 |
-| Test Count | 400+ | >350 |
-| Clippy Score | ✅ Clean | ✅ Clean |
-| Code Coverage | ~85% | >80% |
+| Metric        | Value    | Target   |
+| ------------- | -------- | -------- |
+| Lines of Code | ~24,500  | <30,000  |
+| Source Files  | 69       | <100     |
+| Test Count    | 400+     | >350     |
+| Clippy Score  | ✅ Clean | ✅ Clean |
+| Code Coverage | ~85%     | >80%     |
 
 ### Architecture
 
-| Aspect | Status |
-|--------|--------|
-| Modular design | ✅ Excellent (7 well-defined crates) |
-| Separation of concerns | ✅ Clear |
-| Testability | ✅ Good |
-| Documentation | ✅ Comprehensive |
-| Error handling | ✅ Consistent |
-| Type safety | ✅ Strong |
+| Aspect                 | Status                               |
+| ---------------------- | ------------------------------------ |
+| Modular design         | ✅ Excellent (7 well-defined crates) |
+| Separation of concerns | ✅ Clear                             |
+| Testability            | ✅ Good                              |
+| Documentation          | ✅ Comprehensive                     |
+| Error handling         | ✅ Consistent                        |
+| Type safety            | ✅ Strong                            |
 
 ---
 
@@ -199,6 +200,7 @@ themis-platform-types = { git = "https://github.com/A-Somniatore/themis-platform
 ### Pre-Release Checklist
 
 Before tagging v1.0.0:
+
 - [ ] All recommended tasks completed
 - [ ] Production deployment tested
 - [ ] Performance benchmarks documented

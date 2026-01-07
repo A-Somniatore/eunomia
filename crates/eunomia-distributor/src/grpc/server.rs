@@ -286,7 +286,7 @@ impl GrpcServer {
     /// Run the server and block until shutdown.
     pub async fn run_until_shutdown(self) -> Result<(), GrpcServerError> {
         let handle = self.run().await?;
-        
+
         // Wait for Ctrl+C
         tokio::signal::ctrl_c()
             .await

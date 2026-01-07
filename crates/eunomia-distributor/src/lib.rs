@@ -60,6 +60,7 @@ pub mod grpc;
 pub mod health;
 pub mod instance;
 pub mod pusher;
+pub mod rollback;
 pub mod scheduler;
 pub mod state;
 pub mod strategy;
@@ -71,6 +72,9 @@ pub use error::{DistributorError, Result};
 pub use health::{HealthCheck, HealthConfig, HealthState};
 pub use instance::{Instance, InstanceId, InstanceMetadata, InstanceStatus};
 pub use pusher::{PolicyPusher, PushConfig, PushResult};
+pub use rollback::{
+    RollbackConfig, RollbackController, RollbackResult, RollbackTrigger, VersionHistory,
+};
 pub use scheduler::{DeploymentScheduler, SchedulerConfig};
 pub use state::{DeploymentState, DeploymentTracker};
 pub use strategy::{DeploymentStrategy, StrategyType};

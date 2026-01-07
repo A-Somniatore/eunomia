@@ -37,13 +37,13 @@ Eunomia is the authorization policy platform for the Themis ecosystem. It provid
 
 ### Key Concepts
 
-| Concept | Description |
-|---------|-------------|
-| **Policy** | A Rego file defining authorization rules |
-| **Bundle** | A compiled, signed package of policies |
-| **Decision** | The result of evaluating a policy (allow/deny) |
+| Concept            | Description                                        |
+| ------------------ | -------------------------------------------------- |
+| **Policy**         | A Rego file defining authorization rules           |
+| **Bundle**         | A compiled, signed package of policies             |
+| **Decision**       | The result of evaluating a policy (allow/deny)     |
 | **CallerIdentity** | Who is making the request (user, service, API key) |
-| **OperationId** | The specific operation being authorized |
+| **OperationId**    | The specific operation being authorized            |
 
 ### Authorization Flow
 
@@ -243,12 +243,12 @@ Authorization requests follow this structure:
 
 ### Caller Types
 
-| Type | Fields | Use Case |
-|------|--------|----------|
-| `user` | `user_id`, `email`, `roles` | Human users via web/mobile |
-| `spiffe` | `service_name`, `trust_domain` | Service-to-service calls |
-| `api_key` | `key_id`, `key_name`, `scopes` | Programmatic API access |
-| `anonymous` | (none) | Unauthenticated requests |
+| Type        | Fields                         | Use Case                   |
+| ----------- | ------------------------------ | -------------------------- |
+| `user`      | `user_id`, `email`, `roles`    | Human users via web/mobile |
+| `spiffe`    | `service_name`, `trust_domain` | Service-to-service calls   |
+| `api_key`   | `key_id`, `key_name`, `scopes` | Programmatic API access    |
+| `anonymous` | (none)                         | Unauthenticated requests   |
 
 ---
 
@@ -516,6 +516,7 @@ allow if {
 ### Writing Tests
 
 Test files must:
+
 - Have `_test.rego` suffix
 - Use `test_` prefix for test rules
 - Return `true` on success
@@ -569,9 +570,9 @@ Create `authz_fixtures.json` or `authz_fixtures.yaml`:
       "name": "admin_can_delete_user",
       "description": "Admin users should be able to delete any user",
       "input": {
-        "caller": {"type": "user", "user_id": "admin-1", "roles": ["admin"]},
+        "caller": { "type": "user", "user_id": "admin-1", "roles": ["admin"] },
         "operation_id": "deleteUser",
-        "context": {"target_user_id": "user-456"}
+        "context": { "target_user_id": "user-456" }
       },
       "expected": {
         "allow": true
@@ -581,9 +582,9 @@ Create `authz_fixtures.json` or `authz_fixtures.yaml`:
       "name": "user_cannot_delete_others",
       "description": "Regular users cannot delete other users",
       "input": {
-        "caller": {"type": "user", "user_id": "user-123", "roles": ["user"]},
+        "caller": { "type": "user", "user_id": "user-123", "roles": ["user"] },
         "operation_id": "deleteUser",
-        "context": {"target_user_id": "user-456"}
+        "context": { "target_user_id": "user-456" }
       },
       "expected": {
         "allow": false
@@ -729,11 +730,11 @@ eunomia push \
 
 ### Deployment Strategies
 
-| Strategy | Description | Use Case |
-|----------|-------------|----------|
-| `immediate` | All instances at once | Development, small deployments |
-| `canary` | Percentage-based rollout | Production, risk mitigation |
-| `rolling` | Batch-based sequential | Large deployments |
+| Strategy    | Description              | Use Case                       |
+| ----------- | ------------------------ | ------------------------------ |
+| `immediate` | All instances at once    | Development, small deployments |
+| `canary`    | Percentage-based rollout | Production, risk mitigation    |
+| `rolling`   | Batch-based sequential   | Large deployments              |
 
 ---
 
@@ -812,6 +813,7 @@ allow if {
 ### Common Errors
 
 **"undefined rule: allow"**
+
 ```rego
 # Problem: Missing default
 # Solution: Add default rule
@@ -819,6 +821,7 @@ default allow := false
 ```
 
 **"var is unsafe"**
+
 ```rego
 # Problem: Using unbound variable
 allow if {
@@ -833,6 +836,7 @@ allow if {
 ```
 
 **"rego_type_error: undefined ref"**
+
 ```rego
 # Problem: Accessing non-existent field
 allow if {
@@ -848,6 +852,7 @@ allow if {
 ### Debugging Tips
 
 1. **Use `print()` for debugging:**
+
 ```rego
 allow if {
     print("Checking admin access for:", input.caller)
@@ -856,6 +861,7 @@ allow if {
 ```
 
 2. **Test with minimal input first:**
+
 ```rego
 test_minimal if {
     authz.allow with input as {
@@ -865,11 +871,13 @@ test_minimal if {
 ```
 
 3. **Check policy loading:**
+
 ```bash
 eunomia test -v policies/  # Verbose output shows loaded files
 ```
 
 4. **Validate syntax:**
+
 ```bash
 eunomia validate policies/my-service/authz.rego
 ```
@@ -886,33 +894,33 @@ eunomia validate policies/my-service/authz.rego
 
 ### CLI Commands
 
-| Command | Description |
-|---------|-------------|
-| `eunomia test <dir>` | Run policy tests |
-| `eunomia build --dir <dir> --service <name> --version <ver>` | Build bundle |
-| `eunomia sign --bundle <file> --key-file <key>` | Sign bundle |
-| `eunomia publish --bundle <file> --registry <url>` | Publish to registry |
-| `eunomia fetch --registry <url> --service <name>` | Fetch from registry |
-| `eunomia push --service <name> --endpoints <hosts>` | Deploy to instances |
-| `eunomia validate <file>` | Validate policy syntax |
+| Command                                                      | Description            |
+| ------------------------------------------------------------ | ---------------------- |
+| `eunomia test <dir>`                                         | Run policy tests       |
+| `eunomia build --dir <dir> --service <name> --version <ver>` | Build bundle           |
+| `eunomia sign --bundle <file> --key-file <key>`              | Sign bundle            |
+| `eunomia publish --bundle <file> --registry <url>`           | Publish to registry    |
+| `eunomia fetch --registry <url> --service <name>`            | Fetch from registry    |
+| `eunomia push --service <name> --endpoints <hosts>`          | Deploy to instances    |
+| `eunomia validate <file>`                                    | Validate policy syntax |
 
 ### Input Fields Reference
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `caller.type` | string | `user`, `spiffe`, `api_key`, `anonymous` |
-| `caller.user_id` | string | User identifier |
-| `caller.email` | string | User email |
-| `caller.roles` | array | User roles |
-| `caller.service_name` | string | SPIFFE service name |
-| `caller.trust_domain` | string | SPIFFE trust domain |
-| `caller.key_id` | string | API key identifier |
-| `caller.scopes` | array | API key scopes |
-| `service` | string | Target service name |
-| `operation_id` | string | Target operation |
-| `method` | string | HTTP method |
-| `path` | string | Request path |
-| `headers` | object | Request headers |
-| `timestamp` | string | RFC3339 timestamp |
-| `environment` | string | Environment name |
-| `context` | object | Additional context |
+| Field                 | Type   | Description                              |
+| --------------------- | ------ | ---------------------------------------- |
+| `caller.type`         | string | `user`, `spiffe`, `api_key`, `anonymous` |
+| `caller.user_id`      | string | User identifier                          |
+| `caller.email`        | string | User email                               |
+| `caller.roles`        | array  | User roles                               |
+| `caller.service_name` | string | SPIFFE service name                      |
+| `caller.trust_domain` | string | SPIFFE trust domain                      |
+| `caller.key_id`       | string | API key identifier                       |
+| `caller.scopes`       | array  | API key scopes                           |
+| `service`             | string | Target service name                      |
+| `operation_id`        | string | Target operation                         |
+| `method`              | string | HTTP method                              |
+| `path`                | string | Request path                             |
+| `headers`             | object | Request headers                          |
+| `timestamp`           | string | RFC3339 timestamp                        |
+| `environment`         | string | Environment name                         |
+| `context`             | object | Additional context                       |

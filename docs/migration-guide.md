@@ -25,13 +25,13 @@ This guide helps teams migrate from existing authorization systems to Eunomia's 
 
 ### Why Migrate to Eunomia?
 
-| Feature | Traditional | Eunomia |
-|---------|-------------|---------|
-| Policy Location | Hardcoded in application | External, Git-managed |
-| Policy Updates | Redeploy application | Hot-reload without downtime |
-| Auditability | Manual review | Git history + signed bundles |
-| Testing | Unit tests in app code | Dedicated policy test framework |
-| Consistency | Per-service implementation | Centralized platform |
+| Feature         | Traditional                | Eunomia                         |
+| --------------- | -------------------------- | ------------------------------- |
+| Policy Location | Hardcoded in application   | External, Git-managed           |
+| Policy Updates  | Redeploy application       | Hot-reload without downtime     |
+| Auditability    | Manual review              | Git history + signed bundles    |
+| Testing         | Unit tests in app code     | Dedicated policy test framework |
+| Consistency     | Per-service implementation | Centralized platform            |
 
 ### Migration Stages
 
@@ -94,16 +94,19 @@ For each authorization point, document the actual business rules:
 ## Operation: deleteUser
 
 ### Who Can Delete Users?
+
 - Admins can delete any user
 - Users can delete their own account (self-service)
 - Support staff can delete users in their assigned region
 
 ### Restrictions
+
 - Cannot delete users with active subscriptions
 - Cannot delete the last admin
 - Soft-delete only (mark as inactive)
 
 ### Exceptions
+
 - Platform super-admins can force-delete
 - Scheduled cleanup jobs can delete inactive accounts > 2 years
 ```
@@ -143,27 +146,27 @@ Map your application context to the Eunomia input schema:
 {
   "caller": {
     "type": "user|spiffe|api_key|anonymous",
-    
+
     // User fields (map from your auth token/session)
     "user_id": "from: jwt.sub",
     "email": "from: jwt.email",
     "roles": "from: jwt.roles or database lookup",
     "tenant_id": "from: jwt.tenant_id",
-    
+
     // Service fields (map from SPIFFE/mTLS)
     "service_name": "from: SPIFFE ID",
     "trust_domain": "from: SPIFFE ID",
-    
+
     // API key fields (map from key validation)
     "key_id": "from: database lookup",
     "scopes": "from: database lookup"
   },
-  
+
   "service": "your-service-name",
   "operation_id": "from: OpenAPI operationId or method name",
   "method": "from: HTTP method",
   "path": "from: HTTP path",
-  
+
   "context": {
     // Application-specific data
     "resource_id": "from: path params",
@@ -197,12 +200,12 @@ Phase 1 - Shadow Mode (Week 1-2):
   - Log both decisions
   - Compare results
   - Fix discrepancies
-  
+
 Phase 2 - Canary (Week 3):
   - Route 5% of traffic through Eunomia
   - Monitor for errors/latency
   - Gradually increase to 25%
-  
+
 Phase 3 - Majority (Week 4):
   - Route 75% through Eunomia
   - Keep fallback to old system
@@ -223,6 +226,7 @@ Phase 4 - Complete (Week 5+):
 #### If-Else Chains to Rego
 
 **Before (Pseudocode):**
+
 ```python
 def can_delete_user(caller, target_user):
     if caller.role == "admin":
@@ -235,6 +239,7 @@ def can_delete_user(caller, target_user):
 ```
 
 **After (Rego):**
+
 ```rego
 package users_service.authz
 
@@ -270,12 +275,14 @@ allow if {
 #### Permission Lookups to Data
 
 **Before (Database):**
+
 ```sql
-SELECT permission FROM role_permissions 
+SELECT permission FROM role_permissions
 WHERE role = :user_role AND permission = :required_permission;
 ```
 
 **After (data.json):**
+
 ```json
 {
   "role_permissions": {
@@ -287,6 +294,7 @@ WHERE role = :user_role AND permission = :required_permission;
 ```
 
 **Rego:**
+
 ```rego
 import data.role_permissions
 
@@ -306,6 +314,7 @@ required_permission := "users:read" if input.operation_id in {"getUser", "listUs
 If your authorization requires database lookups:
 
 **Option 1: Include in Input Context**
+
 ```rust
 // Application code builds rich context
 let context = json!({
@@ -322,6 +331,7 @@ let input = json!({
 ```
 
 **Option 2: Bundle Static Data**
+
 ```json
 // data.json - bundled with policy
 {
@@ -337,6 +347,7 @@ let input = json!({
 ```
 
 **Option 3: OPA Bundle Data API (Advanced)**
+
 ```rego
 // Fetch from external data source (OPA feature)
 resource := http.send({
@@ -380,10 +391,10 @@ Run both authorization systems in parallel:
 async fn authorize(&self, request: &AuthRequest) -> AuthResult {
     // Run old system (source of truth during migration)
     let old_result = self.old_auth.check(request).await?;
-    
+
     // Run Eunomia in parallel
     let new_result = self.eunomia.evaluate(request).await;
-    
+
     // Compare and log discrepancies
     if old_result.allowed != new_result.allowed {
         log::warn!(
@@ -394,7 +405,7 @@ async fn authorize(&self, request: &AuthRequest) -> AuthResult {
         );
         self.metrics.auth_mismatch.inc();
     }
-    
+
     // Return old result during shadow phase
     old_result
 }
@@ -421,7 +432,7 @@ eunomia test policies/ --fixtures migration_baseline_fixtures.json
 async fn authorize(&self, request: &AuthRequest) -> AuthResult {
     let use_eunomia = self.feature_flags
         .get_percentage("eunomia_enabled", request.user_id);
-    
+
     if use_eunomia {
         self.eunomia.evaluate(request).await
     } else {
@@ -455,8 +466,7 @@ Rollback Triggers:
   - Mismatch rate > 0.1% (during shadow)
   - Any security incident
 
-Rollback Steps:
-  1. Set feature flag to 0%
+Rollback Steps: 1. Set feature flag to 0%
   2. Verify traffic using old system
   3. Investigate root cause
   4. Fix and re-test
@@ -470,12 +480,14 @@ Rollback Steps:
 ### 7.1 Spring Security to Eunomia
 
 **Before (Spring Security):**
+
 ```java
 @PreAuthorize("hasRole('ADMIN') or (hasRole('USER') and #userId == authentication.principal.id)")
 public User getUser(@PathVariable String userId) { ... }
 ```
 
 **After (Rego):**
+
 ```rego
 allow if {
     input.caller.type == "user"
@@ -494,18 +506,20 @@ allow if {
 ### 7.2 Express.js Middleware to Eunomia
 
 **Before (Express):**
+
 ```javascript
 const authorize = (requiredRoles) => (req, res, next) => {
-  if (!req.user) return res.status(401).send('Unauthorized');
-  const hasRole = requiredRoles.some(role => req.user.roles.includes(role));
-  if (!hasRole) return res.status(403).send('Forbidden');
+  if (!req.user) return res.status(401).send("Unauthorized");
+  const hasRole = requiredRoles.some((role) => req.user.roles.includes(role));
+  if (!hasRole) return res.status(403).send("Forbidden");
   next();
 };
 
-app.delete('/users/:id', authorize(['admin']), deleteUser);
+app.delete("/users/:id", authorize(["admin"]), deleteUser);
 ```
 
 **After (Rego):**
+
 ```rego
 allow if {
     input.caller.type == "user"
@@ -515,22 +529,23 @@ allow if {
 ```
 
 **Integration:**
+
 ```javascript
-const { EunomiaClient } = require('@eunomia/client');
+const { EunomiaClient } = require("@eunomia/client");
 
 const authorize = async (req, res, next) => {
   const decision = await eunomia.evaluate({
     caller: {
-      type: 'user',
+      type: "user",
       user_id: req.user?.id,
-      roles: req.user?.roles || []
+      roles: req.user?.roles || [],
     },
     operation_id: req.route.operationId,
     method: req.method,
     path: req.path,
-    context: req.params
+    context: req.params,
   });
-  
+
   if (!decision.allowed) {
     return res.status(403).json({ error: decision.reason });
   }
@@ -541,21 +556,25 @@ const authorize = async (req, res, next) => {
 ### 7.3 AWS IAM-Style to Eunomia
 
 **Before (IAM-style JSON):**
+
 ```json
 {
   "Version": "2012-10-17",
-  "Statement": [{
-    "Effect": "Allow",
-    "Action": ["users:Get*", "users:List*"],
-    "Resource": "arn:service:users:*:*:user/*",
-    "Condition": {
-      "StringEquals": {"users:department": "${aws:PrincipalTag/department}"}
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["users:Get*", "users:List*"],
+      "Resource": "arn:service:users:*:*:user/*",
+      "Condition": {
+        "StringEquals": { "users:department": "${aws:PrincipalTag/department}" }
+      }
     }
-  }]
+  ]
 }
 ```
 
 **After (Rego):**
+
 ```rego
 allow if {
     input.operation_id in {"getUser", "listUsers"}

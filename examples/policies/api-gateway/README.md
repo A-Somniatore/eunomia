@@ -13,21 +13,21 @@ This example demonstrates **scope-based authorization** for API keys with suppor
 
 ## Scopes
 
-| Scope | Description |
-|-------|-------------|
-| `users:read` | Read user information |
-| `users:write` | Create/update users |
-| `users:delete` | Delete users |
-| `orders:read` | Read orders |
-| `orders:write` | Create/cancel orders |
-| `products:read` | Read products |
-| `products:write` | Update products |
-| `products:delete` | Delete products |
-| `products:admin` | Full product management |
-| `analytics:read` | View analytics |
-| `analytics:export` | Export analytics data |
-| `analytics:admin` | Full analytics access |
-| `admin` | Full system access |
+| Scope              | Description             |
+| ------------------ | ----------------------- |
+| `users:read`       | Read user information   |
+| `users:write`      | Create/update users     |
+| `users:delete`     | Delete users            |
+| `orders:read`      | Read orders             |
+| `orders:write`     | Create/cancel orders    |
+| `products:read`    | Read products           |
+| `products:write`   | Update products         |
+| `products:delete`  | Delete products         |
+| `products:admin`   | Full product management |
+| `analytics:read`   | View analytics          |
+| `analytics:export` | Export analytics data   |
+| `analytics:admin`  | Full analytics access   |
+| `admin`            | Full system access      |
 
 ## Scope Hierarchy
 
@@ -49,16 +49,17 @@ admin
 
 ## Rate Limit Tiers
 
-| Tier | Requests/Minute | Requests/Day |
-|------|-----------------|--------------|
-| enterprise | 10,000 | 1,000,000 |
-| professional | 1,000 | 100,000 |
-| starter | 100 | 10,000 |
-| default | 10 | 1,000 |
+| Tier         | Requests/Minute | Requests/Day |
+| ------------ | --------------- | ------------ |
+| enterprise   | 10,000          | 1,000,000    |
+| professional | 1,000           | 100,000      |
+| starter      | 100             | 10,000       |
+| default      | 10              | 1,000        |
 
 ## Usage
 
 Run tests:
+
 ```bash
 eunomia test examples/policies/api-gateway/
 ```
@@ -66,6 +67,7 @@ eunomia test examples/policies/api-gateway/
 ## Example Requests
 
 **API key with read scope (allowed):**
+
 ```json
 {
   "caller": {
@@ -81,6 +83,7 @@ eunomia test examples/policies/api-gateway/
 ```
 
 **Expired API key (denied):**
+
 ```json
 {
   "caller": {
@@ -96,6 +99,7 @@ eunomia test examples/policies/api-gateway/
 ```
 
 **Operation requiring multiple scopes:**
+
 ```json
 {
   "caller": {

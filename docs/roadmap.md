@@ -595,21 +595,25 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 - [x] Design gRPC API (protobuf)
   > **Completed**: Created `proto/control_plane.proto` with:
+  >
   > - `ControlPlane` service: DeployPolicy, RollbackPolicy, GetPolicyStatus, ListInstances, etc.
   > - `PolicyReceiver` service: UpdatePolicy, GetCurrentPolicy, HealthCheck
   > - Comprehensive message types for deployment operations
 - [x] Add deployment state tracking
   > **Completed**: Created `state.rs` with:
+  >
   > - `DeploymentState` enum: Pending, InProgress, Completed, Failed, RolledBack, Cancelled
   > - `DeploymentInfo` for tracking deployment metadata
   > - `DeploymentTracker` for async state management
 - [x] Implement health checks
   > **Completed**: Created `health.rs` with:
+  >
   > - `HealthState` enum for instance health status
   > - `HealthCheck` struct with policy version tracking
   > - `HealthTracker` for managing health state transitions
 - [x] Create control plane service scaffold
   > **Completed**: Created `eunomia-distributor` crate with:
+  >
   > - `Distributor` main struct with deployment logic
   > - Deployment strategies: Immediate, Canary, Rolling
   > - `PolicyPusher` for pushing bundles to instances
@@ -617,6 +621,7 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > - 99 tests passing
 - [x] Implement bundle management endpoints (gRPC server implementation)
   > **Completed (2026-01-06)**: Created `grpc` module with tonic services:
+  >
   > - `ControlPlaneService`: DeployPolicy, RollbackPolicy, GetPolicyStatus, ListInstances
   > - `PolicyReceiverService`: UpdatePolicy, GetCurrentPolicy, HealthCheck
   > - `GrpcServer`: Configurable server with keepalive, message sizes
@@ -629,23 +634,27 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 - [x] Track Archimedes instances
   > **Completed**: Created `instance.rs` with:
+  >
   > - `Instance` struct with id, endpoint, metadata, status
   > - `InstanceEndpoint` for host/port/TLS configuration
   > - `InstanceMetadata` for K8s labels, annotations, namespace
   > - `InstanceStatus` enum for health tracking
 - [x] Add instance health monitoring
   > **Completed**: Health monitoring integrated into `Distributor`:
+  >
   > - `PolicyPusher::health_check()` for individual instances
   > - `HealthTracker` for state transitions
   > - Configurable thresholds (healthy_threshold, unhealthy_threshold)
 - [x] Implement instance grouping
   > **Completed**: Created `discovery.rs` with:
+  >
   > - `Discovery` trait for pluggable discovery sources
   > - `StaticDiscovery` for manual endpoint configuration
   > - `CombinedDiscovery` for aggregating multiple sources
   > - `CachedDiscovery` for TTL-based caching
 - [x] Implement DNS service discovery
   > **Completed**: Created `DnsDiscovery` with:
+  >
   > - Uses hickory-resolver for DNS lookups
   > - Supports A (IPv4) and AAAA (IPv6) records
   > - Custom resolver configuration support
@@ -663,31 +672,37 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 - [x] Implement push scheduler
   > **Completed**: Created `scheduler.rs` with:
+  >
   > - `DeploymentScheduler` with max concurrent deployments
   > - `DeploymentPriority` enum: Low, Normal, High, Critical
   > - Queue management with capacity limits
 - [x] Add parallel distribution
   > **Completed**: Distributor uses tokio for concurrent pushes:
+  >
   > - `deploy_immediate()` pushes to all instances in parallel
   > - `deploy_canary()` validates subset before full rollout
   > - `deploy_rolling()` processes in batches
 - [x] Implement acknowledgment handling
   > **Completed**: `PushResult` tracks success/failure per instance:
+  >
   > - Attempt counting for retry tracking
   > - Duration measurement for latency monitoring
   > - Error messages preserved for debugging
 - [x] Add retry logic with exponential backoff
   > **Completed**: `PolicyPusher::push()` implements:
+  >
   > - Configurable max_retries
   > - Retry delay between attempts
   > - `is_retryable()` check for transient errors
 - [x] Track distribution status
   > **Completed**: `DeploymentTracker` provides:
+  >
   > - Per-instance result tracking
   > - Service-level status aggregation
   > - Active deployment listing
 - [x] Add `eunomia push` CLI command
   > **Completed**: Full CLI implementation with:
+  >
   > - Immediate, canary, and rolling deployment strategies
   > - Static endpoint discovery (--endpoints flag)
   > - Dry-run mode for deployment preview
@@ -711,6 +726,7 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 > - **Architecture Review (2026-01-07)**: Grade B+. All immediate fixes applied.
 >
 > **Deferred to E4 integration:**
+>
 > - Kubernetes service discovery (when K8s cluster available for testing)
 > - gRPC integration tests (Week 17)
 
@@ -743,6 +759,7 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 - [x] Create comprehensive policy authoring guide
   > **Completed**: Created `docs/policy-authoring-guide.md` with:
+  >
   > - Getting started section with CLI installation
   > - Policy structure and naming conventions
   > - Input schema documentation with all caller types
@@ -752,12 +769,14 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > - Quick reference for CLI commands and input fields
 - [x] Build example policy repository with common patterns
   > **Completed**: Added three comprehensive examples:
+  >
   > - `examples/policies/rbac-service/` - RBAC with hierarchical roles
   > - `examples/policies/multi-tenant/` - Multi-tenant SaaS with isolation
   > - `examples/policies/api-gateway/` - Scope-based API key authorization
   > - All examples include authz.rego, authz_test.rego, and README.md
 - [x] Document testing best practices
   > **Completed**: Enhanced `docs/testing-guide.md` with:
+  >
   > - Test role hierarchies (#6)
   > - Test tenant isolation for multi-tenant apps (#7)
   > - Test scope requirements for API keys (#8)
@@ -765,6 +784,7 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > - Comprehensive coverage checklist (#10)
 - [x] Create policy migration guide for existing services
   > **Completed**: Created `docs/migration-guide.md` with:
+  >
   > - Migration overview with stages diagram
   > - Assessment phase with inventory template
   > - Design phase with input schema mapping
@@ -801,6 +821,7 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
 
 - [x] Test bundle push to Archimedes instances
   > **Completed (2026-01-07)**: Added 10 integration tests for `PolicyPusher`:
+  >
   > - Push to healthy/unhealthy/unreachable instances
   > - Parallel push to multiple instances (5 concurrent)
   > - Retry logic on connection failures
@@ -814,6 +835,7 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > Added `is_tls_enabled()` and `is_mtls_enabled()` methods with 4 unit tests.
 - [x] Test hot-reload scenarios
   > **Completed (2026-01-07)**: Added 6 integration tests for hot-reload:
+  >
   > - Sequential version updates (v1.0.0 → v2.0.0)
   > - Rapid updates (10 consecutive versions)
   > - Force flag for emergency rollback
@@ -821,6 +843,7 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > - Same version idempotent update
 - [x] Validate signature verification
   > **Completed (2026-01-07)**: 10 existing tests in `eunomia-core` signing module:
+  >
   > - Key generation and serialization
   > - Sign/verify bundle roundtrip
   > - Wrong key rejection
@@ -828,6 +851,7 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > - Multiple signatures support
 - [x] **Add gRPC integration tests with mock Archimedes** (from arch review)
   > **Completed (2026-01-07)**: Added 17 integration tests covering:
+  >
   > - Control Plane Service: deploy, rollback, status, list instances
   > - Policy Receiver Service: update, checksum validation, health checks
   > - Type conversions and server configuration
@@ -836,6 +860,7 @@ Eunomia is the authorization policy platform for the Themis ecosystem. Developme
   > Server uses `serve_with_shutdown()` with signal handler support.
 
 **Week 17 Test Summary:**
+
 - gRPC integration tests: 31 tests (including 10 new push tests, 6 hot-reload tests)
 - Signing tests: 10 tests
 - Distributor unit tests: 24 tests (existing)
@@ -883,35 +908,35 @@ These items MUST be completed before tagging v1.0.0:
 
 ### Security Requirements
 
-| Task | Effort | Priority | Status |
-|------|--------|----------|--------|
-| Security audit for bundle signing | 4 hrs | Critical | ⏳ Pending |
-| Add rate limiting to gRPC endpoints | 4 hrs | High | ⏳ Pending |
-| mTLS verification testing | 2 hrs | High | ⏳ Pending |
+| Task                                | Effort | Priority | Status     |
+| ----------------------------------- | ------ | -------- | ---------- |
+| Security audit for bundle signing   | 4 hrs  | Critical | ⏳ Pending |
+| Add rate limiting to gRPC endpoints | 4 hrs  | High     | ⏳ Pending |
+| mTLS verification testing           | 2 hrs  | High     | ⏳ Pending |
 
 ### Observability Requirements
 
-| Task | Effort | Priority | Status |
-|------|--------|----------|--------|
-| Add OpenTelemetry metrics | 8 hrs | High | ⏳ Pending |
-| Establish performance benchmarks | 4 hrs | Medium | ⏳ Pending |
-| Define latency SLOs for operations | 2 hrs | Medium | ⏳ Pending |
+| Task                               | Effort | Priority | Status     |
+| ---------------------------------- | ------ | -------- | ---------- |
+| Add OpenTelemetry metrics          | 8 hrs  | High     | ⏳ Pending |
+| Establish performance benchmarks   | 4 hrs  | Medium   | ⏳ Pending |
+| Define latency SLOs for operations | 2 hrs  | Medium   | ⏳ Pending |
 
 ### Operational Requirements
 
-| Task | Effort | Priority | Status |
-|------|--------|----------|--------|
-| Kubernetes service discovery | 8 hrs | Medium | ⏳ Pending |
-| Graceful shutdown for gRPC server | 2 hrs | Medium | ✅ Complete |
-| Cross-platform testing (Linux, macOS, Windows) | 4 hrs | Medium | ⏳ Pending |
+| Task                                           | Effort | Priority | Status      |
+| ---------------------------------------------- | ------ | -------- | ----------- |
+| Kubernetes service discovery                   | 8 hrs  | Medium   | ⏳ Pending  |
+| Graceful shutdown for gRPC server              | 2 hrs  | Medium   | ✅ Complete |
+| Cross-platform testing (Linux, macOS, Windows) | 4 hrs  | Medium   | ⏳ Pending  |
 
 ### Documentation Requirements
 
-| Task | Effort | Priority | Status |
-|------|--------|----------|--------|
-| Production deployment guide | 4 hrs | High | ⏳ Pending |
-| Troubleshooting runbook | 3 hrs | High | ⏳ Pending |
-| Performance tuning guide | 2 hrs | Medium | ⏳ Pending |
+| Task                        | Effort | Priority | Status     |
+| --------------------------- | ------ | -------- | ---------- |
+| Production deployment guide | 4 hrs  | High     | ⏳ Pending |
+| Troubleshooting runbook     | 3 hrs  | High     | ⏳ Pending |
+| Performance tuning guide    | 2 hrs  | Medium   | ⏳ Pending |
 
 ---
 

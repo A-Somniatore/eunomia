@@ -15,10 +15,12 @@ such as Identity Providers (IdP), user attribute stores, and dynamic configurati
 ### Problem Statement
 
 Currently, policies can only use:
+
 1. Static data bundled with the policy (`data.json`)
 2. Request-time input provided by Archimedes
 
 For production use cases, policies often need:
+
 - Dynamic user attributes from IdP (roles, groups, permissions)
 - Resource ownership data from databases
 - Feature flags and dynamic configuration
@@ -70,6 +72,7 @@ Control plane pushes data updates to Archimedes instances:
 ```
 
 **Flow**:
+
 1. Eunomia control plane polls external data sources (or receives webhooks)
 2. Control plane pushes data updates to Archimedes instances
 3. Archimedes merges data into OPA's data store
@@ -86,7 +89,8 @@ user_roles := http.send({
 }).body.roles
 ```
 
-**Cons**: 
+**Cons**:
+
 - Adds latency to every authorization decision
 - Creates runtime dependency on external services
 - Can cause cascading failures
@@ -136,14 +140,14 @@ external_data:
         secret_ref: okta-api-key
       sync:
         interval: 5m
-        path: users.groups  # OPA data path
+        path: users.groups # OPA data path
       transform:
         # Map Okta groups to Eunomia roles
         mapping:
           "Engineering": ["developer", "viewer"]
           "Engineering-Leads": ["developer", "editor", "viewer"]
           "Platform": ["admin", "developer", "editor", "viewer"]
-    
+
     - name: feature-flags
       type: http
       endpoint: https://features.internal/api/v1/flags
@@ -214,20 +218,20 @@ pub struct OktaDataSource {
 impl ExternalDataSource for OktaDataSource {
     async fn sync(&self) -> Result<serde_json::Value, DataSyncError> {
         let users = self.client.list_users().await?;
-        
+
         let mut groups: HashMap<String, Vec<String>> = HashMap::new();
         for user in users {
             let user_groups = self.client.get_user_groups(&user.id).await?;
             groups.insert(user.id.clone(), user_groups);
         }
-        
+
         Ok(json!({ "groups": groups }))
     }
-    
+
     fn data_path(&self) -> &str {
         &self.config.data_path
     }
-    
+
     fn sync_interval(&self) -> Duration {
         self.config.sync_interval
     }
@@ -252,7 +256,7 @@ impl ExternalDataSource for LdapDataSource {
             "(objectClass=user)",
             &["memberOf", "sAMAccountName"],
         ).await?;
-        
+
         let mut user_groups: HashMap<String, Vec<String>> = HashMap::new();
         for entry in search {
             let username = entry.get("sAMAccountName")?;
@@ -262,7 +266,7 @@ impl ExternalDataSource for LdapDataSource {
                 .collect();
             user_groups.insert(username, groups);
         }
-        
+
         Ok(json!({ "ad_groups": user_groups }))
     }
 }
@@ -296,7 +300,7 @@ impl ExternalDataCache {
             .filter(|d| d.fetched_at.elapsed() < self.ttl)
             .map(|d| &d.value)
     }
-    
+
     pub fn set(&self, path: &str, value: serde_json::Value, version: u64) {
         let mut data = self.data.write().unwrap();
         data.insert(path.to_string(), CachedData {
@@ -346,29 +350,32 @@ allow if {
 
 ### 6.3 Data Freshness vs Security
 
-| Scenario | Recommended TTL | Notes |
-|----------|----------------|-------|
-| User group membership | 1-5 minutes | Balance freshness vs load |
-| Feature flags | 30s - 1 minute | Can be more frequent |
-| Role changes (security) | < 1 minute | Fast propagation for revocations |
-| Static config | 5-15 minutes | Rarely changes |
+| Scenario                | Recommended TTL | Notes                            |
+| ----------------------- | --------------- | -------------------------------- |
+| User group membership   | 1-5 minutes     | Balance freshness vs load        |
+| Feature flags           | 30s - 1 minute  | Can be more frequent             |
+| Role changes (security) | < 1 minute      | Fast propagation for revocations |
+| Static config           | 5-15 minutes    | Rarely changes                   |
 
 ---
 
 ## 7. Implementation Phases
 
 ### Phase 1: Post-MVP (E5)
+
 - [ ] Define `ExternalDataSource` trait
 - [ ] Implement HTTP data source (generic)
 - [ ] Add data push to Archimedes instances
 - [ ] Local caching in Archimedes
 
 ### Phase 2: IdP Integration (E6)
+
 - [ ] Okta integration
 - [ ] Azure AD / Entra ID integration
 - [ ] LDAP integration
 
 ### Phase 3: Advanced Features (E7+)
+
 - [ ] Webhook support for real-time updates
 - [ ] Data transformation pipelines
 - [ ] Audit logging for external data changes

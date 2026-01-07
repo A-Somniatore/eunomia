@@ -108,6 +108,13 @@ pub enum DistributorError {
         reason: String,
     },
 
+    /// Invalid operation attempted.
+    #[error("invalid operation: {reason}")]
+    InvalidOperation {
+        /// Reason the operation is invalid.
+        reason: String,
+    },
+
     /// Internal error.
     #[error("internal error: {0}")]
     Internal(String),
@@ -170,7 +177,7 @@ impl DistributorError {
     pub fn grpc_code(&self) -> i32 {
         match self {
             Self::NoInstancesFound { .. } | Self::DeploymentNotFound { .. } => 5, // NOT_FOUND
-            Self::PolicyRejected { .. } | Self::InvalidConfig { .. } => 3, // INVALID_ARGUMENT
+            Self::PolicyRejected { .. } | Self::InvalidConfig { .. } | Self::InvalidOperation { .. } => 3, // INVALID_ARGUMENT
             Self::DeploymentInProgress { .. } => 6,                        // ALREADY_EXISTS
             Self::Timeout { .. } => 4,                                     // DEADLINE_EXCEEDED
             Self::InstanceUnreachable { .. } | Self::Connection(_) | Self::Transport(_) => 14, // UNAVAILABLE

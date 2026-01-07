@@ -60,15 +60,17 @@ impl DistributorConfig {
                     ),
                 })
             }
-            DiscoverySource::Dns { hosts, port, resolver } => resolver
-                .as_ref()
-                .map_or_else(
-                    || Ok(Box::new(DnsDiscovery::new(hosts.clone(), *port)) as Box<dyn Discovery>),
-                    |resolver_addr| {
-                        DnsDiscovery::with_resolver(hosts.clone(), *port, resolver_addr)
-                            .map(|d| Box::new(d) as Box<dyn Discovery>)
-                    },
-                ),
+            DiscoverySource::Dns {
+                hosts,
+                port,
+                resolver,
+            } => resolver.as_ref().map_or_else(
+                || Ok(Box::new(DnsDiscovery::new(hosts.clone(), *port)) as Box<dyn Discovery>),
+                |resolver_addr| {
+                    DnsDiscovery::with_resolver(hosts.clone(), *port, resolver_addr)
+                        .map(|d| Box::new(d) as Box<dyn Discovery>)
+                },
+            ),
         }
     }
 }

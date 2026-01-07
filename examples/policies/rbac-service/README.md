@@ -16,31 +16,33 @@ Each role inherits permissions from roles below it.
 
 ## Operations
 
-| Operation | Required Role |
-|-----------|---------------|
-| `deleteUser` | admin |
-| `updateSystemSettings` | admin |
-| `viewAuditLog` | admin |
-| `banUser` | moderator |
-| `removeContent` | moderator |
-| `viewReports` | moderator |
-| `createContent` | editor |
-| `updateContent` | editor |
-| `deleteOwnContent` | editor |
-| `viewContent` | viewer |
-| `listContent` | viewer |
-| `getProfile` | viewer |
-| `viewPublicContent` | guest |
-| `viewPublicProfile` | guest |
+| Operation              | Required Role |
+| ---------------------- | ------------- |
+| `deleteUser`           | admin         |
+| `updateSystemSettings` | admin         |
+| `viewAuditLog`         | admin         |
+| `banUser`              | moderator     |
+| `removeContent`        | moderator     |
+| `viewReports`          | moderator     |
+| `createContent`        | editor        |
+| `updateContent`        | editor        |
+| `deleteOwnContent`     | editor        |
+| `viewContent`          | viewer        |
+| `listContent`          | viewer        |
+| `getProfile`           | viewer        |
+| `viewPublicContent`    | guest         |
+| `viewPublicProfile`    | guest         |
 
 ## Usage
 
 Run tests:
+
 ```bash
 eunomia test examples/policies/rbac-service/
 ```
 
 Build bundle:
+
 ```bash
 eunomia build \
   --dir examples/policies/rbac-service \
@@ -52,6 +54,7 @@ eunomia build \
 ## Example Requests
 
 **Admin deleting a user (allowed):**
+
 ```json
 {
   "caller": {
@@ -65,6 +68,7 @@ eunomia build \
 ```
 
 **Viewer trying to create content (denied):**
+
 ```json
 {
   "caller": {

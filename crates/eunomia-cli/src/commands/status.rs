@@ -78,10 +78,7 @@ pub fn run(args: &StatusArgs) -> Result<()> {
     Ok(())
 }
 
-fn read_deployment_state(
-    state_dir: &Path,
-    service_filter: Option<&str>,
-) -> Result<StatusSummary> {
+fn read_deployment_state(state_dir: &Path, service_filter: Option<&str>) -> Result<StatusSummary> {
     let state_file = state_dir.join("deployments.json");
 
     // If no state file exists, return empty status

@@ -4,13 +4,13 @@ This directory contains example authorization policies demonstrating common patt
 
 ## Quick Reference
 
-| Example | Pattern | Description |
-|---------|---------|-------------|
-| [rbac-service](./rbac-service/) | Role-Based Access Control | Hierarchical roles with inherited permissions |
-| [multi-tenant](./multi-tenant/) | Multi-Tenant SaaS | Tenant isolation, ownership, cross-tenant access |
-| [api-gateway](./api-gateway/) | API Key Authorization | Scopes, expiration, rate limiting tiers |
-| [users-service](./users-service/) | Basic Service | User/service/API key authentication |
-| [orders-service](./orders-service/) | Cross-Service Access | Service-to-service authorization |
+| Example                             | Pattern                   | Description                                      |
+| ----------------------------------- | ------------------------- | ------------------------------------------------ |
+| [rbac-service](./rbac-service/)     | Role-Based Access Control | Hierarchical roles with inherited permissions    |
+| [multi-tenant](./multi-tenant/)     | Multi-Tenant SaaS         | Tenant isolation, ownership, cross-tenant access |
+| [api-gateway](./api-gateway/)       | API Key Authorization     | Scopes, expiration, rate limiting tiers          |
+| [users-service](./users-service/)   | Basic Service             | User/service/API key authentication              |
+| [orders-service](./orders-service/) | Cross-Service Access      | Service-to-service authorization                 |
 
 ## Directory Structure
 

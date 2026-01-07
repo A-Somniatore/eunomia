@@ -27,15 +27,16 @@ Platform
 
 ## Operations
 
-| Category | Operations | Required Role |
-|----------|------------|---------------|
-| Admin | `inviteTenantMember`, `removeTenantMember`, `updateTenantSettings` | tenant_admin |
-| Member | `createResource`, `updateResource`, `deleteResource`, `shareResource` | tenant_member |
-| Viewer | `listResources`, `getResource`, `viewTenantProfile` | tenant_viewer |
+| Category | Operations                                                            | Required Role |
+| -------- | --------------------------------------------------------------------- | ------------- |
+| Admin    | `inviteTenantMember`, `removeTenantMember`, `updateTenantSettings`    | tenant_admin  |
+| Member   | `createResource`, `updateResource`, `deleteResource`, `shareResource` | tenant_member |
+| Viewer   | `listResources`, `getResource`, `viewTenantProfile`                   | tenant_viewer |
 
 ## Usage
 
 Run tests:
+
 ```bash
 eunomia test examples/policies/multi-tenant/
 ```
@@ -43,6 +44,7 @@ eunomia test examples/policies/multi-tenant/
 ## Example Requests
 
 **Tenant admin inviting a member (allowed):**
+
 ```json
 {
   "caller": {
@@ -59,6 +61,7 @@ eunomia test examples/policies/multi-tenant/
 ```
 
 **User accessing another tenant (denied):**
+
 ```json
 {
   "caller": {
@@ -75,6 +78,7 @@ eunomia test examples/policies/multi-tenant/
 ```
 
 **Accessing own resource (allowed):**
+
 ```json
 {
   "caller": {

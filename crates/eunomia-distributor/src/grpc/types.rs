@@ -480,10 +480,10 @@ mod tests {
             target_instances: vec![],
             reason: "test".to_string(),
         };
-        
+
         let json = serde_json::to_string(&request).unwrap();
         let parsed: DeployPolicyRequest = serde_json::from_str(&json).unwrap();
-        
+
         assert_eq!(parsed.service, "users");
         assert_eq!(parsed.version, "1.0.0");
     }
