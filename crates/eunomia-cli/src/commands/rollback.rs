@@ -230,10 +230,7 @@ fn parse_strategy(s: &str) -> Result<RollbackStrategy> {
     }
 }
 
-fn run_dry_run(
-    args: &RollbackArgs,
-    strategy: RollbackStrategy,
-) -> Result<()> {
+fn run_dry_run(args: &RollbackArgs, strategy: RollbackStrategy) -> Result<()> {
     // TODO: Connect to control plane and fetch deployment state
     // For now, return a placeholder plan
 
@@ -268,10 +265,7 @@ fn run_dry_run(
         for instance in &plan.instances {
             println!("  - {instance}");
         }
-        println!(
-            "Est. Duration:   {}ms",
-            plan.estimated_duration_ms
-        );
+        println!("Est. Duration:   {}ms", plan.estimated_duration_ms);
         if !plan.warnings.is_empty() {
             println!("\nWarnings:");
             for warning in &plan.warnings {
@@ -365,6 +359,7 @@ async fn execute_rollback(args: &RollbackArgs, strategy: RollbackStrategy) -> Re
 
     // Output results
     if args.output == "json" {
+        #[allow(clippy::cast_possible_truncation)]
         let output = RollbackResult {
             service: args.service.clone(),
             from_version: "unknown".to_string(), // Would come from state tracking
@@ -398,11 +393,10 @@ async fn execute_rollback(args: &RollbackArgs, strategy: RollbackStrategy) -> Re
             }
         }
 
+        println!();
         if result.failed == 0 {
-            println!();
             println!("✓ Rollback completed successfully.");
         } else {
-            println!();
             println!("⚠ Rollback completed with {} failures.", result.failed);
         }
     }
@@ -434,9 +428,18 @@ mod tests {
 
     #[test]
     fn test_parse_strategy_case_insensitive() {
-        assert_eq!(parse_strategy("IMMEDIATE").unwrap(), RollbackStrategy::Immediate);
-        assert_eq!(parse_strategy("Rolling").unwrap(), RollbackStrategy::Rolling);
-        assert_eq!(parse_strategy("TARGETED").unwrap(), RollbackStrategy::Targeted);
+        assert_eq!(
+            parse_strategy("IMMEDIATE").unwrap(),
+            RollbackStrategy::Immediate
+        );
+        assert_eq!(
+            parse_strategy("Rolling").unwrap(),
+            RollbackStrategy::Rolling
+        );
+        assert_eq!(
+            parse_strategy("TARGETED").unwrap(),
+            RollbackStrategy::Targeted
+        );
     }
 
     #[test]

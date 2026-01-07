@@ -307,10 +307,7 @@ impl EventBus {
     /// Returns the number of subscribers that received the event.
     /// If there are no subscribers, the event is dropped and 0 is returned.
     pub fn publish(&self, event: DeploymentEventData) -> usize {
-        match self.sender.send(event) {
-            Ok(count) => count,
-            Err(_) => 0, // No receivers
-        }
+        self.sender.send(event).unwrap_or(0)
     }
 
     /// Subscribes to receive events.
@@ -445,8 +442,14 @@ mod tests {
 
     #[test]
     fn test_event_type_display() {
-        assert_eq!(EventType::DeploymentStarted.to_string(), "deployment_started");
-        assert_eq!(EventType::RollbackCompleted.to_string(), "rollback_completed");
+        assert_eq!(
+            EventType::DeploymentStarted.to_string(),
+            "deployment_started"
+        );
+        assert_eq!(
+            EventType::RollbackCompleted.to_string(),
+            "rollback_completed"
+        );
     }
 
     #[test]

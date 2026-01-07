@@ -82,8 +82,9 @@ impl ControlPlane for ControlPlaneService {
 
         // Convert gRPC strategy to internal strategy
         #[allow(clippy::cast_sign_loss)]
-        let strategy = req.strategy.map_or_else(DeploymentStrategy::immediate, |s| {
-            match s.strategy_type {
+        let strategy = req
+            .strategy
+            .map_or_else(DeploymentStrategy::immediate, |s| match s.strategy_type {
                 GrpcStrategyType::Canary => DeploymentStrategy::canary(
                     s.canary_percentage.unsigned_abs(),
                     Duration::from_secs(s.batch_delay_seconds.unsigned_abs()),
@@ -97,8 +98,7 @@ impl ControlPlane for ControlPlaneService {
                 .with_max_failures(s.max_failures.unsigned_abs())
                 .with_auto_rollback(s.auto_rollback),
                 _ => DeploymentStrategy::immediate(),
-            }
-        });
+            });
 
         // Execute deployment
         let result = self
@@ -125,10 +125,7 @@ impl ControlPlane for ControlPlaneService {
                         .into_iter()
                         .map(|r| InstanceDeploymentResult {
                             instance_id: r.instance_id.clone(),
-                            success: matches!(
-                                r.status,
-                                crate::InstanceResultStatus::Success
-                            ),
+                            success: matches!(r.status, crate::InstanceResultStatus::Success),
                             error_message: match r.status {
                                 crate::InstanceResultStatus::Failed(e) => e,
                                 _ => String::new(),
@@ -182,10 +179,7 @@ impl ControlPlane for ControlPlaneService {
                         .into_iter()
                         .map(|r| InstanceDeploymentResult {
                             instance_id: r.instance_id.clone(),
-                            success: matches!(
-                                r.status,
-                                crate::InstanceResultStatus::Success
-                            ),
+                            success: matches!(r.status, crate::InstanceResultStatus::Success),
                             error_message: match r.status {
                                 crate::InstanceResultStatus::Failed(e) => e,
                                 _ => String::new(),
@@ -307,7 +301,9 @@ impl ControlPlane for ControlPlaneService {
                     let health = match inst.status.to_health_state() {
                         HealthState::Unknown => GrpcHealthState::Unknown,
                         HealthState::Healthy => GrpcHealthState::Healthy,
-                        HealthState::Unhealthy | HealthState::Unreachable => GrpcHealthState::Unhealthy,
+                        HealthState::Unhealthy | HealthState::Unreachable => {
+                            GrpcHealthState::Unhealthy
+                        }
                         HealthState::Degraded => GrpcHealthState::Degraded,
                     };
                     InstanceInfo {
@@ -315,7 +311,11 @@ impl ControlPlane for ControlPlaneService {
                         endpoint: format!("{}:{}", inst.endpoint.host, inst.endpoint.port),
                         services: inst.metadata.service.clone().into_iter().collect(),
                         health,
-                        policy_version: inst.status.policy_version().unwrap_or_default().to_string(),
+                        policy_version: inst
+                            .status
+                            .policy_version()
+                            .unwrap_or_default()
+                            .to_string(),
                         metadata: inst.metadata.labels.clone(),
                     }
                 })
@@ -334,7 +334,9 @@ impl ControlPlane for ControlPlaneService {
         debug!("GetInstanceHealth request: instance_id={}", req.instance_id);
 
         // For now, we don't have a direct get_instance method
-        Err(Status::unimplemented("get_instance_health not yet implemented"))
+        Err(Status::unimplemented(
+            "get_instance_health not yet implemented",
+        ))
     }
 
     type WatchDeploymentStream =
@@ -346,7 +348,10 @@ impl ControlPlane for ControlPlaneService {
         request: Request<WatchDeploymentRequest>,
     ) -> Result<Response<Self::WatchDeploymentStream>, Status> {
         let req = request.into_inner();
-        info!("WatchDeployment request: deployment_id={}", req.deployment_id);
+        info!(
+            "WatchDeployment request: deployment_id={}",
+            req.deployment_id
+        );
 
         // Subscribe to events filtered by deployment ID
         let subscriber = self.event_bus.subscribe();
@@ -363,7 +368,7 @@ impl ControlPlane for ControlPlaneService {
                             return Some((Ok(grpc_event), (sub, dep_id)));
                         }
                         Some(_) => continue, // Skip events for other deployments
-                        None => return None,  // Bus closed
+                        None => return None, // Bus closed
                     }
                 }
             },
@@ -463,7 +468,8 @@ impl<T: ControlPlane + Clone> Clone for ControlPlaneServiceServer<T> {
     }
 }
 
-impl<T: ControlPlane + Clone> tonic::codegen::Service<tonic::codegen::http::Request<tonic::body::BoxBody>>
+impl<T: ControlPlane + Clone>
+    tonic::codegen::Service<tonic::codegen::http::Request<tonic::body::BoxBody>>
     for ControlPlaneServiceServer<T>
 {
     type Response = tonic::codegen::http::Response<tonic::body::BoxBody>;

@@ -37,8 +37,11 @@ impl Default for RetryConfig {
 
 impl RetryConfig {
     /// Calculates the delay for a given attempt number using exponential backoff.
+    #[allow(clippy::cast_possible_truncation)]
     fn delay_for_attempt(&self, attempt: u32) -> Duration {
         // Exponential backoff: initial_delay * 2^attempt, capped at max_delay
+        // Note: Duration values in practice are much smaller than u64::MAX,
+        // so truncation is safe here.
         let base_delay_ms = self.initial_delay.as_millis() as u64;
         let exponential_ms = base_delay_ms
             .saturating_mul(2u64.saturating_pow(attempt))

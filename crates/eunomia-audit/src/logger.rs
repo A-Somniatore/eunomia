@@ -117,11 +117,7 @@ impl AuditLogger {
 
         for backend in &self.backends {
             if let Err(e) = backend.log(&json) {
-                error!(
-                    "Failed to log event to backend {}: {}",
-                    backend.name(),
-                    e
-                );
+                error!("Failed to log event to backend {}: {}", backend.name(), e);
             }
         }
 
@@ -322,9 +318,7 @@ mod tests {
     #[test]
     fn test_logger_with_in_memory_backend() {
         let backend = Arc::new(InMemoryBackend::new());
-        let logger = AuditLogger::builder()
-            .with_backend(backend.clone())
-            .build();
+        let logger = AuditLogger::builder().with_backend(backend.clone()).build();
 
         let event = PolicyEvent::created("users-service", "1.0.0", "user@example.com");
         logger.log(&event).unwrap();

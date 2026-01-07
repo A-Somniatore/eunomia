@@ -255,11 +255,7 @@ async fn test_hot_reload_rapid_updates() {
         };
 
         let response = service.update_policy(Request::new(request)).await;
-        assert!(
-            response.is_ok(),
-            "Update {} should succeed",
-            i
-        );
+        assert!(response.is_ok(), "Update {} should succeed", i);
         let resp = response.unwrap().into_inner();
         assert!(resp.success, "Update {} should report success", i);
     }
@@ -537,8 +533,8 @@ fn test_health_state_conversion() {
 /// Test pushing a policy bundle to a healthy instance.
 #[tokio::test]
 async fn test_bundle_push_to_healthy_instance() {
-    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
     use eunomia_distributor::instance::{Instance, InstanceMetadata, InstanceStatus};
+    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
 
     let pusher = PolicyPusher::new(PushConfig::default());
 
@@ -565,19 +561,17 @@ async fn test_bundle_push_to_healthy_instance() {
 /// Test pushing to multiple instances in parallel.
 #[tokio::test]
 async fn test_bundle_push_to_multiple_instances() {
-    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
     use eunomia_distributor::instance::{Instance, InstanceMetadata, InstanceStatus};
+    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
 
     let pusher = PolicyPusher::new(PushConfig::default());
 
     // Create multiple healthy instances
     let instances: Vec<Instance> = (1..=5)
         .map(|i| {
-            let mut inst = Instance::new(
-                format!("archimedes-{}", i),
-                format!("192.168.1.{}:9091", i),
-            )
-            .with_metadata(InstanceMetadata::for_service("users-service"));
+            let mut inst =
+                Instance::new(format!("archimedes-{}", i), format!("192.168.1.{}:9091", i))
+                    .with_metadata(InstanceMetadata::for_service("users-service"));
             inst.update_status(InstanceStatus::Healthy {
                 policy_version: Some("v1.0.0".to_string()),
                 last_check: std::time::Instant::now(),
@@ -610,8 +604,8 @@ async fn test_bundle_push_to_multiple_instances() {
 /// Test pushing to unreachable instance triggers retry logic.
 #[tokio::test]
 async fn test_bundle_push_retry_on_unreachable() {
-    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
     use eunomia_distributor::instance::{Instance, InstanceStatus};
+    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
 
     // Configure for quick retries
     let config = PushConfig::builder()
@@ -642,12 +636,10 @@ async fn test_bundle_push_retry_on_unreachable() {
 /// Test push with compression enabled.
 #[tokio::test]
 async fn test_bundle_push_with_compression() {
-    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
     use eunomia_distributor::instance::{Instance, InstanceMetadata, InstanceStatus};
+    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
 
-    let config = PushConfig::builder()
-        .compression(true)
-        .build();
+    let config = PushConfig::builder().compression(true).build();
     let pusher = PolicyPusher::new(config);
 
     let mut instance = Instance::new("archimedes-1", "localhost:9091")
@@ -666,8 +658,8 @@ async fn test_bundle_push_with_compression() {
 /// Test push with custom timeouts.
 #[tokio::test]
 async fn test_bundle_push_custom_timeouts() {
-    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
     use eunomia_distributor::instance::{Instance, InstanceMetadata, InstanceStatus};
+    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
 
     let config = PushConfig::builder()
         .connect_timeout(Duration::from_secs(5))
@@ -693,9 +685,9 @@ async fn test_bundle_push_custom_timeouts() {
 /// Test health check before push.
 #[tokio::test]
 async fn test_bundle_push_health_check_workflow() {
-    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
-    use eunomia_distributor::instance::{Instance, InstanceMetadata, InstanceStatus};
     use eunomia_distributor::health::HealthState;
+    use eunomia_distributor::instance::{Instance, InstanceMetadata, InstanceStatus};
+    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
 
     let pusher = PolicyPusher::new(PushConfig::default());
 
@@ -724,8 +716,8 @@ async fn test_bundle_push_health_check_workflow() {
 /// Test push to instance with no prior policy version.
 #[tokio::test]
 async fn test_bundle_push_initial_deployment() {
-    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
     use eunomia_distributor::instance::{Instance, InstanceMetadata, InstanceStatus};
+    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
 
     let pusher = PolicyPusher::new(PushConfig::default());
 
@@ -748,8 +740,8 @@ async fn test_bundle_push_initial_deployment() {
 /// Test push metrics (duration tracking).
 #[tokio::test]
 async fn test_bundle_push_tracks_duration() {
-    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
     use eunomia_distributor::instance::{Instance, InstanceStatus};
+    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
 
     let pusher = PolicyPusher::new(PushConfig::default());
 
@@ -770,8 +762,8 @@ async fn test_bundle_push_tracks_duration() {
 /// Test push to unhealthy instance.
 #[tokio::test]
 async fn test_bundle_push_to_unhealthy_instance() {
-    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
     use eunomia_distributor::instance::{Instance, InstanceStatus};
+    use eunomia_distributor::pusher::{PolicyPusher, PushConfig};
 
     let pusher = PolicyPusher::new(PushConfig::default());
 
@@ -797,7 +789,7 @@ async fn test_bundle_push_to_unhealthy_instance() {
 /// Test RollbackController deployment recording and version history.
 #[tokio::test]
 async fn test_rollback_controller_version_history() {
-    use eunomia_distributor::rollback::{RollbackController, RollbackConfig};
+    use eunomia_distributor::rollback::{RollbackConfig, RollbackController};
 
     let config = RollbackConfig::default();
     let controller = RollbackController::new(config);
@@ -826,7 +818,7 @@ async fn test_rollback_controller_version_history() {
 /// Test RollbackController auto-rollback trigger.
 #[tokio::test]
 async fn test_rollback_controller_auto_rollback_trigger() {
-    use eunomia_distributor::rollback::{RollbackController, RollbackConfig};
+    use eunomia_distributor::rollback::{RollbackConfig, RollbackController};
 
     let config = RollbackConfig::builder()
         .auto_rollback(true)
@@ -859,7 +851,7 @@ async fn test_rollback_controller_auto_rollback_trigger() {
 /// Test RollbackController validation.
 #[tokio::test]
 async fn test_rollback_controller_validation() {
-    use eunomia_distributor::rollback::{RollbackController, RollbackConfig, RollbackTrigger};
+    use eunomia_distributor::rollback::{RollbackConfig, RollbackController, RollbackTrigger};
 
     let config = RollbackConfig::default();
     let controller = RollbackController::new(config);
@@ -887,7 +879,7 @@ async fn test_rollback_controller_validation() {
 /// Test RollbackController with force flag bypasses validation.
 #[tokio::test]
 async fn test_rollback_controller_force_rollback() {
-    use eunomia_distributor::rollback::{RollbackController, RollbackConfig, RollbackTrigger};
+    use eunomia_distributor::rollback::{RollbackConfig, RollbackController, RollbackTrigger};
 
     let config = RollbackConfig::default();
     let controller = RollbackController::new(config);
@@ -909,7 +901,7 @@ async fn test_rollback_controller_force_rollback() {
 /// Test RollbackController cooldown prevents rapid rollbacks.
 #[tokio::test]
 async fn test_rollback_controller_cooldown() {
-    use eunomia_distributor::rollback::{RollbackController, RollbackConfig, RollbackResult};
+    use eunomia_distributor::rollback::{RollbackConfig, RollbackController, RollbackResult};
 
     let config = RollbackConfig::builder()
         .auto_rollback(true)
@@ -954,16 +946,14 @@ async fn test_rollback_controller_cooldown() {
 /// Test RollbackController with audit logging.
 #[tokio::test]
 async fn test_rollback_controller_audit_integration() {
-    use eunomia_distributor::rollback::{RollbackController, RollbackConfig, RollbackTrigger, RollbackResult};
     use eunomia_audit::{AuditLogger, InMemoryBackend};
+    use eunomia_distributor::rollback::{
+        RollbackConfig, RollbackController, RollbackResult, RollbackTrigger,
+    };
 
     let config = RollbackConfig::default();
     let backend = Arc::new(InMemoryBackend::new());
-    let logger = Arc::new(
-        AuditLogger::builder()
-            .with_backend(backend.clone())
-            .build(),
-    );
+    let logger = Arc::new(AuditLogger::builder().with_backend(backend.clone()).build());
 
     let controller = RollbackController::with_audit_logger(config, logger);
 
@@ -999,11 +989,11 @@ async fn test_rollback_controller_audit_integration() {
 /// Test EventBus integration with ControlPlaneService.
 #[tokio::test]
 async fn test_event_bus_control_plane_integration() {
-    use eunomia_distributor::events::{EventBus, DeploymentEventData};
+    use eunomia_distributor::events::{DeploymentEventData, EventBus};
 
     let distributor = create_test_distributor(vec![]).await;
     let event_bus = Arc::new(EventBus::new(100));
-    let service = ControlPlaneService::with_event_bus(distributor, event_bus.clone());
+    let _service = ControlPlaneService::with_event_bus(distributor, event_bus.clone());
 
     // Subscribe before publishing
     let mut subscriber = event_bus.subscribe();
@@ -1022,7 +1012,7 @@ async fn test_event_bus_control_plane_integration() {
 /// Test filtered event subscription.
 #[tokio::test]
 async fn test_event_bus_filtered_subscription() {
-    use eunomia_distributor::events::{EventBus, DeploymentEventData};
+    use eunomia_distributor::events::{DeploymentEventData, EventBus};
 
     let event_bus = EventBus::new(100);
 
@@ -1036,8 +1026,16 @@ async fn test_event_bus_filtered_subscription() {
         // Publish events for different deployments
         bus_clone.publish(DeploymentEventData::started("other-deploy", "svc1", "1.0"));
         bus_clone.publish(DeploymentEventData::started("target-deploy", "svc2", "2.0"));
-        bus_clone.publish(DeploymentEventData::completed("target-deploy", "svc2", "2.0"));
-        bus_clone.publish(DeploymentEventData::started("another-deploy", "svc3", "3.0"));
+        bus_clone.publish(DeploymentEventData::completed(
+            "target-deploy",
+            "svc2",
+            "2.0",
+        ));
+        bus_clone.publish(DeploymentEventData::started(
+            "another-deploy",
+            "svc3",
+            "3.0",
+        ));
     });
 
     // Should only receive target-deploy events
@@ -1052,11 +1050,9 @@ async fn test_event_bus_filtered_subscription() {
 /// Test RollbackResult tracking.
 #[tokio::test]
 async fn test_rollback_result_tracking() {
-    use eunomia_distributor::rollback::{RollbackController, RollbackConfig, RollbackResult};
+    use eunomia_distributor::rollback::{RollbackConfig, RollbackController, RollbackResult};
 
-    let config = RollbackConfig::builder()
-        .max_history_entries(5)
-        .build();
+    let config = RollbackConfig::builder().max_history_entries(5).build();
 
     let controller = RollbackController::new(config);
 

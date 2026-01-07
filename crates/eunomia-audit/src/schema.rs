@@ -264,7 +264,11 @@ pub fn distribution_event_schema() -> EventSchema {
     )
     .required("id", FieldType::Uuid, "Unique event identifier")
     .required("timestamp", FieldType::Timestamp, "Event timestamp")
-    .required("event_type", FieldType::String, "Type of distribution event")
+    .required(
+        "event_type",
+        FieldType::String,
+        "Type of distribution event",
+    )
     .required("service", FieldType::String, "Service name")
     .required("version", FieldType::String, "Bundle version")
     .required("outcome", FieldType::String, "Event outcome")
@@ -287,7 +291,11 @@ pub fn authorization_event_schema() -> EventSchema {
     .required("id", FieldType::Uuid, "Unique event identifier")
     .required("timestamp", FieldType::Timestamp, "Event timestamp")
     .required("service", FieldType::String, "Service name")
-    .required("operation_id", FieldType::String, "Operation being authorized")
+    .required(
+        "operation_id",
+        FieldType::String,
+        "Operation being authorized",
+    )
     .required("caller_type", FieldType::String, "Type of caller")
     .required("allowed", FieldType::Boolean, "Authorization decision")
     .optional("caller_id", FieldType::String, "Caller identifier")
@@ -328,14 +336,9 @@ mod tests {
 
     #[test]
     fn test_event_schema_creation() {
-        let schema = EventSchema::new(
-            "TestEvent",
-            "1.0.0",
-            "test.*",
-            "Test events",
-        )
-        .required("id", FieldType::Uuid, "Event ID")
-        .optional("details", FieldType::String, "Details");
+        let schema = EventSchema::new("TestEvent", "1.0.0", "test.*", "Test events")
+            .required("id", FieldType::Uuid, "Event ID")
+            .optional("details", FieldType::String, "Details");
 
         assert_eq!(schema.name, "TestEvent");
         assert_eq!(schema.version, "1.0.0");
@@ -389,8 +392,7 @@ mod tests {
 
     #[test]
     fn test_metadata_serialization() {
-        let metadata = AuditMetadata::with_source("test")
-            .environment("dev");
+        let metadata = AuditMetadata::with_source("test").environment("dev");
 
         let json = serde_json::to_string(&metadata).unwrap();
         assert!(json.contains("\"source\":\"test\""));

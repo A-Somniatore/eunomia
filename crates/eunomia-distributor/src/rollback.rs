@@ -133,9 +133,7 @@ impl RollbackConfigBuilder {
             auto_rollback_enabled: self
                 .auto_rollback_enabled
                 .unwrap_or(defaults.auto_rollback_enabled),
-            failure_threshold: self
-                .failure_threshold
-                .unwrap_or(defaults.failure_threshold),
+            failure_threshold: self.failure_threshold.unwrap_or(defaults.failure_threshold),
             failure_window: self.failure_window.unwrap_or(defaults.failure_window),
             cooldown_period: self.cooldown_period.unwrap_or(defaults.cooldown_period),
             max_history_entries: self
@@ -471,12 +469,7 @@ impl RollbackController {
     }
 
     /// Records a successful deployment for version tracking.
-    pub fn record_deployment(
-        &self,
-        service: &str,
-        version: &str,
-        deployment_id: &str,
-    ) {
+    pub fn record_deployment(&self, service: &str, version: &str, deployment_id: &str) {
         let mut state = self.state.write().unwrap();
 
         // Update current version
@@ -576,7 +569,12 @@ impl RollbackController {
 
     /// Gets the current version for a service.
     pub fn get_current_version(&self, service: &str) -> Option<String> {
-        self.state.read().unwrap().current_versions.get(service).cloned()
+        self.state
+            .read()
+            .unwrap()
+            .current_versions
+            .get(service)
+            .cloned()
     }
 
     /// Gets the version history for a service.
@@ -649,7 +647,8 @@ impl RollbackController {
         self.validate_rollback(trigger)?;
 
         // Get current version
-        let current_version = self.get_current_version(&trigger.service)
+        let current_version = self
+            .get_current_version(&trigger.service)
             .unwrap_or_else(|| "unknown".to_string());
 
         // Log rollback started
@@ -674,10 +673,7 @@ impl RollbackController {
         // Check if service has version history
         if !state.version_history.contains_key(&trigger.service) {
             return Err(DistributorError::InvalidOperation {
-                reason: format!(
-                    "no version history for service '{}'",
-                    trigger.service
-                ),
+                reason: format!("no version history for service '{}'", trigger.service),
             });
         }
 
@@ -787,8 +783,7 @@ mod tests {
 
     #[test]
     fn test_rollback_trigger_with_force() {
-        let trigger = RollbackTrigger::manual("users-service", "1.0.0", "Emergency")
-            .with_force();
+        let trigger = RollbackTrigger::manual("users-service", "1.0.0", "Emergency").with_force();
 
         assert!(trigger.force);
     }
@@ -896,9 +891,7 @@ mod tests {
 
     #[test]
     fn test_rollback_controller_auto_rollback_disabled() {
-        let config = RollbackConfig::builder()
-            .auto_rollback(false)
-            .build();
+        let config = RollbackConfig::builder().auto_rollback(false).build();
         let controller = RollbackController::new(config);
 
         controller.record_deployment("users-service", "1.0.0", "deploy-1");
@@ -915,9 +908,7 @@ mod tests {
 
     #[test]
     fn test_rollback_controller_health_success_clears_failures() {
-        let config = RollbackConfig::builder()
-            .failure_threshold(3)
-            .build();
+        let config = RollbackConfig::builder().failure_threshold(3).build();
         let controller = RollbackController::new(config);
 
         controller.record_deployment("users-service", "1.0.0", "deploy-1");
@@ -1033,11 +1024,7 @@ mod tests {
 
         let config = RollbackConfig::default();
         let backend = Arc::new(InMemoryBackend::new());
-        let logger = Arc::new(
-            AuditLogger::builder()
-                .with_backend(backend.clone())
-                .build(),
-        );
+        let logger = Arc::new(AuditLogger::builder().with_backend(backend.clone()).build());
 
         let controller = RollbackController::with_audit_logger(config, logger);
 
@@ -1089,11 +1076,7 @@ mod tests {
 
         // Add logger later
         let backend = Arc::new(InMemoryBackend::new());
-        let logger = Arc::new(
-            AuditLogger::builder()
-                .with_backend(backend.clone())
-                .build(),
-        );
+        let logger = Arc::new(AuditLogger::builder().with_backend(backend.clone()).build());
         controller.set_audit_logger(logger);
 
         // Now events should be logged

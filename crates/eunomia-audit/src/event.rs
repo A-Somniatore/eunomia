@@ -776,8 +776,7 @@ mod tests {
 
     #[test]
     fn test_distribution_event_deployment() {
-        let event =
-            DistributionEvent::deployment_started("users-service", "1.0.0", 3, "immediate");
+        let event = DistributionEvent::deployment_started("users-service", "1.0.0", 3, "immediate");
 
         assert_eq!(event.event_type, DistributionEventType::DeploymentStarted);
         assert_eq!(event.instance_count, Some(3));
@@ -807,10 +806,7 @@ mod tests {
         );
 
         assert!(!event.allowed);
-        assert_eq!(
-            event.reason,
-            Some("insufficient permissions".to_string())
-        );
+        assert_eq!(event.reason, Some("insufficient permissions".to_string()));
     }
 
     #[test]
