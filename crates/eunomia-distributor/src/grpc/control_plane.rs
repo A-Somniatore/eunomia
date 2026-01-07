@@ -12,30 +12,50 @@ use tonic::{Request, Response, Status};
 use tracing::{debug, info, instrument, warn};
 
 use super::types::{
-    DeployPolicyRequest, DeployPolicyResponse, DeploymentEvent,
+    DeployPolicyRequest, DeployPolicyResponse, DeploymentEvent, DeploymentEventType,
     DeploymentSummary, GetInstanceHealthRequest, GetPolicyStatusRequest, GrpcDeploymentState,
     GrpcHealthState, GrpcStrategyType, InstanceDeploymentResult, InstanceHealthResponse,
     InstanceInfo, InstancePolicyStatus, ListInstancesRequest, ListInstancesResponse,
     PolicyStatusResponse, RollbackPolicyRequest, RollbackPolicyResponse, WatchDeploymentRequest,
 };
+use crate::events::{DeploymentEventData, EventBus, EventType};
 use crate::{DeploymentState, DeploymentStrategy, Distributor, HealthState};
 
 /// Control Plane gRPC service implementation.
 #[derive(Clone)]
 pub struct ControlPlaneService {
     distributor: Arc<Distributor>,
+    event_bus: Arc<EventBus>,
 }
 
 impl std::fmt::Debug for ControlPlaneService {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.debug_struct("ControlPlaneService").finish_non_exhaustive()
+        f.debug_struct("ControlPlaneService")
+            .field("event_bus_subscribers", &self.event_bus.subscriber_count())
+            .finish_non_exhaustive()
     }
 }
 
 impl ControlPlaneService {
     /// Create a new Control Plane service.
     pub fn new(distributor: Arc<Distributor>) -> Self {
-        Self { distributor }
+        Self {
+            distributor,
+            event_bus: Arc::new(EventBus::default()),
+        }
+    }
+
+    /// Create a new Control Plane service with a shared event bus.
+    pub fn with_event_bus(distributor: Arc<Distributor>, event_bus: Arc<EventBus>) -> Self {
+        Self {
+            distributor,
+            event_bus,
+        }
+    }
+
+    /// Get a reference to the event bus.
+    pub fn event_bus(&self) -> &Arc<EventBus> {
+        &self.event_bus
     }
 
     /// Convert to a tonic service.
@@ -328,11 +348,55 @@ impl ControlPlane for ControlPlaneService {
         let req = request.into_inner();
         info!("WatchDeployment request: deployment_id={}", req.deployment_id);
 
-        // For now, return an empty stream
-        // TODO: Implement deployment event streaming
-        let stream = futures::stream::empty();
+        // Subscribe to events filtered by deployment ID
+        let subscriber = self.event_bus.subscribe();
+        let deployment_id = req.deployment_id.clone();
+
+        // Create a stream that filters and transforms events
+        let stream = futures::stream::unfold(
+            (subscriber, deployment_id),
+            |(mut sub, dep_id)| async move {
+                loop {
+                    match sub.recv().await {
+                        Some(event) if event.deployment_id == dep_id => {
+                            let grpc_event = convert_to_grpc_event(&event);
+                            return Some((Ok(grpc_event), (sub, dep_id)));
+                        }
+                        Some(_) => continue, // Skip events for other deployments
+                        None => return None,  // Bus closed
+                    }
+                }
+            },
+        );
 
         Ok(Response::new(Box::pin(stream)))
+    }
+}
+
+/// Convert internal event to gRPC event.
+fn convert_to_grpc_event(event: &DeploymentEventData) -> DeploymentEvent {
+    let event_type = match event.event_type {
+        EventType::DeploymentStarted => DeploymentEventType::Started,
+        EventType::InstanceUpdateStarted => DeploymentEventType::InstanceStarted,
+        EventType::InstanceUpdateCompleted => DeploymentEventType::InstanceCompleted,
+        EventType::InstanceUpdateFailed => DeploymentEventType::InstanceFailed,
+        EventType::InstanceSkipped => DeploymentEventType::InstanceCompleted, // Map to completed
+        EventType::BatchCompleted => DeploymentEventType::BatchCompleted,
+        EventType::CanaryValidationStarted => DeploymentEventType::CanaryValidationStarted,
+        EventType::CanaryValidationPassed => DeploymentEventType::CanaryValidationPassed,
+        EventType::CanaryValidationFailed => DeploymentEventType::Failed,
+        EventType::DeploymentCompleted => DeploymentEventType::Completed,
+        EventType::DeploymentFailed => DeploymentEventType::Failed,
+        EventType::RollbackStarted => DeploymentEventType::RollbackStarted,
+        EventType::RollbackCompleted => DeploymentEventType::Completed,
+    };
+
+    DeploymentEvent {
+        deployment_id: event.deployment_id.clone(),
+        event_type,
+        timestamp: event.timestamp,
+        instance_id: event.instance_id.clone().unwrap_or_default(),
+        message: event.message.clone(),
     }
 }
 

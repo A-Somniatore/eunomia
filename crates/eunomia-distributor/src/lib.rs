@@ -56,6 +56,7 @@
 pub mod config;
 pub mod discovery;
 pub mod error;
+pub mod events;
 pub mod grpc;
 pub mod health;
 pub mod instance;
@@ -69,6 +70,7 @@ pub mod strategy;
 pub use config::DistributorConfig;
 pub use discovery::{Discovery, DiscoverySource, DnsDiscovery, StaticDiscovery};
 pub use error::{DistributorError, Result};
+pub use events::{DeploymentEventData, EventBus, EventSubscriber, EventType, FilteredSubscriber};
 pub use health::{HealthCheck, HealthConfig, HealthState};
 pub use instance::{Instance, InstanceId, InstanceMetadata, InstanceStatus};
 pub use pusher::{PolicyPusher, PushConfig, PushResult};
