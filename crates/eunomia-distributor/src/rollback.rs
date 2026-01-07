@@ -29,6 +29,7 @@ use std::sync::{Arc, RwLock};
 use std::time::{Duration, Instant};
 
 use chrono::{DateTime, Utc};
+use eunomia_audit::{AuditLogger, DistributionEvent};
 use serde::{Deserialize, Serialize};
 
 use crate::error::{DistributorError, Result};
@@ -394,6 +395,7 @@ impl RollbackState {
 pub struct RollbackController {
     config: RollbackConfig,
     state: Arc<RwLock<RollbackState>>,
+    audit_logger: Option<Arc<AuditLogger>>,
 }
 
 impl RollbackController {
@@ -402,6 +404,49 @@ impl RollbackController {
         Self {
             config,
             state: Arc::new(RwLock::new(RollbackState::new())),
+            audit_logger: None,
+        }
+    }
+
+    /// Creates a new rollback controller with an audit logger.
+    pub fn with_audit_logger(config: RollbackConfig, logger: Arc<AuditLogger>) -> Self {
+        Self {
+            config,
+            state: Arc::new(RwLock::new(RollbackState::new())),
+            audit_logger: Some(logger),
+        }
+    }
+
+    /// Sets the audit logger for rollback event logging.
+    pub fn set_audit_logger(&mut self, logger: Arc<AuditLogger>) {
+        self.audit_logger = Some(logger);
+    }
+
+    /// Logs a rollback started event.
+    fn log_rollback_started(&self, service: &str, from_version: &str, to_version: &str) {
+        if let Some(logger) = &self.audit_logger {
+            let event = DistributionEvent::rollback_started(service, from_version, to_version);
+            if let Err(e) = logger.log(&event) {
+                tracing::warn!(
+                    error = %e,
+                    service = %service,
+                    "failed to log rollback started event"
+                );
+            }
+        }
+    }
+
+    /// Logs a rollback completed event.
+    fn log_rollback_completed(&self, service: &str, version: &str, success: bool) {
+        if let Some(logger) = &self.audit_logger {
+            let event = DistributionEvent::rollback_completed(service, version, success);
+            if let Err(e) = logger.log(&event) {
+                tracing::warn!(
+                    error = %e,
+                    service = %service,
+                    "failed to log rollback completed event"
+                );
+            }
         }
     }
 
@@ -543,7 +588,13 @@ impl RollbackController {
     }
 
     /// Records a completed rollback.
+    ///
+    /// This method updates the internal state and logs the rollback completion
+    /// to the audit logger if configured.
     pub fn record_rollback(&self, result: RollbackResult) {
+        // Log rollback completion
+        self.log_rollback_completed(&result.service, &result.to_version, result.success);
+
         let mut state = self.state.write().unwrap();
 
         // If successful, update current version
@@ -567,6 +618,33 @@ impl RollbackController {
         while state.rollback_history.len() > self.config.max_history_entries * 10 {
             state.rollback_history.remove(0);
         }
+    }
+
+    /// Prepares and validates a rollback, logging the start event.
+    ///
+    /// Call this before executing the actual rollback to validate and log.
+    /// Returns the current version being rolled back from.
+    pub fn prepare_rollback(&self, trigger: &RollbackTrigger) -> Result<String> {
+        // Validate first
+        self.validate_rollback(trigger)?;
+
+        // Get current version
+        let current_version = self.get_current_version(&trigger.service)
+            .unwrap_or_else(|| "unknown".to_string());
+
+        // Log rollback started
+        self.log_rollback_started(&trigger.service, &current_version, &trigger.target_version);
+
+        tracing::info!(
+            service = %trigger.service,
+            from_version = %current_version,
+            to_version = %trigger.target_version,
+            reason = %trigger.reason,
+            is_automatic = trigger.is_automatic,
+            "rollback initiated"
+        );
+
+        Ok(current_version)
     }
 
     /// Validates that a rollback can be performed.
@@ -927,5 +1005,92 @@ mod tests {
 
         let parsed: VersionHistory = serde_json::from_str(&json).unwrap();
         assert_eq!(parsed.version, "1.0.0");
+    }
+
+    #[test]
+    fn test_rollback_controller_with_audit_logger() {
+        use eunomia_audit::{InMemoryBackend, TracingBackend};
+
+        let config = RollbackConfig::default();
+        let backend = Arc::new(InMemoryBackend::new());
+        let logger = Arc::new(
+            AuditLogger::builder()
+                .with_backend(backend.clone())
+                .build(),
+        );
+
+        let controller = RollbackController::with_audit_logger(config, logger);
+
+        // Record deployments
+        controller.record_deployment("users-service", "1.0.0", "deploy-1");
+        controller.record_deployment("users-service", "1.1.0", "deploy-2");
+
+        // Prepare rollback (logs started event)
+        let trigger = RollbackTrigger::manual("users-service", "1.0.0", "Test audit logging");
+        let from_version = controller.prepare_rollback(&trigger).unwrap();
+        assert_eq!(from_version, "1.1.0");
+
+        // Record rollback (logs completed event)
+        let result = RollbackResult::success(
+            "rollback-1",
+            "users-service",
+            "1.1.0",
+            "1.0.0",
+            3,
+            Duration::from_secs(5),
+            "Test audit logging",
+            false,
+        );
+        controller.record_rollback(result);
+
+        // Verify audit events were logged
+        let events = backend.events();
+        assert_eq!(events.len(), 2);
+
+        // First event should be rollback started
+        assert!(events[0].contains("rollback_started"));
+        assert!(events[0].contains("users-service"));
+
+        // Second event should be rollback completed
+        assert!(events[1].contains("rollback_completed"));
+        assert!(events[1].contains("users-service"));
+    }
+
+    #[test]
+    fn test_rollback_controller_set_audit_logger() {
+        use eunomia_audit::InMemoryBackend;
+
+        let config = RollbackConfig::default();
+        let mut controller = RollbackController::new(config);
+
+        // Initially no logger
+        controller.record_deployment("svc", "1.0.0", "d-1");
+        controller.record_deployment("svc", "2.0.0", "d-2");
+
+        // Add logger later
+        let backend = Arc::new(InMemoryBackend::new());
+        let logger = Arc::new(
+            AuditLogger::builder()
+                .with_backend(backend.clone())
+                .build(),
+        );
+        controller.set_audit_logger(logger);
+
+        // Now events should be logged
+        let result = RollbackResult::success(
+            "rb-1",
+            "svc",
+            "2.0.0",
+            "1.0.0",
+            1,
+            Duration::from_secs(1),
+            "Test",
+            false,
+        );
+        controller.record_rollback(result);
+
+        let events = backend.events();
+        assert_eq!(events.len(), 1);
+        assert!(events[0].contains("rollback_completed"));
     }
 }

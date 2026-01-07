@@ -97,6 +97,27 @@ match caller {
 
 ---
 
+## 🔧 Architecture Review Tech Debt (2026-01-07)
+
+> **Source**: Senior Architect Review
+> **Status**: Tracked for future work
+
+### P1 - Eunomia-Specific Items
+
+| Item | Description | Status |
+|------|-------------|--------|
+| **OPA Bundle Format** | Ensure `eunomia-compiler` output is compatible with `archimedes-authz` loader | ⏳ Backlog |
+| **Registry Topology** | Document whether Eunomia registry is same as Themis registry or separate | ⏳ Backlog |
+
+### P2 - Cross-Component Items
+
+| Item | Description | Owner |
+|------|-------------|-------|
+| **gRPC vs HTTP Push** | Clarify Eunomia→Archimedes push protocol (ADR-006 says gRPC post-MVP) | Platform |
+| **Health Check Standardization** | Define standard health check pattern for K8s deployment | Platform |
+
+---
+
 ## Key Decisions
 
 | Decision                                                         | Impact                                              |

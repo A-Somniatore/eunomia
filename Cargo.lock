@@ -668,6 +668,7 @@ version = "0.1.0"
 dependencies = [
  "async-trait",
  "chrono",
+ "eunomia-audit",
  "eunomia-core",
  "eunomia-registry",
  "futures",
@@ -2806,7 +2807,8 @@ dependencies = [
 
 [[package]]
 name = "themis-platform-types"
-version = "0.2.0"
+version = "0.1.0"
+source = "git+https://github.com/A-Somniatore/themis-platform-types?branch=main#88f4ea2f291a132a03c589f80d925e34cc1ec870"
 dependencies = [
  "chrono",
  "serde",

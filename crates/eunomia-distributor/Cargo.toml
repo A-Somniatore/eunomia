@@ -10,6 +10,7 @@ authors.workspace = true
 [dependencies]
 eunomia-core = { workspace = true }
 eunomia-registry = { workspace = true }
+eunomia-audit = { workspace = true }
 
 # Async runtime
 tokio = { workspace = true }

@@ -89,10 +89,7 @@ async-trait = "0.1"
 futures = "0.3"
 
 # Shared platform types (from Themis team)
-# NOTE: In production CI, this should use a git reference:
-#   themis-platform-types = { git = "https://github.com/A-Somniatore/themis-platform-types", tag = "v0.2.0" }
-# Path reference is used for local monorepo development.
-themis-platform-types = { path = "../themis-platform-types" }
+themis-platform-types = { git = "https://github.com/A-Somniatore/themis-platform-types", branch = "main" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
