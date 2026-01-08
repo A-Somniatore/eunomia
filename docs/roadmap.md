@@ -1162,7 +1162,7 @@ cargo doc --no-deps         # ✓ Docs build
     - [x] Add alerting rules and installation instructions
   - [x] Update benchmarks status in Gap Analysis (✅ Done in Week 19)
   - [x] Update latency SLOs status in Gap Analysis (✅ Done in Week 19)
-- [x] **Operational Requirements** ✅ **IN PROGRESS (2026-01-08)**
+- [x] **Operational Requirements** ✅ **COMPLETE (2026-01-08)**
   - [x] Implement Kubernetes service discovery (8 hrs) - Medium ✅ **COMPLETE**
     - [x] Add kube v0.95 and k8s-openapi v0.23 dependencies
     - [x] Implement KubernetesDiscovery with Endpoints API
@@ -1171,9 +1171,11 @@ cargo doc --no-deps         # ✓ Docs build
     - [x] Add create_discovery() factory function
     - [x] Add 6 tests (4 unit + 2 ignored K8s integration)
     - [x] Document in deployment-guide.md with RBAC and config examples
-  - [ ] Cross-platform testing (Linux, macOS, Windows) (4 hrs) - Medium
-    - [ ] Set up GitHub Actions matrix builds
-    - [ ] Fix any platform-specific issues
+  - [x] Cross-platform testing (Linux, macOS, Windows) (4 hrs) - Medium ✅ **COMPLETE**
+    - [x] Add GitHub Actions matrix builds for all three platforms
+    - [x] Add MSRV (1.75.0) compatibility check
+    - [x] Add CI success summary job requiring all platforms to pass
+    - [x] Clippy, check, and test jobs now run on all platforms
 - [ ] **themis-platform-types v0.2.0 Migration** (if available)
   - [ ] See migration checklist in roadmap preamble
   - [ ] Update all `build()` calls to `try_build()`
@@ -1229,7 +1231,7 @@ These items MUST be completed before tagging v1.0.0:
 | ---------------------------------------------- | ------ | -------- | ----------------------- |
 | Kubernetes service discovery                   | 8 hrs  | Medium   | ✅ Week 21 (2026-01-08) |
 | Graceful shutdown for gRPC server              | 2 hrs  | Medium   | ✅ Week 17              |
-| Cross-platform testing (Linux, macOS, Windows) | 4 hrs  | Medium   | ⏳ Week 21              |
+| Cross-platform testing (Linux, macOS, Windows) | 4 hrs  | Medium   | ✅ Week 21 (2026-01-08) |
 
 ### Documentation Requirements
 
