@@ -163,15 +163,15 @@ match caller {
 
 | Spec Requirement                       | Priority          | Effort | Status                          |
 | -------------------------------------- | ----------------- | ------ | ------------------------------- |
-| **OpenTelemetry metrics** (Spec §10.2) | Critical for v1.0 | 8 hrs  | ⏳ Week 21                      |
 | **Rate limiting on gRPC** (Spec §11)   | Critical for v1.0 | 4 hrs  | ⏳ Week 21                      |
 | **Security audit of bundle signing**   | Critical for v1.0 | 4 hrs  | ⏳ Week 21                      |
 | **Cross-platform testing**             | Medium            | 4 hrs  | ⏳ Week 21                      |
 
-### ✅ Recently Completed (Week 19-20)
+### ✅ Recently Completed (Week 19-21)
 
 | Spec Requirement                        | Completion                                                    |
 | --------------------------------------- | ------------------------------------------------------------- |
+| **OpenTelemetry metrics** (Spec §10.2)  | ✅ eunomia-metrics crate, compiler/registry/distributor wired |
 | **Audit logging** (Spec §10.1)          | ✅ CLI wired to emit `BundleEvent`/`DistributionEvent`        |
 | **Performance benchmarks** (Spec §12.3) | ✅ `cargo bench` with criterion, SLOs validated               |
 | **Production deployment guide**         | ✅ `docs/deployment-guide.md` with K8s manifests              |
@@ -1139,13 +1139,13 @@ cargo doc --no-deps         # ✓ Docs build
     - [ ] Add integration tests with valid/invalid client certs
     - [ ] Test certificate expiry handling
     - [ ] Document mTLS setup in deployment guide
-- [ ] **Observability Requirements**
-  - [ ] Add OpenTelemetry metrics (8 hrs) - High
-    - [ ] Add opentelemetry-rust dependencies
-    - [ ] Define metric names (eunomia_bundle_compilation_total, etc.)
-    - [ ] Instrument compiler, registry, distributor crates
-    - [ ] Add metrics export (Prometheus, OTLP)
-    - [ ] Add tests for metric emission
+- [x] **Observability Requirements** (Week 21)
+  - [x] Add OpenTelemetry metrics (8 hrs) - High
+    - [x] Add opentelemetry-rust dependencies (eunomia-metrics crate created)
+    - [x] Define metric names (eunomia_bundle_compilation_total, etc.)
+    - [x] Instrument compiler, registry, distributor crates
+    - [x] Add metrics export (Prometheus endpoint)
+    - [x] Add tests for metric emission
   - [ ] Create metrics dashboard templates (Grafana/Prometheus)
     - [ ] Add grafana/ directory with JSON dashboards
     - [ ] Document metric queries in performance-guide.md
