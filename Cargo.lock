@@ -787,6 +787,7 @@ dependencies = [
  "criterion",
  "eunomia-audit",
  "eunomia-core",
+ "eunomia-metrics",
  "eunomia-registry",
  "futures",
  "hex",

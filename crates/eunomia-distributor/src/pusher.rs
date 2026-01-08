@@ -8,6 +8,7 @@ use std::time::{Duration, Instant};
 use crate::error::{DistributorError, Result};
 use crate::health::HealthCheck;
 use crate::instance::Instance;
+use eunomia_metrics::MetricsRegistry;
 
 /// Configuration for the policy pusher.
 #[derive(Debug, Clone)]
@@ -211,7 +212,7 @@ impl PolicyPusher {
 
         // Simulate health check (actual gRPC implementation will be added later)
         // For now, we return a mock response based on instance state
-        match &instance.status {
+        let result = match &instance.status {
             crate::instance::InstanceStatus::Healthy { policy_version, .. } => Ok(
                 HealthCheck::healthy(policy_version.clone(), start.elapsed()),
             ),
@@ -222,7 +223,15 @@ impl PolicyPusher {
                 Ok(HealthCheck::unreachable(last_error.clone()))
             }
             _ => Ok(HealthCheck::unknown()),
-        }
+        };
+
+        // Record health check metric
+        let healthy = result.as_ref().map_or(false, |h| h.state.is_operational());
+        MetricsRegistry::global()
+            .distributor()
+            .record_health_check(&instance.id, healthy);
+
+        result
     }
 
     /// Internal push implementation (will use gRPC in full implementation).

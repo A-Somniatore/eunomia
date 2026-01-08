@@ -11,6 +11,7 @@ authors.workspace = true
 eunomia-core = { workspace = true }
 eunomia-registry = { workspace = true }
 eunomia-audit = { workspace = true }
+eunomia-metrics = { workspace = true }
 
 # Async runtime
 tokio = { workspace = true }

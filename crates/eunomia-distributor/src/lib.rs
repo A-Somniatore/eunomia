@@ -86,6 +86,9 @@ pub mod scheduler;
 pub mod state;
 pub mod strategy;
 
+use eunomia_metrics::MetricsRegistry;
+use std::time::Instant;
+
 // Re-export main types at crate root
 pub use config::DistributorConfig;
 pub use discovery::{Discovery, DiscoverySource, DnsDiscovery, StaticDiscovery};
@@ -149,15 +152,22 @@ impl Distributor {
         version: &str,
         strategy: DeploymentStrategy,
     ) -> Result<DeploymentResult> {
+        let start = Instant::now();
         let deployment_id = uuid::Uuid::now_v7().to_string();
+        let strategy_type = strategy.strategy_type();
 
         tracing::info!(
             deployment_id = %deployment_id,
             service = %service,
             version = %version,
-            strategy = ?strategy.strategy_type(),
+            strategy = ?strategy_type,
             "starting policy deployment"
         );
+
+        // Record deployment start metric
+        MetricsRegistry::global()
+            .distributor()
+            .record_deployment(service, &strategy_type.to_string());
 
         // Discover target instances
         let instances = self.discovery.discover(service).await?;
@@ -179,7 +189,7 @@ impl Distributor {
             .await?;
 
         // Execute deployment based on strategy
-        let result = match strategy.strategy_type() {
+        let result = match strategy_type {
             StrategyType::Immediate => {
                 self.deploy_immediate(&deployment_id, service, version, &instances)
                     .await
@@ -194,17 +204,31 @@ impl Distributor {
             }
         };
 
-        // Update final state
+        let duration_ms = start.elapsed().as_millis() as u64;
+
+        // Update final state and record metrics
         match &result {
             Ok(r) => {
                 self.state
                     .complete_deployment(&deployment_id, r.clone())
                     .await?;
+                MetricsRegistry::global().distributor().record_push(
+                    service,
+                    version,
+                    true,
+                    duration_ms,
+                );
             }
             Err(e) => {
                 self.state
                     .fail_deployment(&deployment_id, e.to_string())
                     .await?;
+                MetricsRegistry::global().distributor().record_push(
+                    service,
+                    version,
+                    false,
+                    duration_ms,
+                );
             }
         }
 
@@ -213,9 +237,23 @@ impl Distributor {
 
     /// Rolls back a service to a previous policy version.
     pub async fn rollback(&self, service: &str, target_version: &str) -> Result<DeploymentResult> {
+        let start = Instant::now();
+
         // Use immediate strategy for rollbacks
-        self.deploy(service, target_version, DeploymentStrategy::immediate())
-            .await
+        let result = self
+            .deploy(service, target_version, DeploymentStrategy::immediate())
+            .await;
+
+        let duration_ms = start.elapsed().as_millis() as u64;
+
+        // Record rollback metric
+        MetricsRegistry::global().distributor().record_rollback(
+            service,
+            result.is_ok(),
+            duration_ms,
+        );
+
+        result
     }
 
     /// Gets the current deployment status for a service.
