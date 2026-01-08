@@ -1147,9 +1147,10 @@ cargo doc --no-deps         # ✓ Docs build
     - [x] Instrument compiler, registry, distributor crates
     - [x] Add metrics export (Prometheus endpoint)
     - [x] Add tests for metric emission
-  - [ ] Create metrics dashboard templates (Grafana/Prometheus)
-    - [ ] Add grafana/ directory with JSON dashboards
-    - [ ] Document metric queries in performance-guide.md
+  - [x] Create metrics dashboard templates (Grafana/Prometheus) ✅ **COMPLETE (2026-01-08)**
+    - [x] Add grafana/ directory with JSON dashboards (3 dashboards: overview, compiler, distributor)
+    - [x] Document metric queries in performance-guide.md (updated with all metrics)
+    - [x] Add alerting rules and installation instructions
   - [x] Update benchmarks status in Gap Analysis (✅ Done in Week 19)
   - [x] Update latency SLOs status in Gap Analysis (✅ Done in Week 19)
 - [ ] **Operational Requirements**
@@ -1203,11 +1204,12 @@ These items MUST be completed before tagging v1.0.0:
 
 ### Observability Requirements
 
-| Task                               | Effort | Priority | Status                |
-| ---------------------------------- | ------ | -------- | --------------------- |
+| Task                               | Effort | Priority | Status                  |
+| ---------------------------------- | ------ | -------- | ----------------------- |
 | Add OpenTelemetry metrics          | 8 hrs  | High     | ✅ Week 21 (2026-01-08) |
-| Establish performance benchmarks   | 4 hrs  | Medium   | ✅ Week 19            |
-| Define latency SLOs for operations | 2 hrs  | Medium   | ✅ Week 19            |
+| Create Grafana dashboards          | 4 hrs  | Medium   | ✅ Week 21 (2026-01-08) |
+| Establish performance benchmarks   | 4 hrs  | Medium   | ✅ Week 19              |
+| Define latency SLOs for operations | 2 hrs  | Medium   | ✅ Week 19              |
 
 ### Operational Requirements
 

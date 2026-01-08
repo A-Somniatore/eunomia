@@ -414,40 +414,94 @@ spec:
 eunomia serve --metrics-port 9090
 ```
 
-| Metric                          | Description            | Alert Threshold |
-| ------------------------------- | ---------------------- | --------------- |
-| `eunomia_push_duration_seconds` | Time to push bundle    | p99 > 5s        |
-| `eunomia_push_failures_total`   | Failed push attempts   | > 5/min         |
-| `eunomia_bundle_size_bytes`     | Bundle size            | > 10MB          |
-| `eunomia_instances_healthy`     | Healthy instance count | < expected      |
-| `eunomia_cache_hit_ratio`       | Cache effectiveness    | < 0.8           |
+#### Compiler Metrics
+
+| Metric | Type | Labels | Description | Alert Threshold |
+|--------|------|--------|-------------|-----------------|
+| `eunomia_compiler_compilations_total` | Counter | `service`, `status` | Total policy compilations | failure rate > 10% |
+| `eunomia_compiler_compilation_duration_milliseconds` | Histogram | `service` | Compilation duration | p99 > 1000ms |
+| `eunomia_compiler_bundle_size_bytes` | Histogram | `service` | Compiled bundle size | p99 > 10MB |
+| `eunomia_compiler_policies_processed_total` | Counter | `service` | Total policies processed | - |
+
+#### Distributor Metrics
+
+| Metric | Type | Labels | Description | Alert Threshold |
+|--------|------|--------|-------------|-----------------|
+| `eunomia_distributor_pushes_total` | Counter | `service`, `version`, `status` | Total bundle pushes | failure rate > 5% |
+| `eunomia_distributor_push_duration_milliseconds` | Histogram | `service` | Push duration | p99 > 5000ms |
+| `eunomia_distributor_push_batch_size` | Histogram | `service` | Instances per push batch | - |
+| `eunomia_distributor_rollbacks_total` | Counter | `service`, `status` | Total rollbacks | > 5/hour |
+| `eunomia_distributor_rollback_duration_milliseconds` | Histogram | `service` | Rollback duration | p99 > 5000ms |
+| `eunomia_distributor_deployments_total` | Counter | `service` | Total deployments | - |
+| `eunomia_distributor_health_checks_total` | Counter | `instance`, `status` | Health check results | unhealthy > 0 |
 
 ### Prometheus Queries
 
 ```promql
-# Push latency percentiles
+# Compilation success rate
+sum(rate(eunomia_compiler_compilations_total{status="success"}[5m]))
+  / sum(rate(eunomia_compiler_compilations_total[5m])) * 100
+
+# Compilation p99 latency
 histogram_quantile(0.99,
-  rate(eunomia_push_duration_seconds_bucket[5m]))
+  sum(rate(eunomia_compiler_compilation_duration_milliseconds_bucket[5m])) by (le))
 
 # Push success rate
-sum(rate(eunomia_push_success_total[5m])) /
-sum(rate(eunomia_push_total[5m]))
+sum(rate(eunomia_distributor_pushes_total{status="success"}[5m]))
+  / sum(rate(eunomia_distributor_pushes_total[5m])) * 100
 
-# Bundle size distribution
+# Push p50/p99 latency by service
+histogram_quantile(0.50,
+  sum(rate(eunomia_distributor_push_duration_milliseconds_bucket[5m])) by (le, service))
+histogram_quantile(0.99,
+  sum(rate(eunomia_distributor_push_duration_milliseconds_bucket[5m])) by (le, service))
+
+# Bundle size p95
 histogram_quantile(0.95,
-  sum(rate(eunomia_bundle_size_bytes_bucket[1h])) by (service))
+  sum(rate(eunomia_compiler_bundle_size_bytes_bucket[1h])) by (le, service))
+
+# Rollbacks per hour
+sum(increase(eunomia_distributor_rollbacks_total[1h])) by (service)
+
+# Unhealthy instances
+sum(rate(eunomia_distributor_health_checks_total{status="unhealthy"}[5m])) by (instance)
 ```
 
-### Grafana Dashboard
+### Grafana Dashboards
 
-Key panels for an Eunomia dashboard:
+Pre-built Grafana dashboards are available in [`grafana/dashboards/`](../grafana/dashboards/):
 
-1. **Push Latency** - Heatmap of push duration
-2. **Success Rate** - Percentage over time
-3. **Bundle Sizes** - By service
-4. **Instance Health** - Healthy vs unhealthy count
-5. **Cache Performance** - Hit ratio and size
-6. **Active Deployments** - In-progress count
+| Dashboard | Description | UID |
+|-----------|-------------|-----|
+| [Eunomia Overview](../grafana/dashboards/eunomia-overview.json) | High-level overview of all metrics | `eunomia-overview` |
+| [Eunomia Compiler](../grafana/dashboards/eunomia-compiler.json) | Detailed compilation metrics | `eunomia-compiler` |
+| [Eunomia Distributor](../grafana/dashboards/eunomia-distributor.json) | Detailed distribution metrics | `eunomia-distributor` |
+
+**Installation:**
+
+```bash
+# Option 1: Import via Grafana UI
+# Navigate to Dashboards → Import → Upload JSON file
+
+# Option 2: Kubernetes ConfigMap (for Grafana provisioning)
+kubectl create configmap eunomia-dashboards \
+  --from-file=grafana/dashboards/ \
+  -n monitoring
+
+# Option 3: Copy to Grafana provisioning directory
+cp grafana/dashboards/*.json /var/lib/grafana/dashboards/eunomia/
+```
+
+**Key Panels:**
+
+1. **Summary Stats** - Total compilations, pushes, rollbacks, success rates
+2. **Compilation Rate** - By service with success/failure breakdown
+3. **Push Latency** - P50/P90/P99 percentiles over time
+4. **Rollback Analysis** - Frequency and duration
+5. **Instance Health** - Health check timeline by instance
+6. **Bundle Sizes** - Distribution and trends
+
+See the [dashboard README](../grafana/dashboards/README.md) for detailed setup instructions and alerting rules.
 
 ---
 
