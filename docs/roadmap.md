@@ -1124,12 +1124,12 @@ cargo doc --no-deps         # ✓ Docs build
 > - Update documentation immediately after implementation
 > - Run `cargo fmt && cargo clippy -- -D warnings && cargo test` before each commit
 
-- [ ] **Security Requirements**
-  - [ ] Security audit for bundle signing (4 hrs) - Critical
-    - [ ] Review Ed25519 key generation
-    - [ ] Verify signature chain integrity
-    - [ ] Document signing security model in design.md
-    - [ ] Add tests for signature verification edge cases
+- [x] **Security Requirements**
+  - [x] Security audit for bundle signing (4 hrs) - Critical ✅ **COMPLETE (2026-01-08)**
+    - [x] Review Ed25519 key generation
+    - [x] Verify signature chain integrity - **SECURITY FIX**: Bundle checksum now includes name/version to prevent signature reuse
+    - [x] Document signing security model in design.md (Section 14 rewritten)
+    - [x] Add tests for signature verification edge cases (15 new security tests)
   - [ ] Add rate limiting to gRPC endpoints (4 hrs) - High
     - [ ] Add tower-governor or similar rate limiting middleware
     - [ ] Configure limits per endpoint
@@ -1194,19 +1194,19 @@ These items MUST be completed before tagging v1.0.0:
 
 ### Security Requirements
 
-| Task                                | Effort | Priority | Status     |
-| ----------------------------------- | ------ | -------- | ---------- |
-| Security audit for bundle signing   | 4 hrs  | Critical | ⏳ Week 21 |
-| Add rate limiting to gRPC endpoints | 4 hrs  | High     | ⏳ Week 21 |
+| Task                                | Effort | Priority | Status                |
+| ----------------------------------- | ------ | -------- | --------------------- |
+| Security audit for bundle signing   | 4 hrs  | Critical | ✅ Week 21 (2026-01-08) |
+| Add rate limiting to gRPC endpoints | 4 hrs  | High     | ⏳ Week 21            |
 | mTLS verification testing           | 2 hrs  | High     | ⏳ Week 21 |
 
 ### Observability Requirements
 
-| Task                               | Effort | Priority | Status     |
-| ---------------------------------- | ------ | -------- | ---------- |
-| Add OpenTelemetry metrics          | 8 hrs  | High     | ⏳ Week 21 |
-| Establish performance benchmarks   | 4 hrs  | Medium   | ✅ Week 19 |
-| Define latency SLOs for operations | 2 hrs  | Medium   | ✅ Week 19 |
+| Task                               | Effort | Priority | Status                |
+| ---------------------------------- | ------ | -------- | --------------------- |
+| Add OpenTelemetry metrics          | 8 hrs  | High     | ✅ Week 21 (2026-01-08) |
+| Establish performance benchmarks   | 4 hrs  | Medium   | ✅ Week 19            |
+| Define latency SLOs for operations | 2 hrs  | Medium   | ✅ Week 19            |
 
 ### Operational Requirements
 
