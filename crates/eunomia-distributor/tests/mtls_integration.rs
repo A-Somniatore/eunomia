@@ -58,7 +58,9 @@ mod test_certs {
     ) -> Result<(rcgen::Certificate, KeyPair, String), rcgen::Error> {
         let mut params = CertificateParams::default();
         params.distinguished_name.push(DnType::CommonName, cn);
-        params.distinguished_name.push(DnType::OrganizationName, "Test");
+        params
+            .distinguished_name
+            .push(DnType::OrganizationName, "Test");
         params.is_ca = IsCa::Ca(BasicConstraints::Unconstrained);
         params.key_usages = vec![
             KeyUsagePurpose::KeyCertSign,
@@ -88,7 +90,9 @@ mod test_certs {
     ) -> Result<(String, String), rcgen::Error> {
         let mut params = CertificateParams::default();
         params.distinguished_name.push(DnType::CommonName, cn);
-        params.distinguished_name.push(DnType::OrganizationName, "Test");
+        params
+            .distinguished_name
+            .push(DnType::OrganizationName, "Test");
 
         // Add SANs for the server
         for host in hosts {
@@ -129,7 +133,9 @@ mod test_certs {
     ) -> Result<(String, String), rcgen::Error> {
         let mut params = CertificateParams::default();
         params.distinguished_name.push(DnType::CommonName, cn);
-        params.distinguished_name.push(DnType::OrganizationName, "Test Client");
+        params
+            .distinguished_name
+            .push(DnType::OrganizationName, "Test Client");
 
         params.key_usages = vec![KeyUsagePurpose::DigitalSignature];
         params.extended_key_usages = vec![ExtendedKeyUsagePurpose::ClientAuth];
@@ -153,7 +159,9 @@ mod test_certs {
     ) -> Result<(String, String), rcgen::Error> {
         let mut params = CertificateParams::default();
         params.distinguished_name.push(DnType::CommonName, cn);
-        params.distinguished_name.push(DnType::OrganizationName, "Test Client");
+        params
+            .distinguished_name
+            .push(DnType::OrganizationName, "Test Client");
 
         params.key_usages = vec![KeyUsagePurpose::DigitalSignature];
         params.extended_key_usages = vec![ExtendedKeyUsagePurpose::ClientAuth];
@@ -170,10 +178,15 @@ mod test_certs {
     }
 
     /// Generate a self-signed certificate (not signed by CA).
-    pub fn generate_self_signed(cn: &str, days_valid: i64) -> Result<(String, String), rcgen::Error> {
+    pub fn generate_self_signed(
+        cn: &str,
+        days_valid: i64,
+    ) -> Result<(String, String), rcgen::Error> {
         let mut params = CertificateParams::default();
         params.distinguished_name.push(DnType::CommonName, cn);
-        params.distinguished_name.push(DnType::OrganizationName, "Unknown");
+        params
+            .distinguished_name
+            .push(DnType::OrganizationName, "Unknown");
 
         params.key_usages = vec![KeyUsagePurpose::DigitalSignature];
         params.extended_key_usages = vec![ExtendedKeyUsagePurpose::ClientAuth];
@@ -462,8 +475,7 @@ async fn test_mtls_valid_client_connection() {
 
     // Create client with valid certificate
     let ca_cert = TonicCert::from_pem(&certs.ca_cert_pem);
-    let client_identity =
-        Identity::from_pem(&certs.client_cert_pem, &certs.client_key_pem);
+    let client_identity = Identity::from_pem(&certs.client_cert_pem, &certs.client_key_pem);
 
     let tls_config = ClientTlsConfig::new()
         .ca_certificate(ca_cert)
@@ -725,9 +737,7 @@ fn test_tls_config_debug_output() {
     let tls = TlsConfig {
         cert_pem: "-----BEGIN CERTIFICATE-----\ntest\n-----END CERTIFICATE-----".to_string(),
         key_pem: "-----BEGIN PRIVATE KEY-----\ntest\n-----END PRIVATE KEY-----".to_string(),
-        ca_cert_pem: Some(
-            "-----BEGIN CERTIFICATE-----\nca\n-----END CERTIFICATE-----".to_string(),
-        ),
+        ca_cert_pem: Some("-----BEGIN CERTIFICATE-----\nca\n-----END CERTIFICATE-----".to_string()),
     };
 
     // TlsConfig should implement Debug
@@ -776,11 +786,19 @@ fn test_certificate_chain_components() {
     assert!(certs.ca_cert_pem.starts_with("-----BEGIN CERTIFICATE-----"));
     assert!(certs.ca_cert_pem.ends_with("-----END CERTIFICATE-----\n"));
 
-    assert!(certs.server_cert_pem.starts_with("-----BEGIN CERTIFICATE-----"));
-    assert!(certs.client_cert_pem.starts_with("-----BEGIN CERTIFICATE-----"));
+    assert!(certs
+        .server_cert_pem
+        .starts_with("-----BEGIN CERTIFICATE-----"));
+    assert!(certs
+        .client_cert_pem
+        .starts_with("-----BEGIN CERTIFICATE-----"));
 
-    assert!(certs.server_key_pem.starts_with("-----BEGIN PRIVATE KEY-----"));
-    assert!(certs.client_key_pem.starts_with("-----BEGIN PRIVATE KEY-----"));
+    assert!(certs
+        .server_key_pem
+        .starts_with("-----BEGIN PRIVATE KEY-----"));
+    assert!(certs
+        .client_key_pem
+        .starts_with("-----BEGIN PRIVATE KEY-----"));
 }
 
 #[tokio::test]
@@ -801,5 +819,8 @@ async fn test_server_invalid_tls_config_fails() {
 
     // Server start should fail with invalid TLS config
     let result = server.run().await;
-    assert!(result.is_err(), "Server should fail with invalid TLS config");
+    assert!(
+        result.is_err(),
+        "Server should fail with invalid TLS config"
+    );
 }

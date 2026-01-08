@@ -43,6 +43,10 @@ url = { workspace = true }
 # DNS resolution
 hickory-resolver = { workspace = true }
 
+# Kubernetes client
+kube = { workspace = true }
+k8s-openapi = { workspace = true }
+
 # UUID for request IDs
 uuid = { workspace = true }
 

@@ -385,6 +385,269 @@ impl Discovery for DnsDiscovery {
     }
 }
 
+/// Kubernetes-based instance discovery.
+///
+/// Discovers Archimedes instances by watching Kubernetes Endpoints resources.
+/// Supports label selectors and namespace filtering.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// use eunomia_distributor::discovery::KubernetesDiscovery;
+///
+/// // Discover all pods in default namespace with app=archimedes label
+/// let discovery = KubernetesDiscovery::new(
+///     Some("default".to_string()),
+///     Some("app=archimedes".to_string()),
+///     Some("grpc".to_string()),
+/// ).await?;
+///
+/// let instances = discovery.all_instances().await?;
+/// ```
+pub struct KubernetesDiscovery {
+    client: kube::Client,
+    namespace: Option<String>,
+    label_selector: Option<String>,
+    port_name: String,
+    instances: Arc<RwLock<Vec<Instance>>>,
+}
+
+impl KubernetesDiscovery {
+    /// Creates a new Kubernetes discovery.
+    ///
+    /// # Arguments
+    ///
+    /// * `namespace` - Kubernetes namespace to discover in (None = all namespaces)
+    /// * `label_selector` - Label selector for filtering pods (e.g., "app=archimedes")
+    /// * `port_name` - Port name to use for discovered endpoints (default: "grpc")
+    ///
+    /// # Errors
+    ///
+    /// Returns error if unable to create Kubernetes client (e.g., not running in cluster
+    /// and no kubeconfig available).
+    pub async fn new(
+        namespace: Option<String>,
+        label_selector: Option<String>,
+        port_name: Option<String>,
+    ) -> Result<Self> {
+        let client =
+            kube::Client::try_default()
+                .await
+                .map_err(|e| DistributorError::InvalidConfig {
+                    reason: format!("Failed to create Kubernetes client: {e}"),
+                })?;
+
+        Ok(Self {
+            client,
+            namespace,
+            label_selector,
+            port_name: port_name.unwrap_or_else(|| "grpc".to_string()),
+            instances: Arc::new(RwLock::new(Vec::new())),
+        })
+    }
+
+    /// Creates a Kubernetes discovery with an existing client.
+    ///
+    /// Useful for testing or when you want to reuse a client across multiple discoveries.
+    pub fn with_client(
+        client: kube::Client,
+        namespace: Option<String>,
+        label_selector: Option<String>,
+        port_name: Option<String>,
+    ) -> Self {
+        Self {
+            client,
+            namespace,
+            label_selector,
+            port_name: port_name.unwrap_or_else(|| "grpc".to_string()),
+            instances: Arc::new(RwLock::new(Vec::new())),
+        }
+    }
+
+    /// Queries Kubernetes API for endpoints matching the configuration.
+    async fn query_endpoints(&self) -> Result<Vec<Instance>> {
+        use k8s_openapi::api::core::v1::Endpoints;
+        use kube::api::{Api, ListParams};
+
+        let endpoints_api: Api<Endpoints> = match &self.namespace {
+            Some(ns) => Api::namespaced(self.client.clone(), ns),
+            None => Api::all(self.client.clone()),
+        };
+
+        let list_params = match &self.label_selector {
+            Some(selector) => ListParams::default().labels(selector),
+            None => ListParams::default(),
+        };
+
+        let endpoints_list = endpoints_api.list(&list_params).await.map_err(|e| {
+            DistributorError::InvalidConfig {
+                reason: format!("Failed to list Kubernetes endpoints: {e}"),
+            }
+        })?;
+
+        let mut instances = Vec::new();
+
+        for endpoints in endpoints_list {
+            let ep_name = endpoints.metadata.name.as_deref().unwrap_or("unknown");
+            let ep_namespace = endpoints.metadata.namespace.as_deref().unwrap_or("default");
+
+            if let Some(subsets) = endpoints.subsets {
+                for subset in subsets {
+                    // Find the port matching our port name
+                    let port = subset
+                        .ports
+                        .as_ref()
+                        .and_then(|ports| {
+                            ports.iter().find(|p| {
+                                p.name.as_ref().is_some_and(|name| name == &self.port_name)
+                            })
+                        })
+                        .map_or(8080, |p| p.port);
+
+                    // Process ready addresses
+                    if let Some(addresses) = subset.addresses {
+                        for addr in addresses {
+                            let ip = &addr.ip;
+                            let endpoint = format!("{ip}:{port}");
+
+                            // Generate instance ID from pod reference or IP
+                            let instance_id = addr
+                                .target_ref
+                                .as_ref()
+                                .and_then(|tr| tr.name.clone())
+                                .unwrap_or_else(|| format!("k8s-{ep_namespace}-{ep_name}-{ip}"));
+
+                            let mut metadata = InstanceMetadata::default();
+                            metadata
+                                .annotations
+                                .insert("k8s.namespace".to_string(), ep_namespace.to_string());
+                            metadata
+                                .annotations
+                                .insert("k8s.endpoint".to_string(), ep_name.to_string());
+                            metadata
+                                .annotations
+                                .insert("k8s.ip".to_string(), ip.clone());
+                            metadata
+                                .annotations
+                                .insert("k8s.port".to_string(), port.to_string());
+
+                            // Add node name if available
+                            if let Some(node) = &addr.node_name {
+                                metadata
+                                    .annotations
+                                    .insert("k8s.node".to_string(), node.clone());
+                            }
+
+                            // Add pod UID if available
+                            if let Some(target_ref) = &addr.target_ref {
+                                if let Some(uid) = &target_ref.uid {
+                                    metadata
+                                        .annotations
+                                        .insert("k8s.pod_uid".to_string(), uid.clone());
+                                }
+                            }
+
+                            // Set service name in metadata
+                            metadata.service = Some(ep_name.to_string());
+
+                            instances
+                                .push(Instance::new(instance_id, endpoint).with_metadata(metadata));
+                        }
+                    }
+                }
+            }
+        }
+
+        tracing::info!(
+            namespace = ?self.namespace,
+            label_selector = ?self.label_selector,
+            count = instances.len(),
+            "Discovered Kubernetes instances"
+        );
+
+        Ok(instances)
+    }
+}
+
+impl std::fmt::Debug for KubernetesDiscovery {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("KubernetesDiscovery")
+            .field("namespace", &self.namespace)
+            .field("label_selector", &self.label_selector)
+            .field("port_name", &self.port_name)
+            .finish_non_exhaustive()
+    }
+}
+
+#[async_trait]
+impl Discovery for KubernetesDiscovery {
+    async fn discover(&self, service: &str) -> Result<Vec<Instance>> {
+        let all = self.all_instances().await?;
+        let filtered: Vec<Instance> = all
+            .into_iter()
+            .filter(|i| i.service().is_some_and(|s| s == service))
+            .collect();
+        Ok(filtered)
+    }
+
+    async fn all_instances(&self) -> Result<Vec<Instance>> {
+        let instances = self.instances.read().await;
+        if instances.is_empty() {
+            // If cache is empty, do a refresh first
+            drop(instances);
+            self.refresh().await?;
+            let instances = self.instances.read().await;
+            Ok(instances.clone())
+        } else {
+            Ok(instances.clone())
+        }
+    }
+
+    async fn refresh(&self) -> Result<()> {
+        let discovered = self.query_endpoints().await?;
+        let mut instances = self.instances.write().await;
+        *instances = discovered;
+        Ok(())
+    }
+}
+
+/// Creates a discovery source from a `DiscoverySource` configuration.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// use eunomia_distributor::discovery::{create_discovery, DiscoverySource};
+///
+/// let source = DiscoverySource::Static {
+///     endpoints: vec!["localhost:8080".to_string()],
+/// };
+/// let discovery = create_discovery(source).await?;
+/// ```
+pub async fn create_discovery(source: DiscoverySource) -> Result<Box<dyn Discovery>> {
+    match source {
+        DiscoverySource::Static { endpoints } => Ok(Box::new(StaticDiscovery::new(endpoints))),
+        DiscoverySource::Kubernetes {
+            namespace,
+            label_selector,
+            port_name,
+        } => {
+            let discovery = KubernetesDiscovery::new(namespace, label_selector, port_name).await?;
+            Ok(Box::new(discovery))
+        }
+        DiscoverySource::Dns {
+            hosts,
+            port,
+            resolver,
+        } => {
+            let discovery = match resolver {
+                Some(addr) => DnsDiscovery::with_resolver(hosts, port, &addr)?,
+                None => DnsDiscovery::new(hosts, port),
+            };
+            Ok(Box::new(discovery))
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -616,5 +879,107 @@ mod tests {
         for instance in &instances {
             assert!(instance.endpoint.to_string().contains(":9090"));
         }
+    }
+
+    // Kubernetes discovery tests (require K8s environment or mock)
+    // These tests are marked as ignored since they require a real K8s cluster
+
+    #[test]
+    fn test_kubernetes_discovery_source_creation() {
+        let source = DiscoverySource::Kubernetes {
+            namespace: Some("default".to_string()),
+            label_selector: Some("app=archimedes".to_string()),
+            port_name: Some("grpc".to_string()),
+        };
+
+        if let DiscoverySource::Kubernetes {
+            namespace,
+            label_selector,
+            port_name,
+        } = source
+        {
+            assert_eq!(namespace, Some("default".to_string()));
+            assert_eq!(label_selector, Some("app=archimedes".to_string()));
+            assert_eq!(port_name, Some("grpc".to_string()));
+        } else {
+            panic!("Expected kubernetes source");
+        }
+    }
+
+    #[test]
+    fn test_kubernetes_discovery_source_all_namespaces() {
+        let source = DiscoverySource::Kubernetes {
+            namespace: None,
+            label_selector: Some("component=policy-engine".to_string()),
+            port_name: None,
+        };
+
+        if let DiscoverySource::Kubernetes {
+            namespace,
+            label_selector,
+            port_name,
+        } = source
+        {
+            assert!(namespace.is_none());
+            assert_eq!(label_selector, Some("component=policy-engine".to_string()));
+            assert!(port_name.is_none());
+        } else {
+            panic!("Expected kubernetes source");
+        }
+    }
+
+    #[tokio::test]
+    async fn test_create_discovery_static() {
+        let source = DiscoverySource::Static {
+            endpoints: vec!["localhost:8080".to_string()],
+        };
+        let discovery = create_discovery(source).await.unwrap();
+        let instances = discovery.all_instances().await.unwrap();
+        assert_eq!(instances.len(), 1);
+    }
+
+    #[tokio::test]
+    async fn test_create_discovery_dns() {
+        let source = DiscoverySource::Dns {
+            hosts: vec!["localhost".to_string()],
+            port: 8080,
+            resolver: None,
+        };
+        let discovery = create_discovery(source).await.unwrap();
+        discovery.refresh().await.unwrap();
+        let instances = discovery.all_instances().await.unwrap();
+        assert!(!instances.is_empty());
+    }
+
+    // This test requires a Kubernetes cluster and is ignored by default
+    #[tokio::test]
+    #[ignore = "requires Kubernetes cluster"]
+    async fn test_kubernetes_discovery_integration() {
+        let discovery = KubernetesDiscovery::new(
+            Some("default".to_string()),
+            Some("app=archimedes".to_string()),
+            Some("grpc".to_string()),
+        )
+        .await
+        .unwrap();
+
+        // This will fail if not running in a cluster
+        discovery.refresh().await.unwrap();
+        let instances = discovery.all_instances().await.unwrap();
+        println!("Discovered {} instances", instances.len());
+    }
+
+    #[tokio::test]
+    #[ignore = "requires Kubernetes cluster"]
+    async fn test_create_discovery_kubernetes() {
+        let source = DiscoverySource::Kubernetes {
+            namespace: Some("default".to_string()),
+            label_selector: Some("app=archimedes".to_string()),
+            port_name: Some("grpc".to_string()),
+        };
+        let discovery = create_discovery(source).await.unwrap();
+        discovery.refresh().await.unwrap();
+        let instances = discovery.all_instances().await.unwrap();
+        println!("Discovered {} instances", instances.len());
     }
 }

@@ -500,6 +500,110 @@ docker-compose down
 | `EUNOMIA_CACHE_SIZE` | Bundle cache size limit | `100MB` | No |
 | `EUNOMIA_CACHE_MAX_AGE` | Max age for cached bundles | `7d` | No |
 | `EUNOMIA_CACHE_DIR` | Cache directory path | System default | No |
+| `EUNOMIA_DISCOVERY_TYPE` | Instance discovery type (static, dns, kubernetes) | `static` | No |
+| `EUNOMIA_DISCOVERY_NAMESPACE` | K8s namespace for discovery (empty = all) | - | For K8s |
+| `EUNOMIA_DISCOVERY_LABEL_SELECTOR` | K8s label selector for filtering | - | For K8s |
+| `EUNOMIA_DISCOVERY_PORT_NAME` | K8s port name to use | `grpc` | For K8s |
+
+### Instance Discovery Configuration
+
+Eunomia supports three discovery mechanisms for finding Archimedes instances:
+
+#### Static Discovery
+
+Static discovery uses a predefined list of endpoints. Best for small deployments or testing.
+
+```toml
+[discovery]
+type = "static"
+endpoints = [
+    "archimedes-1.default.svc:8080",
+    "archimedes-2.default.svc:8080",
+    "10.0.0.100:8080"
+]
+```
+
+#### DNS Discovery
+
+DNS discovery resolves hostnames to discover instances. Useful with DNS-based service discovery.
+
+```toml
+[discovery]
+type = "dns"
+hosts = ["archimedes.default.svc.cluster.local"]
+port = 8080
+```
+
+#### Kubernetes Discovery
+
+Kubernetes discovery queries the K8s API to find Archimedes endpoints automatically.
+
+```toml
+[discovery]
+type = "kubernetes"
+namespace = "default"           # Optional: empty = all namespaces
+label_selector = "app=archimedes"  # Optional: filter by labels
+port_name = "grpc"              # Port name to use from endpoints
+```
+
+**Required RBAC permissions for Kubernetes discovery:**
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: eunomia-discovery
+rules:
+- apiGroups: [""]
+  resources: ["endpoints"]
+  verbs: ["get", "list", "watch"]
+```
+
+**Programmatic usage:**
+
+```rust
+use eunomia_distributor::discovery::{
+    create_discovery, DiscoverySource, KubernetesDiscovery, Discovery
+};
+
+// Using create_discovery factory
+let discovery = create_discovery(&DiscoverySource::Kubernetes {
+    namespace: Some("default".to_string()),
+    label_selector: Some("app=archimedes".to_string()),
+    port_name: "grpc".to_string(),
+}).await?;
+
+// Or directly with KubernetesDiscovery
+let k8s_discovery = KubernetesDiscovery::new(
+    Some("default"),       // namespace (None = all namespaces)
+    Some("app=archimedes"), // label selector
+    "grpc",                 // port name
+).await?;
+
+// Discover instances
+let instances = k8s_discovery.discover().await?;
+for instance in &instances {
+    println!("Found: {} at {}", instance.id, instance.endpoint);
+    if let Some(service) = instance.service() {
+        println!("  Service: {}", service);
+    }
+}
+```
+
+**Kubernetes metadata extraction:**
+
+The Kubernetes discovery automatically extracts metadata from endpoints:
+
+| Metadata Key | Description |
+|--------------|-------------|
+| `service` | Kubernetes service name |
+| `namespace` | Kubernetes namespace |
+| `k8s.namespace` | Same as namespace (annotation) |
+| `k8s.endpoint` | Endpoint name |
+| `k8s.ip` | Pod IP address |
+| `k8s.port` | Port number |
+| `k8s.node` | Node name (if available) |
+| `k8s.pod_uid` | Pod UID (if available) |
 
 ### CLI Configuration File
 
@@ -510,6 +614,12 @@ Create `~/.eunomia/config.toml` or `/etc/eunomia/config.toml`:
 max_concurrent = 5
 timeout = "30s"
 compress = true
+
+[discovery]
+type = "kubernetes"
+namespace = "default"
+label_selector = "app.kubernetes.io/name=archimedes"
+port_name = "grpc"
 
 [registry]
 url = "https://registry.example.com"

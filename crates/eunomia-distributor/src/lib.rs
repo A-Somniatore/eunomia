@@ -91,7 +91,10 @@ use std::time::Instant;
 
 // Re-export main types at crate root
 pub use config::DistributorConfig;
-pub use discovery::{Discovery, DiscoverySource, DnsDiscovery, StaticDiscovery};
+pub use discovery::{
+    create_discovery, Discovery, DiscoverySource, DnsDiscovery, KubernetesDiscovery,
+    StaticDiscovery,
+};
 pub use error::{DistributorError, Result};
 pub use events::{DeploymentEventData, EventBus, EventSubscriber, EventType, FilteredSubscriber};
 pub use health::{HealthCheck, HealthConfig, HealthState};
