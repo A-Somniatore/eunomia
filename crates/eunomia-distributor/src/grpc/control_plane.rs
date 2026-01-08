@@ -3,6 +3,8 @@
 //! This service handles policy deployment, rollback, and monitoring
 //! operations for the control plane.
 
+#![allow(clippy::result_large_err)] // Status is from tonic, can't change its size
+
 use std::pin::Pin;
 use std::sync::Arc;
 use std::time::Duration;
@@ -11,6 +13,7 @@ use futures::Stream;
 use tonic::{Request, Response, Status};
 use tracing::{debug, info, instrument, warn};
 
+use super::rate_limit::RateLimiterRegistry;
 use super::types::{
     DeployPolicyRequest, DeployPolicyResponse, DeploymentEvent, DeploymentEventType,
     DeploymentSummary, GetInstanceHealthRequest, GetPolicyStatusRequest, GrpcDeploymentState,
@@ -26,12 +29,14 @@ use crate::{DeploymentState, DeploymentStrategy, Distributor, HealthState};
 pub struct ControlPlaneService {
     distributor: Arc<Distributor>,
     event_bus: Arc<EventBus>,
+    rate_limiter: Option<Arc<RateLimiterRegistry>>,
 }
 
 impl std::fmt::Debug for ControlPlaneService {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("ControlPlaneService")
             .field("event_bus_subscribers", &self.event_bus.subscriber_count())
+            .field("rate_limiting_enabled", &self.rate_limiter.is_some())
             .finish_non_exhaustive()
     }
 }
@@ -42,6 +47,7 @@ impl ControlPlaneService {
         Self {
             distributor,
             event_bus: Arc::new(EventBus::default()),
+            rate_limiter: None,
         }
     }
 
@@ -50,12 +56,39 @@ impl ControlPlaneService {
         Self {
             distributor,
             event_bus,
+            rate_limiter: None,
         }
+    }
+
+    /// Add a rate limiter to the service.
+    pub fn with_rate_limiter(mut self, rate_limiter: Arc<RateLimiterRegistry>) -> Self {
+        self.rate_limiter = Some(rate_limiter);
+        self
+    }
+
+    /// Add an optional rate limiter to the service.
+    pub fn with_rate_limiter_opt(mut self, rate_limiter: Option<Arc<RateLimiterRegistry>>) -> Self {
+        self.rate_limiter = rate_limiter;
+        self
     }
 
     /// Get a reference to the event bus.
     pub fn event_bus(&self) -> &Arc<EventBus> {
         &self.event_bus
+    }
+
+    /// Get a reference to the rate limiter (if enabled).
+    pub fn rate_limiter(&self) -> Option<&Arc<RateLimiterRegistry>> {
+        self.rate_limiter.as_ref()
+    }
+
+    /// Check rate limit for an endpoint.
+    fn check_rate_limit(&self, endpoint: &str) -> Result<(), Status> {
+        if let Some(ref limiter) = self.rate_limiter {
+            limiter.check(endpoint)
+        } else {
+            Ok(())
+        }
     }
 
     /// Convert to a tonic service.
@@ -74,6 +107,9 @@ impl ControlPlane for ControlPlaneService {
         &self,
         request: Request<DeployPolicyRequest>,
     ) -> Result<Response<DeployPolicyResponse>, Status> {
+        // Check rate limit
+        self.check_rate_limit("DeployPolicy")?;
+
         let req = request.into_inner();
         info!(
             "DeployPolicy request: service={}, version={}",
@@ -149,6 +185,9 @@ impl ControlPlane for ControlPlaneService {
         &self,
         request: Request<RollbackPolicyRequest>,
     ) -> Result<Response<RollbackPolicyResponse>, Status> {
+        // Check rate limit
+        self.check_rate_limit("RollbackPolicy")?;
+
         let req = request.into_inner();
         info!(
             "RollbackPolicy request: service={}, target_version={}",
@@ -203,6 +242,9 @@ impl ControlPlane for ControlPlaneService {
         &self,
         request: Request<GetPolicyStatusRequest>,
     ) -> Result<Response<PolicyStatusResponse>, Status> {
+        // Check rate limit
+        self.check_rate_limit("GetPolicyStatus")?;
+
         let req = request.into_inner();
         debug!("GetPolicyStatus request: service={}", req.service);
 
@@ -262,6 +304,9 @@ impl ControlPlane for ControlPlaneService {
         &self,
         request: Request<ListInstancesRequest>,
     ) -> Result<Response<ListInstancesResponse>, Status> {
+        // Check rate limit
+        self.check_rate_limit("ListInstances")?;
+
         let req = request.into_inner();
         debug!(
             "ListInstances request: service_filter={:?}",
@@ -330,6 +375,9 @@ impl ControlPlane for ControlPlaneService {
         &self,
         request: Request<GetInstanceHealthRequest>,
     ) -> Result<Response<InstanceHealthResponse>, Status> {
+        // Check rate limit - use HealthCheck limit for this endpoint
+        self.check_rate_limit("HealthCheck")?;
+
         let req = request.into_inner();
         debug!("GetInstanceHealth request: instance_id={}", req.instance_id);
 

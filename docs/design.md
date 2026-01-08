@@ -2751,6 +2751,84 @@ control_plane:
     - "spiffe://somniatore.com/ci/policy-deployer"
 ```
 
+### 14.10 Rate Limiting
+
+> **Added**: 2026-01-08 (Week 21 Pre-Release Hardening)
+
+The gRPC server implements configurable rate limiting to protect against abuse
+and ensure fair resource allocation.
+
+#### Token Bucket Algorithm
+
+Rate limiting uses the token bucket algorithm:
+- Tokens are added at a fixed rate (requests per second)
+- Tokens accumulate up to the burst size
+- Each request consumes one token
+- Requests when no tokens available return `RESOURCE_EXHAUSTED`
+
+```rust
+pub struct RateLimitConfig {
+    /// Maximum requests per second allowed.
+    pub requests_per_second: NonZeroU32,
+    /// Maximum burst size (requests that can be made immediately).
+    pub burst_size: NonZeroU32,
+    /// Whether rate limiting is enabled.
+    pub enabled: bool,
+}
+```
+
+#### Per-Endpoint Configuration
+
+Different endpoints have different rate limits based on their criticality:
+
+| Endpoint | Default RPS | Burst Size | Rationale |
+|----------|-------------|------------|-----------|
+| `DeployPolicy` | 50 | 25 | Write operation, resource intensive |
+| `RollbackPolicy` | 50 | 25 | Write operation, resource intensive |
+| `GetPolicyStatus` | 200 | 100 | Read-heavy, frequently polled |
+| `ListInstances` | 200 | 100 | Read operation |
+| `HealthCheck` | 1000 | 500 | Monitoring should not be rate limited |
+| Default | 100 | 50 | Fallback for other endpoints |
+
+```rust
+// Configure custom rate limits
+let config = GrpcServerConfig::default()
+    .with_rate_limits(
+        EndpointRateLimits::default()
+            .with_deploy_policy(RateLimitConfig::new(100).with_burst_size(50))
+            .with_health_check(RateLimitConfig::new(2000).with_burst_size(1000))
+    );
+```
+
+#### Disabling Rate Limiting
+
+For development or trusted environments:
+
+```rust
+let config = GrpcServerConfig::default().without_rate_limits();
+// Or per-endpoint:
+let limits = EndpointRateLimits::disabled();
+```
+
+#### Rate Limit Response
+
+When rate limited, clients receive:
+- gRPC Status: `RESOURCE_EXHAUSTED`
+- Message: "Rate limit exceeded. Please retry later."
+
+Clients should implement exponential backoff when receiving this status.
+
+#### Rate Limit Statistics
+
+The rate limiter tracks statistics for monitoring:
+
+```rust
+let stats = rate_limiter.stats();
+println!("Total requests: {}", stats.deploy_policy.total_requests);
+println!("Limited requests: {}", stats.deploy_policy.limited_requests);
+println!("Available tokens: {}", stats.deploy_policy.available_tokens);
+```
+
 ---
 
 ## 15. CLI Design

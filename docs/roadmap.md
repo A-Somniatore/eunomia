@@ -1130,11 +1130,12 @@ cargo doc --no-deps         # ✓ Docs build
     - [x] Verify signature chain integrity - **SECURITY FIX**: Bundle checksum now includes name/version to prevent signature reuse
     - [x] Document signing security model in design.md (Section 14 rewritten)
     - [x] Add tests for signature verification edge cases (15 new security tests)
-  - [ ] Add rate limiting to gRPC endpoints (4 hrs) - High
-    - [ ] Add tower-governor or similar rate limiting middleware
-    - [ ] Configure limits per endpoint
-    - [ ] Add rate limit exceeded error handling
-    - [ ] Add tests for rate limiting behavior
+  - [x] Add rate limiting to gRPC endpoints (4 hrs) - High ✅ **COMPLETE (2026-01-08)**
+    - [x] Add tower rate limiting module using token bucket algorithm
+    - [x] Configure per-endpoint limits (DeployPolicy, RollbackPolicy, GetPolicyStatus, etc.)
+    - [x] Add rate limit exceeded error handling (RESOURCE_EXHAUSTED status)
+    - [x] Add 20 unit tests for rate limiting behavior
+    - [x] Document rate limiting in design.md Section 14.10
   - [ ] mTLS verification testing (2 hrs) - High
     - [ ] Add integration tests with valid/invalid client certs
     - [ ] Test certificate expiry handling
@@ -1194,10 +1195,10 @@ These items MUST be completed before tagging v1.0.0:
 
 ### Security Requirements
 
-| Task                                | Effort | Priority | Status                |
-| ----------------------------------- | ------ | -------- | --------------------- |
+| Task                                | Effort | Priority | Status                  |
+| ----------------------------------- | ------ | -------- | ----------------------- |
 | Security audit for bundle signing   | 4 hrs  | Critical | ✅ Week 21 (2026-01-08) |
-| Add rate limiting to gRPC endpoints | 4 hrs  | High     | ⏳ Week 21            |
+| Add rate limiting to gRPC endpoints | 4 hrs  | High     | ✅ Week 21 (2026-01-08) |
 | mTLS verification testing           | 2 hrs  | High     | ⏳ Week 21 |
 
 ### Observability Requirements

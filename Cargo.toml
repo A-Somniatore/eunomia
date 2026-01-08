@@ -55,6 +55,7 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 # gRPC
 tonic = { version = "0.12", features = ["tls"] }
 prost = "0.13"
+tower = { version = "0.5", features = ["limit", "buffer", "load-shed"] }
 
 # Time
 chrono = { version = "0.4", features = ["serde"] }

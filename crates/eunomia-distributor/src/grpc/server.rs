@@ -15,6 +15,20 @@
 //!         ca_cert_pem: Some(include_str!("ca.crt").to_string()),
 //!     });
 //! ```
+//!
+//! ## Rate Limiting
+//!
+//! The server supports configurable rate limiting per endpoint:
+//!
+//! ```rust,ignore
+//! use eunomia_distributor::grpc::rate_limit::{EndpointRateLimits, RateLimitConfig};
+//!
+//! let config = GrpcServerConfig::default()
+//!     .with_rate_limits(
+//!         EndpointRateLimits::default()
+//!             .with_deploy_policy(RateLimitConfig::new(50))
+//!     );
+//! ```
 
 use std::net::SocketAddr;
 use std::sync::Arc;
@@ -25,6 +39,7 @@ use tonic::transport::{Certificate, Identity, Server, ServerTlsConfig};
 use tracing::{info, warn};
 
 use super::control_plane::ControlPlaneService;
+use super::rate_limit::{EndpointRateLimits, RateLimiterRegistry};
 use crate::Distributor;
 
 /// TLS configuration for the gRPC server.
@@ -63,6 +78,8 @@ pub struct GrpcServerConfig {
     pub enable_health_check: bool,
     /// TLS configuration for secure connections.
     pub tls_config: Option<TlsConfig>,
+    /// Rate limiting configuration per endpoint.
+    pub rate_limits: Option<EndpointRateLimits>,
 }
 
 impl Default for GrpcServerConfig {
@@ -79,6 +96,7 @@ impl Default for GrpcServerConfig {
             enable_reflection: true,
             enable_health_check: true,
             tls_config: None,
+            rate_limits: Some(EndpointRateLimits::default()),
         }
     }
 }
@@ -142,6 +160,26 @@ impl GrpcServerConfig {
             .as_ref()
             .is_some_and(|tls| tls.ca_cert_pem.is_some())
     }
+
+    /// Configure rate limiting per endpoint.
+    ///
+    /// Rate limiting protects the server from abuse and ensures fair resource allocation.
+    /// By default, rate limiting is enabled with sensible defaults.
+    pub fn with_rate_limits(mut self, limits: EndpointRateLimits) -> Self {
+        self.rate_limits = Some(limits);
+        self
+    }
+
+    /// Disable rate limiting.
+    pub fn without_rate_limits(mut self) -> Self {
+        self.rate_limits = None;
+        self
+    }
+
+    /// Check if rate limiting is enabled.
+    pub fn is_rate_limiting_enabled(&self) -> bool {
+        self.rate_limits.is_some()
+    }
 }
 
 /// gRPC server handle for graceful shutdown.
@@ -165,6 +203,7 @@ impl GrpcServerHandle {
 pub struct GrpcServer {
     config: GrpcServerConfig,
     distributor: Arc<Distributor>,
+    rate_limiter: Option<Arc<RateLimiterRegistry>>,
 }
 
 impl std::fmt::Debug for GrpcServer {
@@ -178,9 +217,15 @@ impl std::fmt::Debug for GrpcServer {
 impl GrpcServer {
     /// Create a new gRPC server.
     pub fn new(distributor: Arc<Distributor>, config: GrpcServerConfig) -> Self {
+        let rate_limiter = config
+            .rate_limits
+            .clone()
+            .map(|limits| Arc::new(RateLimiterRegistry::new(limits)));
+
         Self {
             config,
             distributor,
+            rate_limiter,
         }
     }
 
@@ -199,13 +244,19 @@ impl GrpcServer {
         self.config.bind_address
     }
 
+    /// Get the rate limiter registry (if enabled).
+    pub fn rate_limiter(&self) -> Option<&Arc<RateLimiterRegistry>> {
+        self.rate_limiter.as_ref()
+    }
+
     /// Run the gRPC server.
     ///
     /// Returns a handle that can be used to trigger graceful shutdown.
     pub async fn run(self) -> Result<GrpcServerHandle, GrpcServerError> {
         let (shutdown_tx, shutdown_rx) = oneshot::channel::<()>();
 
-        let control_plane = ControlPlaneService::new(Arc::clone(&self.distributor));
+        let control_plane = ControlPlaneService::new(Arc::clone(&self.distributor))
+            .with_rate_limiter_opt(self.rate_limiter.as_ref().map(Arc::clone));
 
         let addr = self.config.bind_address;
 
@@ -392,5 +443,42 @@ mod tests {
         assert_eq!(tls.cert_pem, "cert");
         assert_eq!(tls.key_pem, "key");
         assert_eq!(tls.ca_cert_pem, Some("ca".to_string()));
+    }
+
+    #[test]
+    fn test_rate_limiting_enabled_by_default() {
+        let config = GrpcServerConfig::default();
+        assert!(config.is_rate_limiting_enabled());
+        assert!(config.rate_limits.is_some());
+    }
+
+    #[test]
+    fn test_rate_limiting_disabled() {
+        let config = GrpcServerConfig::default().without_rate_limits();
+        assert!(!config.is_rate_limiting_enabled());
+        assert!(config.rate_limits.is_none());
+    }
+
+    #[test]
+    fn test_custom_rate_limits() {
+        use crate::grpc::rate_limit::RateLimitConfig;
+
+        let custom_limits = EndpointRateLimits::new(RateLimitConfig::new(500))
+            .with_deploy_policy(RateLimitConfig::new(100).with_burst_size(50));
+
+        let config = GrpcServerConfig::default().with_rate_limits(custom_limits);
+        assert!(config.is_rate_limiting_enabled());
+
+        let limits = config.rate_limits.as_ref().unwrap();
+        assert_eq!(limits.default.requests_per_second.get(), 500);
+        assert_eq!(
+            limits
+                .deploy_policy
+                .as_ref()
+                .unwrap()
+                .requests_per_second
+                .get(),
+            100
+        );
     }
 }

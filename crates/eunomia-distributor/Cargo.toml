@@ -21,6 +21,7 @@ futures = { workspace = true }
 # gRPC
 tonic = { workspace = true }
 prost = { workspace = true }
+tower = { workspace = true }
 
 # Serialization
 serde = { workspace = true }
@@ -48,6 +49,9 @@ uuid = { workspace = true }
 # Hashing for checksums
 sha2 = { workspace = true }
 hex = { workspace = true }
+
+# Synchronization for rate limiting
+parking_lot = { workspace = true }
 
 [dev-dependencies]
 tokio-test = "0.4"
