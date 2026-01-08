@@ -8,6 +8,7 @@ members = [
     "crates/eunomia-cli",
     "crates/eunomia-distributor",
     "crates/eunomia-audit",
+    "crates/eunomia-metrics",
 ]
 
 [workspace.package]
@@ -84,6 +85,16 @@ eunomia-test = { path = "crates/eunomia-test" }
 eunomia-registry = { path = "crates/eunomia-registry" }
 eunomia-distributor = { path = "crates/eunomia-distributor" }
 eunomia-audit = { path = "crates/eunomia-audit" }
+eunomia-metrics = { path = "crates/eunomia-metrics" }
+
+# Metrics & Observability
+opentelemetry = "0.24"
+opentelemetry_sdk = { version = "0.24", features = ["rt-tokio"] }
+opentelemetry-prometheus = "0.17"
+prometheus = "0.13"
+axum = "0.7"
+once_cell = "1.19"
+parking_lot = "0.12"
 
 # Async utilities
 async-trait = "0.1"

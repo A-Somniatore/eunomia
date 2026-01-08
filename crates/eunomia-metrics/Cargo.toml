@@ -1,0 +1,37 @@
+[package]
+name = "eunomia-metrics"
+description = "OpenTelemetry metrics for Eunomia authorization platform"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+authors.workspace = true
+
+[dependencies]
+# OpenTelemetry
+opentelemetry = { workspace = true }
+opentelemetry_sdk = { workspace = true }
+opentelemetry-prometheus = { workspace = true }
+
+# Prometheus exporter
+prometheus = { workspace = true }
+
+# HTTP server for metrics endpoint
+axum = { workspace = true, features = ["tokio"] }
+tokio = { workspace = true }
+
+# Tracing integration
+tracing = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Synchronization
+once_cell = { workspace = true }
+parking_lot = { workspace = true }
+
+[dev-dependencies]
+tempfile = { workspace = true }
+
+[lints]
+workspace = true
