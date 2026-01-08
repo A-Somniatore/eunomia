@@ -248,26 +248,27 @@ impl Bundler {
     /// - No version is set
     /// - No policies are added
     /// - Policy validation fails
+    #[allow(clippy::cast_possible_truncation, clippy::cast_sign_loss)]
     pub fn compile(self) -> Result<Bundle> {
         let start = Instant::now();
         let service_name = self.name.clone();
 
         let result = self.compile_internal();
-        let duration = start.elapsed().as_secs_f64();
+        let duration_ms = start.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
 
         match &result {
             Ok(_) => {
                 MetricsRegistry::global().compiler().record_compilation(
                     &service_name,
                     true,
-                    (duration * 1000.0) as u64,
+                    duration_ms,
                 );
             }
             Err(_) => {
                 MetricsRegistry::global().compiler().record_compilation(
                     &service_name,
                     false,
-                    (duration * 1000.0) as u64,
+                    duration_ms,
                 );
             }
         }

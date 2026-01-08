@@ -661,4 +661,308 @@ mod tests {
 
         assert!(verifier.verify(&signed).is_ok());
     }
+
+    // =========================================================================
+    // Security Audit Tests (Week 21)
+    // =========================================================================
+
+    #[test]
+    fn test_security_key_generation_uniqueness() {
+        // Verify that key generation produces unique keys
+        let key1 = SigningKeyPair::generate();
+        let key2 = SigningKeyPair::generate();
+        let key3 = SigningKeyPair::generate();
+
+        // All private keys should be different
+        assert_ne!(key1.to_bytes(), key2.to_bytes());
+        assert_ne!(key2.to_bytes(), key3.to_bytes());
+        assert_ne!(key1.to_bytes(), key3.to_bytes());
+
+        // All public keys should be different
+        assert_ne!(key1.public_key_bytes(), key2.public_key_bytes());
+        assert_ne!(key2.public_key_bytes(), key3.public_key_bytes());
+        assert_ne!(key1.public_key_bytes(), key3.public_key_bytes());
+    }
+
+    #[test]
+    fn test_security_deterministic_key_from_seed() {
+        // Same seed should produce same key (for key recovery)
+        let seed = [42u8; 32];
+        let key1 = SigningKeyPair::from_seed(&seed).unwrap();
+        let key2 = SigningKeyPair::from_seed(&seed).unwrap();
+
+        assert_eq!(key1.to_bytes(), key2.to_bytes());
+        assert_eq!(key1.public_key_bytes(), key2.public_key_bytes());
+    }
+
+    #[test]
+    fn test_security_invalid_seed_lengths() {
+        // Seeds that are too short should fail
+        let short_seed = [0u8; 16];
+        assert!(SigningKeyPair::from_seed(&short_seed).is_err());
+
+        // Seeds that are too long should fail
+        let long_seed = [0u8; 64];
+        assert!(SigningKeyPair::from_seed(&long_seed).is_err());
+
+        // Empty seed should fail
+        let empty_seed: [u8; 0] = [];
+        assert!(SigningKeyPair::from_seed(&empty_seed).is_err());
+    }
+
+    #[test]
+    fn test_security_malformed_base64_key() {
+        // Invalid base64 should fail
+        assert!(SigningKeyPair::from_base64("not-valid-base64!!!").is_err());
+
+        // Valid base64 but wrong length should fail
+        assert!(SigningKeyPair::from_base64("YWJjZA==").is_err()); // "abcd" - 4 bytes
+
+        // Empty string should fail
+        assert!(SigningKeyPair::from_base64("").is_err());
+    }
+
+    #[test]
+    fn test_security_malformed_signature_rejected() {
+        let key_pair = SigningKeyPair::generate();
+
+        let mut verifier = BundleVerifier::new();
+        verifier.add_public_key("test-key", key_pair.verifying_key());
+
+        let bundle = test_bundle("test-service", "1.0.0");
+
+        // Create a signed bundle with a malformed signature
+        let malformed_sig = BundleSignature {
+            key_id: "test-key".to_string(),
+            algorithm: "ed25519".to_string(),
+            value: "not-valid-base64!!!".to_string(),
+        };
+
+        let mut signatures = SignatureFile::new();
+        signatures.add_signature(malformed_sig);
+
+        let signed = SignedBundle::new(bundle, signatures);
+        assert!(verifier.verify(&signed).is_err());
+    }
+
+    #[test]
+    fn test_security_truncated_signature_rejected() {
+        let key_pair = SigningKeyPair::generate();
+        let signer = BundleSigner::from_key_pair(&key_pair, "test-key".to_string());
+
+        let mut verifier = BundleVerifier::new();
+        verifier.add_public_key("test-key", key_pair.verifying_key());
+
+        let bundle = test_bundle("test-service", "1.0.0");
+        let signed = signer.sign(&bundle);
+
+        // Truncate the signature value
+        let mut tampered = signed;
+        if let Some(sig) = tampered.signatures.signatures.get_mut(0) {
+            sig.value = sig.value[..20].to_string(); // Truncate to 20 chars
+        }
+
+        assert!(verifier.verify(&tampered).is_err());
+    }
+
+    #[test]
+    fn test_security_empty_signature_value_rejected() {
+        let key_pair = SigningKeyPair::generate();
+
+        let mut verifier = BundleVerifier::new();
+        verifier.add_public_key("test-key", key_pair.verifying_key());
+
+        let bundle = test_bundle("test-service", "1.0.0");
+
+        // Create signature with empty value
+        let empty_sig = BundleSignature {
+            key_id: "test-key".to_string(),
+            algorithm: "ed25519".to_string(),
+            value: String::new(),
+        };
+
+        let mut signatures = SignatureFile::new();
+        signatures.add_signature(empty_sig);
+
+        let signed = SignedBundle::new(bundle, signatures);
+        assert!(verifier.verify(&signed).is_err());
+    }
+
+    #[test]
+    fn test_security_signature_from_different_bundle_rejected() {
+        let key_pair = SigningKeyPair::generate();
+        let signer = BundleSigner::from_key_pair(&key_pair, "test-key".to_string());
+
+        let mut verifier = BundleVerifier::new();
+        verifier.add_public_key("test-key", key_pair.verifying_key());
+
+        // Sign bundle A
+        let bundle_a = test_bundle("service-a", "1.0.0");
+        let signed_a = signer.sign(&bundle_a);
+
+        // Try to use signature from bundle A on bundle B
+        let bundle_b = test_bundle("service-b", "1.0.0");
+        let forged = SignedBundle::new(bundle_b, signed_a.signatures);
+
+        assert!(verifier.verify(&forged).is_err());
+    }
+
+    #[test]
+    fn test_security_version_change_invalidates_signature() {
+        let key_pair = SigningKeyPair::generate();
+        let signer = BundleSigner::from_key_pair(&key_pair, "test-key".to_string());
+
+        let mut verifier = BundleVerifier::new();
+        verifier.add_public_key("test-key", key_pair.verifying_key());
+
+        // Sign version 1.0.0
+        let bundle_v1 = test_bundle("test-service", "1.0.0");
+        let signed = signer.sign(&bundle_v1);
+
+        // Modify version to 1.0.1 (keeps same signature)
+        let bundle_v1_1 = test_bundle("test-service", "1.0.1");
+        let tampered = SignedBundle::new(bundle_v1_1, signed.signatures);
+
+        assert!(verifier.verify(&tampered).is_err());
+    }
+
+    #[test]
+    fn test_security_policy_content_change_invalidates_signature() {
+        let key_pair = SigningKeyPair::generate();
+        let signer = BundleSigner::from_key_pair(&key_pair, "test-key".to_string());
+
+        let mut verifier = BundleVerifier::new();
+        verifier.add_public_key("test-key", key_pair.verifying_key());
+
+        // Sign original policy
+        let bundle_original = test_bundle_with_policy(
+            "test-service",
+            "1.0.0",
+            "test.authz",
+            "package test\ndefault allow := false",
+        );
+        let signed = signer.sign(&bundle_original);
+
+        // Modify policy to allow everything (security breach attempt)
+        let bundle_evil = test_bundle_with_policy(
+            "test-service",
+            "1.0.0",
+            "test.authz",
+            "package test\ndefault allow := true", // Changed to true!
+        );
+        let tampered = SignedBundle::new(bundle_evil, signed.signatures);
+
+        // This MUST fail - policy integrity is critical
+        assert!(verifier.verify(&tampered).is_err());
+    }
+
+    #[test]
+    fn test_security_key_id_mismatch_handles_gracefully() {
+        let key_pair = SigningKeyPair::generate();
+        let signer = BundleSigner::from_key_pair(&key_pair, "production-key".to_string());
+
+        // Verifier has the key under a different ID
+        let mut verifier = BundleVerifier::new();
+        verifier.add_public_key("staging-key", key_pair.verifying_key());
+
+        let bundle = test_bundle("test-service", "1.0.0");
+        let signed = signer.sign(&bundle);
+
+        // Should fail because key_id "production-key" isn't in verifier
+        assert!(verifier.verify(&signed).is_err());
+    }
+
+    #[test]
+    fn test_security_verify_all_returns_only_valid_keys() {
+        let key_pair1 = SigningKeyPair::generate();
+        let key_pair2 = SigningKeyPair::generate();
+        let key_pair_wrong = SigningKeyPair::generate();
+
+        let signer1 = BundleSigner::from_key_pair(&key_pair1, "key1".to_string());
+        let signer2 = BundleSigner::from_key_pair(&key_pair2, "key2".to_string());
+
+        let bundle = test_bundle("test-service", "1.0.0");
+        let checksum = bundle.compute_checksum();
+
+        let mut signatures = SignatureFile::new();
+        signatures.add_signature(signer1.sign_checksum(&checksum));
+        signatures.add_signature(signer2.sign_checksum(&checksum));
+
+        let signed = SignedBundle::new(bundle, signatures);
+
+        // Verifier has key1 and a wrong key registered as key2
+        let mut verifier = BundleVerifier::new();
+        verifier.add_public_key("key1", key_pair1.verifying_key());
+        verifier.add_public_key("key2", key_pair_wrong.verifying_key()); // Wrong key!
+
+        // verify_all should only return key1 as verified
+        let verified = verifier.verify_all(&signed).unwrap();
+        assert_eq!(verified.len(), 1);
+        assert!(verified.contains(&"key1".to_string()));
+        assert!(!verified.contains(&"key2".to_string()));
+    }
+
+    #[test]
+    fn test_security_algorithm_field_ignored() {
+        // Verify that even if algorithm field is tampered, we use Ed25519
+        let key_pair = SigningKeyPair::generate();
+        let signer = BundleSigner::from_key_pair(&key_pair, "test-key".to_string());
+
+        let mut verifier = BundleVerifier::new();
+        verifier.add_public_key("test-key", key_pair.verifying_key());
+
+        let bundle = test_bundle("test-service", "1.0.0");
+        let mut signed = signer.sign(&bundle);
+
+        // Tamper with algorithm field (shouldn't affect verification)
+        if let Some(sig) = signed.signatures.signatures.get_mut(0) {
+            sig.algorithm = "rsa-sha256".to_string(); // Lie about algorithm
+        }
+
+        // Should still work because we always use Ed25519 internally
+        assert!(verifier.verify(&signed).is_ok());
+    }
+
+    #[test]
+    fn test_security_public_key_invalid_format() {
+        let mut verifier = BundleVerifier::new();
+
+        // Invalid base64
+        assert!(verifier
+            .add_public_key_base64("key1", "not-base64!!!")
+            .is_err());
+
+        // Wrong length (16 bytes instead of 32)
+        let short_key = BASE64.encode([0u8; 16]);
+        assert!(verifier.add_public_key_base64("key2", &short_key).is_err());
+
+        // Wrong length (64 bytes instead of 32)
+        let long_key = BASE64.encode([0u8; 64]);
+        assert!(verifier.add_public_key_base64("key3", &long_key).is_err());
+
+        // Empty key
+        let empty_key = BASE64.encode([0u8; 0]);
+        assert!(verifier.add_public_key_base64("key4", &empty_key).is_err());
+    }
+
+    #[test]
+    fn test_security_checksum_order_independence() {
+        // Verify checksum is deterministic regardless of insertion order
+        let bundle1 = Bundle::builder("test-service")
+            .version("1.0.0")
+            .add_policy("a.policy", "package a")
+            .add_policy("b.policy", "package b")
+            .add_policy("c.policy", "package c")
+            .build();
+
+        let bundle2 = Bundle::builder("test-service")
+            .version("1.0.0")
+            .add_policy("c.policy", "package c")
+            .add_policy("a.policy", "package a")
+            .add_policy("b.policy", "package b")
+            .build();
+
+        // Checksums should be identical regardless of insertion order
+        assert_eq!(bundle1.compute_checksum(), bundle2.compute_checksum());
+    }
 }

@@ -164,9 +164,22 @@ impl Bundle {
     ///
     /// The checksum is computed over sorted file paths and contents
     /// to ensure deterministic results regardless of iteration order.
+    ///
+    /// # Security Note
+    ///
+    /// The checksum includes bundle metadata (name, version) to prevent
+    /// signature reuse attacks where a signature from one bundle could
+    /// be applied to another bundle with different metadata.
     #[must_use]
     pub fn compute_checksum(&self) -> String {
         let mut hasher = Sha256::new();
+
+        // Include bundle identity in checksum to prevent signature reuse
+        hasher.update(b"eunomia-bundle:1\n");
+        hasher.update(self.name.as_bytes());
+        hasher.update(b"\n");
+        hasher.update(self.version.as_bytes());
+        hasher.update(b"\n");
 
         // Sort policies by package name for deterministic ordering
         let mut policy_entries: Vec<_> = self.policies.iter().collect();

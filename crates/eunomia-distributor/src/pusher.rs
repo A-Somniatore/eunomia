@@ -226,7 +226,7 @@ impl PolicyPusher {
         };
 
         // Record health check metric
-        let healthy = result.as_ref().map_or(false, |h| h.state.is_operational());
+        let healthy = result.as_ref().is_ok_and(|h| h.state.is_operational());
         MetricsRegistry::global()
             .distributor()
             .record_health_check(&instance.id, healthy);

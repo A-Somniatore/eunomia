@@ -48,6 +48,15 @@
 //!     // Later, shut down
 //!     handle.shutdown();
 //! }
+
+// Clippy configuration for metrics crate
+// These are acceptable in metrics code where we need f64 for Prometheus
+#![allow(clippy::cast_precision_loss)]
+#![allow(clippy::unreadable_literal)]
+#![allow(clippy::too_many_lines)]
+#![allow(clippy::missing_panics_doc)]
+#![allow(clippy::missing_const_for_fn)]
+#![allow(clippy::non_std_lazy_statics)]
 //! ```
 
 mod compiler;

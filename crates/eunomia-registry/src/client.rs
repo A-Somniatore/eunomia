@@ -227,6 +227,7 @@ impl RegistryClient {
     /// # Errors
     ///
     /// Returns an error if the bundle cannot be fetched or is corrupt.
+    #[allow(clippy::cast_possible_truncation)]
     pub async fn fetch(&self, service: &str, version: &str) -> Result<Bundle, RegistryError> {
         let start = Instant::now();
 
@@ -240,7 +241,7 @@ impl RegistryClient {
         }
 
         let result = self.fetch_internal(service, version).await;
-        let duration_ms = start.elapsed().as_millis() as u64;
+        let duration_ms = start.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
 
         match &result {
             Ok(bundle) => {
@@ -326,6 +327,7 @@ impl RegistryClient {
     /// # Errors
     ///
     /// Returns an error if the bundle cannot be pushed.
+    #[allow(clippy::cast_possible_truncation)]
     pub async fn publish(
         &self,
         service: &str,
@@ -335,7 +337,7 @@ impl RegistryClient {
         let start = Instant::now();
 
         let result = self.publish_internal(service, version, bundle).await;
-        let duration_ms = start.elapsed().as_millis() as u64;
+        let duration_ms = start.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
 
         match &result {
             Ok(_digest) => {

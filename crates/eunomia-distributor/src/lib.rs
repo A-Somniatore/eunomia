@@ -204,7 +204,8 @@ impl Distributor {
             }
         };
 
-        let duration_ms = start.elapsed().as_millis() as u64;
+        #[allow(clippy::cast_possible_truncation)]
+        let duration_ms = start.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
 
         // Update final state and record metrics
         match &result {
@@ -244,7 +245,8 @@ impl Distributor {
             .deploy(service, target_version, DeploymentStrategy::immediate())
             .await;
 
-        let duration_ms = start.elapsed().as_millis() as u64;
+        #[allow(clippy::cast_possible_truncation)]
+        let duration_ms = start.elapsed().as_millis().min(u128::from(u64::MAX)) as u64;
 
         // Record rollback metric
         MetricsRegistry::global().distributor().record_rollback(
