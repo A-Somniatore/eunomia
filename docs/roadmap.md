@@ -1,15 +1,21 @@
 # Eunomia – Development Roadmap
 
-> **Version**: 1.7.0  
+> **Version**: 1.8.0  
 > **Created**: 2026-01-04  
 > **Last Updated**: 2026-01-08  
-> **Target Completion**: Week 21 (v1.0.0 Release)
+> **Target Completion**: Week 21 (v1.0.0 Release) ✅ **ALL REQUIREMENTS COMPLETE**
 
 > ✅ **CTO REVIEW (2026-01-05)**: Phase E0 complete. Shared types migration resolved.
 > All Eunomia types now use `themis-platform-types` for schema compatibility.
 
 > ✅ **ARCHITECTURE REVIEW (2026-01-07)**: Grade B+. All immediate fixes completed.
 > See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed findings and recommendations.
+
+> ✅ **WEEK 21 COMPLETE (2026-01-08)**: All Pre-v1.0.0 requirements satisfied.
+> - Security: Rate limiting, bundle signing audit, mTLS testing
+> - Observability: OpenTelemetry metrics, Grafana dashboards
+> - Operational: K8s discovery, cross-platform CI
+> Ready for v1.0.0 release candidate.
 
 ---
 
@@ -162,9 +168,7 @@ match caller {
 
 | Spec Requirement                       | Priority          | Effort | Status                          |
 | -------------------------------------- | ----------------- | ------ | ------------------------------- |
-| **Rate limiting on gRPC** (Spec §11)   | Critical for v1.0 | 4 hrs  | ⏳ Week 21                      |
-| **Security audit of bundle signing**   | Critical for v1.0 | 4 hrs  | ⏳ Week 21                      |
-| **Cross-platform testing**             | Medium            | 4 hrs  | ⏳ Week 21                      |
+| All critical items completed           | -                 | -      | ✅ Week 21                      |
 
 ### ✅ Recently Completed (Week 19-21)
 
@@ -178,6 +182,9 @@ match caller {
 | **Performance tuning guide**            | ✅ `docs/performance-guide.md` with SLOs and recommendations  |
 | **Example policies**                    | ✅ `docs/examples/` with RBAC, multi-tenant, microservices    |
 | **Kubernetes service discovery**        | ✅ `KubernetesDiscovery` with kube-rs, full Endpoints API     |
+| **Rate limiting on gRPC** (Spec §11)    | ✅ Token bucket rate limiter with per-endpoint config         |
+| **Security audit of bundle signing**    | ✅ 15 security tests, tamper detection, audit logging         |
+| **Cross-platform testing**              | ✅ GitHub Actions matrix for Linux, macOS, Windows            |
 
 ---
 
