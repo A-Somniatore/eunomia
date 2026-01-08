@@ -220,14 +220,8 @@ mod tests {
 
         metrics.record_push("test-service", "v1.0.0", true, 150);
 
-        assert_eq!(
-            metrics.get_push_count("test-service", "v1.0.0", true),
-            1.0
-        );
-        assert_eq!(
-            metrics.get_push_count("test-service", "v1.0.0", false),
-            0.0
-        );
+        assert_eq!(metrics.get_push_count("test-service", "v1.0.0", true), 1.0);
+        assert_eq!(metrics.get_push_count("test-service", "v1.0.0", false), 0.0);
     }
 
     #[test]
@@ -236,10 +230,7 @@ mod tests {
 
         metrics.record_push("test-service", "v1.0.0", false, 50);
 
-        assert_eq!(
-            metrics.get_push_count("test-service", "v1.0.0", false),
-            1.0
-        );
+        assert_eq!(metrics.get_push_count("test-service", "v1.0.0", false), 1.0);
     }
 
     #[test]

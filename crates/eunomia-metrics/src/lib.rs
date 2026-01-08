@@ -185,7 +185,9 @@ mod tests {
         let registry = MetricsRegistry::global();
 
         // Record a metric
-        registry.compiler().record_compilation("test-service", true, 100);
+        registry
+            .compiler()
+            .record_compilation("test-service", true, 100);
 
         // Verify output can be generated
         let output = registry.prometheus_output().unwrap();
@@ -199,7 +201,9 @@ mod tests {
         // Record some metrics
         registry.compiler().record_compilation("svc1", true, 50);
         registry.compiler().record_compilation("svc1", false, 100);
-        registry.distributor().record_push("svc1", "v1.0.0", true, 200);
+        registry
+            .distributor()
+            .record_push("svc1", "v1.0.0", true, 200);
 
         let output = registry.prometheus_output().unwrap();
 

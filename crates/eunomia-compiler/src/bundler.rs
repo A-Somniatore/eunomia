@@ -3,8 +3,10 @@
 //! This module provides functionality for compiling policies into distributable bundles.
 
 use std::path::Path;
+use std::time::Instant;
 
 use eunomia_core::{Bundle, Policy};
+use eunomia_metrics::MetricsRegistry;
 use tracing::info;
 
 use crate::analyzer::Analyzer;
@@ -247,6 +249,33 @@ impl Bundler {
     /// - No policies are added
     /// - Policy validation fails
     pub fn compile(self) -> Result<Bundle> {
+        let start = Instant::now();
+        let service_name = self.name.clone();
+
+        let result = self.compile_internal();
+        let duration = start.elapsed().as_secs_f64();
+
+        match &result {
+            Ok(_) => {
+                MetricsRegistry::global().compiler().record_compilation(
+                    &service_name,
+                    true,
+                    (duration * 1000.0) as u64,
+                );
+            }
+            Err(_) => {
+                MetricsRegistry::global().compiler().record_compilation(
+                    &service_name,
+                    false,
+                    (duration * 1000.0) as u64,
+                );
+            }
+        }
+
+        result
+    }
+
+    fn compile_internal(self) -> Result<Bundle> {
         let version = self.version.ok_or_else(|| CompilerError::BundleError {
             message: "Bundle version is required".to_string(),
         })?;
@@ -257,10 +286,14 @@ impl Bundler {
             });
         }
 
+        // Capture policy count before potentially moving self.policies
+        let policy_count = self.policies.len() as u64;
+        let bundle_name = self.name.clone();
+
         info!(
             bundle = %self.name,
             version = %version,
-            policy_count = self.policies.len(),
+            policy_count = policy_count,
             "Compiling bundle"
         );
 
@@ -289,6 +322,11 @@ impl Bundler {
             self.policies
         };
 
+        // Record policies processed metric
+        MetricsRegistry::global()
+            .compiler()
+            .record_policies_processed(policy_count);
+
         // Build the bundle
         let mut builder = Bundle::builder(&self.name).version(&version);
 
@@ -309,7 +347,16 @@ impl Bundler {
         // Add roots based on service name
         builder = builder.add_root(self.name.replace('-', "_"));
 
-        Ok(builder.build())
+        let bundle = builder.build();
+
+        // Record bundle size metric
+        let bundle_bytes = bundle.to_bytes()?;
+        let bundle_size = bundle_bytes.len();
+        MetricsRegistry::global()
+            .compiler()
+            .record_bundle_size(&bundle_name, bundle_size as u64);
+
+        Ok(bundle)
     }
 
     /// Compiles and writes the bundle to a tar.gz file.
@@ -531,5 +578,51 @@ mod tests {
             .unwrap();
 
         assert_eq!(bundle.data_files.len(), 1);
+    }
+
+    #[test]
+    fn test_bundler_records_metrics_on_success() {
+        let policy = Policy::new(
+            "metrics_test.authz",
+            "package metrics_test.authz\ndefault allow := false",
+        );
+
+        // Compile the bundle
+        let bundle = Bundler::new("metrics-test-service")
+            .version("1.0.0")
+            .add_policy(policy)
+            .compile()
+            .unwrap();
+
+        // Verify bundle was created
+        assert_eq!(bundle.name, "metrics-test-service");
+
+        // Verify metrics were recorded (check compilation count)
+        let success_count = MetricsRegistry::global()
+            .compiler()
+            .get_compilation_count("metrics-test-service", true);
+        assert!(success_count >= 1.0, "Should record successful compilation");
+    }
+
+    #[test]
+    fn test_bundler_records_metrics_on_failure() {
+        // Create a bundler without a version (will fail)
+        let policy = Policy::new(
+            "failure_test.authz",
+            "package failure_test.authz\ndefault allow := false",
+        );
+
+        // This should fail because no version is set
+        let result = Bundler::new("failure-test-service")
+            .add_policy(policy)
+            .compile();
+
+        assert!(result.is_err());
+
+        // Verify failure metric was recorded
+        let failure_count = MetricsRegistry::global()
+            .compiler()
+            .get_compilation_count("failure-test-service", false);
+        assert!(failure_count >= 1.0, "Should record failed compilation");
     }
 }

@@ -285,7 +285,7 @@ mod tests {
 
         metrics.record_cache_size(1048576); // 1 MB
         metrics.record_cache_size(10485760); // 10 MB
-        // Histogram records observations, verify it doesn't panic
+                                             // Histogram records observations, verify it doesn't panic
     }
 
     #[test]

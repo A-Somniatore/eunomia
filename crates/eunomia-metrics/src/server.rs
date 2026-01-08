@@ -5,15 +5,9 @@
 use std::net::SocketAddr;
 use std::sync::Arc;
 
-use axum::{
-    extract::State,
-    http::StatusCode,
-    response::IntoResponse,
-    routing::get,
-    Router,
-};
+use axum::{extract::State, http::StatusCode, response::IntoResponse, routing::get, Router};
 use tokio::sync::oneshot;
-use tracing::{info, error};
+use tracing::{error, info};
 
 use crate::MetricsRegistry;
 

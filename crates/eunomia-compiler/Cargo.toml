@@ -9,6 +9,7 @@ authors.workspace = true
 
 [dependencies]
 eunomia-core = { workspace = true }
+eunomia-metrics = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
 thiserror = { workspace = true }

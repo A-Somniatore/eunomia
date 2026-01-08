@@ -334,11 +334,8 @@ async fn execute_rollback(args: &RollbackArgs, strategy: RollbackStrategy) -> Re
 
     // Emit rollback started event
     let from_version = "unknown"; // Would come from state tracking in production
-    let started_event = DistributionEvent::rollback_started(
-        &args.service,
-        from_version,
-        target_version,
-    );
+    let started_event =
+        DistributionEvent::rollback_started(&args.service, from_version, target_version);
     if let Err(e) = audit_logger.log(&started_event) {
         tracing::warn!("Failed to emit rollback started audit event: {e}");
     }
@@ -362,11 +359,8 @@ async fn execute_rollback(args: &RollbackArgs, strategy: RollbackStrategy) -> Re
     let duration = start.elapsed();
 
     // Emit rollback completed event
-    let completed_event = DistributionEvent::rollback_completed(
-        &args.service,
-        target_version,
-        result.failed == 0,
-    );
+    let completed_event =
+        DistributionEvent::rollback_completed(&args.service, target_version, result.failed == 0);
     if let Err(e) = audit_logger.log(&completed_event) {
         tracing::warn!("Failed to emit rollback completed audit event: {e}");
     }

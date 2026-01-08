@@ -748,6 +748,7 @@ name = "eunomia-compiler"
 version = "0.1.0"
 dependencies = [
  "eunomia-core",
+ "eunomia-metrics",
  "proptest",
  "regorus",
  "serde",
