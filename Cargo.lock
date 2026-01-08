@@ -832,6 +832,7 @@ dependencies = [
  "chrono",
  "dirs",
  "eunomia-core",
+ "eunomia-metrics",
  "hex",
  "reqwest",
  "serde",

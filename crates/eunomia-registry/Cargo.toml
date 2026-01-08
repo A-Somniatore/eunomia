@@ -10,6 +10,7 @@ authors.workspace = true
 [dependencies]
 # Workspace crates
 eunomia-core = { workspace = true }
+eunomia-metrics = { workspace = true }
 
 # Serialization
 serde = { workspace = true }

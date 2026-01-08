@@ -10,9 +10,10 @@ use crate::error::RegistryError;
 use crate::oci::{Descriptor, Manifest, MediaType, TagList};
 use crate::version::{VersionQuery, VersionResolver};
 use eunomia_core::Bundle;
+use eunomia_metrics::MetricsRegistry;
 use reqwest::header::{HeaderMap, HeaderValue, ACCEPT, AUTHORIZATION, CONTENT_TYPE};
 use sha2::{Digest, Sha256};
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 /// Configuration for retry behavior with exponential backoff.
 #[derive(Debug, Clone, Copy)]
@@ -227,13 +228,42 @@ impl RegistryClient {
     ///
     /// Returns an error if the bundle cannot be fetched or is corrupt.
     pub async fn fetch(&self, service: &str, version: &str) -> Result<Bundle, RegistryError> {
+        let start = Instant::now();
+
         // Check cache first
         if let Some(ref cache) = self.cache {
             if let Some(bundle) = cache.get(service, version)? {
+                MetricsRegistry::global().registry().record_cache_hit();
                 return Ok(bundle);
+            }
+            MetricsRegistry::global().registry().record_cache_miss();
+        }
+
+        let result = self.fetch_internal(service, version).await;
+        let duration_ms = start.elapsed().as_millis() as u64;
+
+        match &result {
+            Ok(bundle) => {
+                MetricsRegistry::global()
+                    .registry()
+                    .record_fetch(service, true, duration_ms);
+                let bundle_bytes = bundle.to_bytes().unwrap_or_default();
+                MetricsRegistry::global()
+                    .registry()
+                    .record_bundle_download(service, bundle_bytes.len() as u64);
+            }
+            Err(_) => {
+                MetricsRegistry::global()
+                    .registry()
+                    .record_fetch(service, false, duration_ms);
             }
         }
 
+        result
+    }
+
+    /// Internal fetch implementation (no metrics).
+    async fn fetch_internal(&self, service: &str, version: &str) -> Result<Bundle, RegistryError> {
         // Fetch manifest
         let manifest = self.fetch_manifest(service, version).await?;
 
@@ -297,6 +327,34 @@ impl RegistryClient {
     ///
     /// Returns an error if the bundle cannot be pushed.
     pub async fn publish(
+        &self,
+        service: &str,
+        version: &str,
+        bundle: &Bundle,
+    ) -> Result<String, RegistryError> {
+        let start = Instant::now();
+
+        let result = self.publish_internal(service, version, bundle).await;
+        let duration_ms = start.elapsed().as_millis() as u64;
+
+        match &result {
+            Ok(_digest) => {
+                MetricsRegistry::global()
+                    .registry()
+                    .record_publish(service, true, duration_ms);
+            }
+            Err(_) => {
+                MetricsRegistry::global()
+                    .registry()
+                    .record_publish(service, false, duration_ms);
+            }
+        }
+
+        result
+    }
+
+    /// Internal publish implementation (no metrics).
+    async fn publish_internal(
         &self,
         service: &str,
         version: &str,
