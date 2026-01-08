@@ -57,6 +57,8 @@ parking_lot = { workspace = true }
 tokio-test = "0.4"
 tempfile = { workspace = true }
 criterion = { workspace = true }
+rcgen = { workspace = true }
+time = "0.3"
 
 [[bench]]
 name = "distribution_bench"

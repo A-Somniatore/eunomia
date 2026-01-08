@@ -1136,10 +1136,10 @@ cargo doc --no-deps         # ✓ Docs build
     - [x] Add rate limit exceeded error handling (RESOURCE_EXHAUSTED status)
     - [x] Add 20 unit tests for rate limiting behavior
     - [x] Document rate limiting in design.md Section 14.10
-  - [ ] mTLS verification testing (2 hrs) - High
-    - [ ] Add integration tests with valid/invalid client certs
-    - [ ] Test certificate expiry handling
-    - [ ] Document mTLS setup in deployment guide
+  - [x] mTLS verification testing (2 hrs) - High ✅ **COMPLETE (2026-01-08)**
+    - [x] Add integration tests with valid/invalid client certs (24 tests in mtls_integration.rs)
+    - [x] Test certificate expiry handling
+    - [x] Document mTLS setup in deployment guide (comprehensive section added)
 - [x] **Observability Requirements** (Week 21)
   - [x] Add OpenTelemetry metrics (8 hrs) - High
     - [x] Add opentelemetry-rust dependencies (eunomia-metrics crate created)
@@ -1199,7 +1199,7 @@ These items MUST be completed before tagging v1.0.0:
 | ----------------------------------- | ------ | -------- | ----------------------- |
 | Security audit for bundle signing   | 4 hrs  | Critical | ✅ Week 21 (2026-01-08) |
 | Add rate limiting to gRPC endpoints | 4 hrs  | High     | ✅ Week 21 (2026-01-08) |
-| mTLS verification testing           | 2 hrs  | High     | ⏳ Week 21 |
+| mTLS verification testing           | 2 hrs  | High     | ✅ Week 21 (2026-01-08) |
 
 ### Observability Requirements
 

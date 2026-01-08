@@ -581,6 +581,167 @@ EOF
 cfssl gencert -ca=ca.pem -ca-key=ca-key.pem client-csr.json | cfssljson -bare client
 ```
 
+### mTLS Configuration
+
+Eunomia supports mutual TLS (mTLS) for secure server-client authentication. When mTLS is enabled:
+
+1. **Server authenticates clients**: Clients must present valid certificates signed by a trusted CA
+2. **Client authenticates server**: Clients verify the server certificate against the CA
+
+#### Server Configuration
+
+```rust
+use eunomia_distributor::grpc::{GrpcServerConfig, TlsConfig};
+
+// TLS only (server authentication, no client verification)
+let tls_config = GrpcServerConfig::default()
+    .with_tls(TlsConfig {
+        cert_pem: server_cert_pem,
+        key_pem: server_key_pem,
+        ca_cert_pem: None,  // No mTLS
+    });
+
+// Full mTLS (mutual authentication)
+let mtls_config = GrpcServerConfig::default()
+    .with_tls(TlsConfig {
+        cert_pem: server_cert_pem,
+        key_pem: server_key_pem,
+        ca_cert_pem: Some(ca_cert_pem),  // Enables client verification
+    });
+```
+
+#### Environment Variables
+
+```bash
+# Server certificate
+export EUNOMIA_TLS_CERT=/etc/ssl/certs/server.pem
+export EUNOMIA_TLS_KEY=/etc/ssl/private/server-key.pem
+
+# CA for client verification (enables mTLS)
+export EUNOMIA_TLS_CA=/etc/ssl/certs/ca.pem
+```
+
+#### Kubernetes Secrets
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  name: eunomia-mtls
+  namespace: eunomia
+type: kubernetes.io/tls
+data:
+  tls.crt: <base64-encoded-server-cert>
+  tls.key: <base64-encoded-server-key>
+  ca.crt: <base64-encoded-ca-cert>  # For client verification
+```
+
+Mount in deployment:
+
+```yaml
+spec:
+  containers:
+  - name: distributor
+    volumeMounts:
+    - name: tls
+      mountPath: /etc/eunomia/tls
+      readOnly: true
+    env:
+    - name: EUNOMIA_TLS_CERT
+      value: /etc/eunomia/tls/tls.crt
+    - name: EUNOMIA_TLS_KEY
+      value: /etc/eunomia/tls/tls.key
+    - name: EUNOMIA_TLS_CA
+      value: /etc/eunomia/tls/ca.crt
+  volumes:
+  - name: tls
+    secret:
+      secretName: eunomia-mtls
+```
+
+### Certificate Validation
+
+Eunomia performs the following certificate validation:
+
+| Check | Description | Failure Mode |
+|-------|-------------|--------------|
+| Chain Validation | Certificate must chain to trusted CA | Connection rejected |
+| Expiry | Certificate must not be expired | Connection rejected |
+| Revocation | (Optional) CRL/OCSP check | Connection rejected |
+| Extended Key Usage | Client cert must have `clientAuth` | Connection rejected |
+
+#### Testing Certificate Expiry
+
+```bash
+# Check certificate expiry
+openssl x509 -in client.pem -noout -dates
+
+# Test with expired certificate (should fail)
+grpcurl \
+  --cacert ca.pem \
+  --cert expired-client.pem \
+  --key expired-client-key.pem \
+  localhost:9090 grpc.health.v1.Health/Check
+
+# Expected error: "tls: bad certificate" or "certificate has expired"
+```
+
+#### Testing Self-Signed Certificates
+
+```bash
+# Generate self-signed client cert (not from CA)
+openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 \
+  -keyout self-signed-key.pem -out self-signed.pem \
+  -days 365 -nodes -subj "/CN=unauthorized-client"
+
+# Test with self-signed certificate (should fail)
+grpcurl \
+  --cacert ca.pem \
+  --cert self-signed.pem \
+  --key self-signed-key.pem \
+  localhost:9090 grpc.health.v1.Health/Check
+
+# Expected error: "tls: bad certificate" or "certificate signed by unknown authority"
+```
+
+### Troubleshooting mTLS
+
+#### Common Errors
+
+| Error | Cause | Solution |
+|-------|-------|----------|
+| `certificate signed by unknown authority` | Client cert not signed by CA | Regenerate client cert from same CA |
+| `certificate has expired` | Certificate validity period ended | Generate new certificate |
+| `bad certificate` | Invalid certificate format | Check PEM encoding |
+| `peer didn't provide valid certificate` | Client didn't send certificate | Verify client has identity configured |
+
+#### Debug Steps
+
+1. **Verify certificate chain**:
+```bash
+openssl verify -CAfile ca.pem client.pem
+```
+
+2. **Check certificate details**:
+```bash
+openssl x509 -in client.pem -noout -text | grep -A 2 "Validity"
+openssl x509 -in client.pem -noout -text | grep -A 1 "Extended Key Usage"
+```
+
+3. **Test TLS handshake**:
+```bash
+openssl s_client -connect localhost:9090 \
+  -CAfile ca.pem \
+  -cert client.pem \
+  -key client-key.pem \
+  -state -debug
+```
+
+4. **Enable verbose logging**:
+```bash
+export RUST_LOG=eunomia_distributor=debug,tonic=debug
+```
+
 ### SPIFFE/SPIRE Integration
 
 For workload identity:
