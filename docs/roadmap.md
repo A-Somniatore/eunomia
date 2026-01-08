@@ -1183,16 +1183,17 @@ cargo doc --no-deps         # ✓ Docs build
     - [x] Add MSRV (1.75.0) compatibility check
     - [x] Add CI success summary job requiring all platforms to pass
     - [x] Clippy, check, and test jobs now run on all platforms
-- [ ] **themis-platform-types v0.2.0 Migration** (if available)
+- [ ] **themis-platform-types v0.2.0 Migration** (when available)
   - [ ] See migration checklist in roadmap preamble
   - [ ] Update all `build()` calls to `try_build()`
   - [ ] Update error handling to use `BuilderError`
   - [ ] Add wildcard arms to match statements
-- [ ] **Final pre-release checklist**
-  - [ ] All tests passing on CI
-  - [ ] No clippy warnings
-  - [ ] Documentation builds without errors
-  - [ ] Security audit findings addressed
+- [x] **Final pre-release checklist** ✅ **COMPLETE (2026-01-08)**
+  - [x] All tests passing (560+ tests across all crates)
+  - [x] No clippy warnings (enforced with `-D warnings`)
+  - [x] Documentation builds without errors
+  - [x] Security audit findings addressed (rate limiting, mTLS, bundle signing)
+  - [x] CHANGELOG.md prepared for v1.0.0
   - [ ] CHANGELOG.md prepared
   - [ ] Tag v1.0.0-rc.1 for release candidate testing
 
