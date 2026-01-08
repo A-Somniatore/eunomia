@@ -1,7 +1,11 @@
 {
   "api-gateway": {
     "description": "API Gateway service",
-    "allowed_dependencies": ["users-service", "orders-service", "products-service"],
+    "allowed_dependencies": [
+      "users-service",
+      "orders-service",
+      "products-service"
+    ],
     "dependency_config": {
       "users-service": {
         "allowed_methods": ["GetUser", "ValidateToken", "GetUserProfile"]
@@ -16,7 +20,12 @@
   },
   "orders-service": {
     "description": "Order management service",
-    "allowed_dependencies": ["users-service", "products-service", "inventory-service", "payments-service"],
+    "allowed_dependencies": [
+      "users-service",
+      "products-service",
+      "inventory-service",
+      "payments-service"
+    ],
     "dependency_config": {
       "users-service": {
         "allowed_methods": ["GetUser", "GetUserAddress"]

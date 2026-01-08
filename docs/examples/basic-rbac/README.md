@@ -34,11 +34,11 @@ eunomia publish basic-rbac.bundle --registry https://registry.example.com
 
 This example implements a three-tier role system:
 
-| Role | Permissions |
-|------|-------------|
-| `admin` | Full access to all resources |
-| `editor` | Read and write to content |
-| `viewer` | Read-only access |
+| Role     | Permissions                  |
+| -------- | ---------------------------- |
+| `admin`  | Full access to all resources |
+| `editor` | Read and write to content    |
+| `viewer` | Read-only access             |
 
 ## Usage in Archimedes
 

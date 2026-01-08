@@ -3,37 +3,37 @@
     "tenant_admin": {
       "description": "Full access within tenant",
       "permissions": [
-        {"action": "read", "resource": "/**"},
-        {"action": "write", "resource": "/**"},
-        {"action": "delete", "resource": "/**"},
-        {"action": "admin", "resource": "/api/tenant/**"}
+        { "action": "read", "resource": "/**" },
+        { "action": "write", "resource": "/**" },
+        { "action": "delete", "resource": "/**" },
+        { "action": "admin", "resource": "/api/tenant/**" }
       ]
     },
     "member": {
       "description": "Standard tenant member",
       "permissions": [
-        {"action": "read", "resource": "/api/documents/**"},
-        {"action": "write", "resource": "/api/documents/**"},
-        {"action": "read", "resource": "/api/projects/**"},
-        {"action": "write", "resource": "/api/projects/**"},
-        {"action": "read", "resource": "/api/profile/me"}
+        { "action": "read", "resource": "/api/documents/**" },
+        { "action": "write", "resource": "/api/documents/**" },
+        { "action": "read", "resource": "/api/projects/**" },
+        { "action": "write", "resource": "/api/projects/**" },
+        { "action": "read", "resource": "/api/profile/me" }
       ]
     },
     "viewer": {
       "description": "Read-only tenant member",
       "permissions": [
-        {"action": "read", "resource": "/api/documents/**"},
-        {"action": "read", "resource": "/api/projects/**"},
-        {"action": "read", "resource": "/api/profile/me"}
+        { "action": "read", "resource": "/api/documents/**" },
+        { "action": "read", "resource": "/api/projects/**" },
+        { "action": "read", "resource": "/api/profile/me" }
       ]
     },
     "billing": {
       "description": "Billing and subscription management",
       "permissions": [
-        {"action": "read", "resource": "/api/billing/**"},
-        {"action": "write", "resource": "/api/billing/**"},
-        {"action": "read", "resource": "/api/subscription/**"},
-        {"action": "write", "resource": "/api/subscription/**"}
+        { "action": "read", "resource": "/api/billing/**" },
+        { "action": "write", "resource": "/api/billing/**" },
+        { "action": "read", "resource": "/api/subscription/**" },
+        { "action": "write", "resource": "/api/subscription/**" }
       ]
     }
   }

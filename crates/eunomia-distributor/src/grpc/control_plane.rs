@@ -7,7 +7,7 @@
 
 use std::pin::Pin;
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use futures::Stream;
 use tonic::{Request, Response, Status};
@@ -136,15 +136,26 @@ impl ControlPlane for ControlPlaneService {
                 _ => DeploymentStrategy::immediate(),
             });
 
+        // Track deployment timing
+        let deploy_start = Instant::now();
+
         // Execute deployment
         let result = self
             .distributor
             .deploy(&req.service, &req.version, strategy)
             .await;
 
+        // Calculate deployment duration (capped at i64::MAX for protobuf compatibility)
+        #[allow(clippy::cast_possible_truncation)]
+        let deploy_duration_ms = deploy_start.elapsed().as_millis().min(i64::MAX as u128) as i64;
+
         #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
         match result {
             Ok(status) => {
+                // Calculate per-instance duration (evenly distributed for now)
+                let instance_count = status.instance_results.len().max(1);
+                let per_instance_ms = deploy_duration_ms / instance_count as i64;
+
                 let response = DeployPolicyResponse {
                     deployment_id: status.deployment_id,
                     state: GrpcDeploymentState::Completed,
@@ -154,7 +165,7 @@ impl ControlPlane for ControlPlaneService {
                         successful: status.successful as i32,
                         failed: status.failed as i32,
                         skipped: status.skipped as i32,
-                        duration_ms: 0, // TODO: Track duration
+                        duration_ms: deploy_duration_ms,
                     }),
                     instance_results: status
                         .instance_results
@@ -166,8 +177,10 @@ impl ControlPlane for ControlPlaneService {
                                 crate::InstanceResultStatus::Failed(e) => e,
                                 _ => String::new(),
                             },
-                            previous_version: String::new(), // TODO: Track this
-                            duration_ms: 0,
+                            // Note: previous_version requires instance-level tracking
+                            // which would need health check before deployment
+                            previous_version: String::new(),
+                            duration_ms: per_instance_ms,
                         })
                         .collect(),
                 };
@@ -194,14 +207,26 @@ impl ControlPlane for ControlPlaneService {
             req.service, req.target_version
         );
 
+        // Track rollback timing
+        let rollback_start = Instant::now();
+
         let result = self
             .distributor
             .rollback(&req.service, &req.target_version)
             .await;
 
+        // Calculate rollback duration (capped at i64::MAX for protobuf compatibility)
+        #[allow(clippy::cast_possible_truncation)]
+        let rollback_duration_ms =
+            rollback_start.elapsed().as_millis().min(i64::MAX as u128) as i64;
+
         #[allow(clippy::cast_possible_truncation, clippy::cast_possible_wrap)]
         match result {
             Ok(status) => {
+                // Calculate per-instance duration (evenly distributed for now)
+                let instance_count = status.instance_results.len().max(1);
+                let per_instance_ms = rollback_duration_ms / instance_count as i64;
+
                 let response = RollbackPolicyResponse {
                     deployment_id: status.deployment_id,
                     state: GrpcDeploymentState::Completed,
@@ -211,7 +236,7 @@ impl ControlPlane for ControlPlaneService {
                         successful: status.successful as i32,
                         failed: status.failed as i32,
                         skipped: status.skipped as i32,
-                        duration_ms: 0,
+                        duration_ms: rollback_duration_ms,
                     }),
                     instance_results: status
                         .instance_results
@@ -224,7 +249,7 @@ impl ControlPlane for ControlPlaneService {
                                 _ => String::new(),
                             },
                             previous_version: String::new(),
-                            duration_ms: 0,
+                            duration_ms: per_instance_ms,
                         })
                         .collect(),
                 };

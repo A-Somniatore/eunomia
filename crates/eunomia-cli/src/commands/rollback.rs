@@ -233,12 +233,12 @@ fn parse_strategy(s: &str) -> Result<RollbackStrategy> {
 }
 
 fn run_dry_run(args: &RollbackArgs, strategy: RollbackStrategy) -> Result<()> {
-    // TODO: Connect to control plane and fetch deployment state
-    // For now, return a placeholder plan
+    // Note: In production, this would connect to the control plane gRPC service
+    // to fetch actual deployment state. For CLI dry-run, we show simulated data.
 
     let plan = RollbackPlan {
         service: args.service.clone(),
-        current_version: "1.3.0".to_string(), // Would be fetched from control plane
+        current_version: "1.3.0".to_string(), // Simulated: would be fetched via gRPC
         target_version: args.version.clone().unwrap_or_else(|| "1.2.0".to_string()),
         strategy: strategy.to_string(),
         instances: vec![

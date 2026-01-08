@@ -24,24 +24,28 @@ All changes follow strict TDD, documentation, and commit practices defined in co
 Every single change MUST follow these practices:
 
 ### 1. Test-Driven Development
+
 - ✅ Write failing test FIRST
 - ✅ Implement feature to make test pass
 - ✅ Refactor while keeping tests green
 - ✅ Run `cargo test` before every commit
 
 ### 2. Documentation
+
 - ✅ Add rustdoc to all public types/functions
 - ✅ Update design.md for architectural changes
 - ✅ Update roadmap.md for status changes
 - ✅ Add examples to key features
 
 ### 3. Code Quality
+
 - ✅ Run `cargo fmt` before commit
 - ✅ Run `cargo clippy -- -D warnings` before commit
 - ✅ Run `cargo doc --no-deps` to ensure docs build
 - ✅ No clippy warnings allowed
 
 ### 4. Git Discipline
+
 - ✅ Small, focused commits (not all 36 hours in one commit!)
 - ✅ Commit message format: `type(scope): description`
 - ✅ Push at least at end of each work session
@@ -56,12 +60,14 @@ Every single change MUST follow these practices:
 **Choice**: Create new `eunomia-metrics` crate
 
 **Rationale**:
+
 - Keeps concerns separated (audit ≠ metrics)
 - Allows metrics to evolve independently
 - Clear dependency: other crates depend on metrics, not vice versa
 - Easier to add different exporters (Prometheus, OTLP, custom)
 
 **Structure**:
+
 ```
 eunomia-metrics/
 ├── src/
@@ -77,12 +83,14 @@ eunomia-metrics/
 **Choice**: Use tower-governor middleware
 
 **Rationale**:
+
 - Tower ecosystem is Tokio-native
 - Per-endpoint configuration
 - Integrates cleanly with tonic gRPC
 - Proven in production use
 
 **Configuration**:
+
 ```yaml
 rate_limits:
   push:
@@ -90,7 +98,7 @@ rate_limits:
   rollback:
     requests_per_second: 10
   status:
-    requests_per_second: 1000  # Status updates are cheap
+    requests_per_second: 1000 # Status updates are cheap
 ```
 
 ### Decision 3: Kubernetes Discovery Implementation
@@ -98,12 +106,14 @@ rate_limits:
 **Choice**: Use k8s-openapi + tokio watch API
 
 **Rationale**:
+
 - Native Kubernetes support
 - Works with any K8s cluster (no external dependencies)
 - Async-native with tokio
 - Small binary footprint
 
 **Sources**:
+
 - Service annotations: `eunomia.themis.io/enable-push`
 - Pod labels: Automatic discovery of Archimedes instances
 - DNS fallback: If K8s discovery fails
@@ -114,36 +124,36 @@ rate_limits:
 
 ### Security Requirements (10 hrs)
 
-| Task | Effort | Tests Required | Docs Required |
-|------|--------|---|---|
-| Bundle signing audit | 4 hrs | Ed25519 verification tests | design.md section |
-| Rate limiting | 4 hrs | Rate limit enforcement tests | deployment-guide update |
-| mTLS verification | 2 hrs | Client cert validation tests | troubleshooting-guide update |
+| Task                 | Effort | Tests Required               | Docs Required                |
+| -------------------- | ------ | ---------------------------- | ---------------------------- |
+| Bundle signing audit | 4 hrs  | Ed25519 verification tests   | design.md section            |
+| Rate limiting        | 4 hrs  | Rate limit enforcement tests | deployment-guide update      |
+| mTLS verification    | 2 hrs  | Client cert validation tests | troubleshooting-guide update |
 
 ### Observability Requirements (12 hrs)
 
-| Task | Effort | Tests Required | Docs Required |
-|------|--------|---|---|
-| Metrics crate setup | 2 hrs | Registry tests | metrics/README |
-| Compiler instrumentation | 2 hrs | Metric emission tests | design.md §13 |
-| Registry instrumentation | 2 hrs | Metric emission tests | design.md §13 |
-| Distributor instrumentation | 2 hrs | Metric emission tests | design.md §13 |
-| Dashboard templates | 2 hrs | None (config files) | performance-guide update |
-| OTLP exporter config | 2 hrs | Integration tests | deployment-guide update |
+| Task                        | Effort | Tests Required        | Docs Required            |
+| --------------------------- | ------ | --------------------- | ------------------------ |
+| Metrics crate setup         | 2 hrs  | Registry tests        | metrics/README           |
+| Compiler instrumentation    | 2 hrs  | Metric emission tests | design.md §13            |
+| Registry instrumentation    | 2 hrs  | Metric emission tests | design.md §13            |
+| Distributor instrumentation | 2 hrs  | Metric emission tests | design.md §13            |
+| Dashboard templates         | 2 hrs  | None (config files)   | performance-guide update |
+| OTLP exporter config        | 2 hrs  | Integration tests     | deployment-guide update  |
 
 ### Operational Requirements (10 hrs)
 
-| Task | Effort | Tests Required | Docs Required |
-|------|--------|---|---|
-| K8s discovery | 8 hrs | Mock K8s API tests | design.md §7.2 |
-| Cross-platform CI | 2 hrs | CI runs on all platforms | .github/workflows |
+| Task              | Effort | Tests Required           | Docs Required     |
+| ----------------- | ------ | ------------------------ | ----------------- |
+| K8s discovery     | 8 hrs  | Mock K8s API tests       | design.md §7.2    |
+| Cross-platform CI | 2 hrs  | CI runs on all platforms | .github/workflows |
 
 ### Pre-Release (4 hrs)
 
-| Task | Effort | Tests Required | Docs Required |
-|------|--------|---|---|
-| Final checklist | 2 hrs | All tests pass on CI | CHANGELOG.md |
-| Release prep | 2 hrs | Tag v1.0.0-rc.1 | Release notes |
+| Task            | Effort | Tests Required       | Docs Required |
+| --------------- | ------ | -------------------- | ------------- |
+| Final checklist | 2 hrs  | All tests pass on CI | CHANGELOG.md  |
+| Release prep    | 2 hrs  | Tag v1.0.0-rc.1      | Release notes |
 
 **Total: 36 hours**
 
@@ -222,18 +232,18 @@ eunomia_policy_coverage_percentage{service="X"}
 ✅ No clippy warnings  
 ✅ Documentation complete and builds  
 ✅ CHANGELOG.md prepared  
-✅ v1.0.0-rc.1 tag created  
+✅ v1.0.0-rc.1 tag created
 
 ---
 
 ## Risk Mitigations
 
-| Risk | Mitigation |
-|------|-----------|
-| Metrics causing performance regression | Benchmark metrics setup, add to perf-guide.md |
-| Rate limiting breaks existing clients | Start with high limits, document in deployment-guide |
-| K8s discovery not working in test env | Provide static endpoint fallback |
-| Cross-platform CI takes too long | Use matrix build with fail-fast strategy |
+| Risk                                   | Mitigation                                           |
+| -------------------------------------- | ---------------------------------------------------- |
+| Metrics causing performance regression | Benchmark metrics setup, add to perf-guide.md        |
+| Rate limiting breaks existing clients  | Start with high limits, document in deployment-guide |
+| K8s discovery not working in test env  | Provide static endpoint fallback                     |
+| Cross-platform CI takes too long       | Use matrix build with fail-fast strategy             |
 
 ---
 

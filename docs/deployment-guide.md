@@ -46,11 +46,11 @@ This guide covers deploying Eunomia in production environments.
 
 ### Component Responsibilities
 
-| Component | Role | Scaling |
-|-----------|------|---------|
-| OCI Registry | Bundle storage | Managed service or replicated |
-| Eunomia Distributor | Push coordination | 2-3 replicas for HA |
-| Archimedes Instances | Policy evaluation | Auto-scaled per service |
+| Component            | Role              | Scaling                       |
+| -------------------- | ----------------- | ----------------------------- |
+| OCI Registry         | Bundle storage    | Managed service or replicated |
+| Eunomia Distributor  | Push coordination | 2-3 replicas for HA           |
+| Archimedes Instances | Policy evaluation | Auto-scaled per service       |
 
 ---
 
@@ -101,15 +101,15 @@ data:
   EUNOMIA_LOG_LEVEL: "info"
   EUNOMIA_METRICS_PORT: "9090"
   EUNOMIA_GRPC_PORT: "8080"
-  
+
   # Registry settings
   EUNOMIA_REGISTRY_URL: "https://registry.example.com"
-  
+
   # Distribution settings
   EUNOMIA_MAX_CONCURRENT: "5"
   EUNOMIA_TIMEOUT: "30s"
   EUNOMIA_COMPRESS: "true"
-  
+
   # Cache settings
   EUNOMIA_CACHE_SIZE: "500MB"
   EUNOMIA_CACHE_MAX_AGE: "7d"
@@ -128,7 +128,7 @@ type: Opaque
 stringData:
   # Registry authentication
   EUNOMIA_REGISTRY_TOKEN: "your-registry-token"
-  
+
   # Bundle signing key (base64-encoded Ed25519 private key)
   EUNOMIA_SIGNING_KEY: "base64-encoded-private-key"
 ```
@@ -151,14 +151,14 @@ spec:
     name: eunomia-secrets
     creationPolicy: Owner
   data:
-  - secretKey: EUNOMIA_REGISTRY_TOKEN
-    remoteRef:
-      key: secret/eunomia/registry
-      property: token
-  - secretKey: EUNOMIA_SIGNING_KEY
-    remoteRef:
-      key: secret/eunomia/signing
-      property: private_key
+    - secretKey: EUNOMIA_REGISTRY_TOKEN
+      remoteRef:
+        key: secret/eunomia/registry
+        property: token
+    - secretKey: EUNOMIA_SIGNING_KEY
+      remoteRef:
+        key: secret/eunomia/signing
+        property: private_key
 ```
 
 ### TLS Secrets
@@ -209,70 +209,70 @@ spec:
         runAsUser: 1000
         fsGroup: 1000
       containers:
-      - name: distributor
-        image: ghcr.io/a-somniatore/eunomia:1.0.0
-        imagePullPolicy: IfNotPresent
-        ports:
-        - name: grpc
-          containerPort: 8080
-          protocol: TCP
-        - name: metrics
-          containerPort: 9090
-          protocol: TCP
-        envFrom:
-        - configMapRef:
-            name: eunomia-config
-        - secretRef:
-            name: eunomia-secrets
-        volumeMounts:
-        - name: tls
-          mountPath: /etc/eunomia/tls
-          readOnly: true
-        - name: cache
-          mountPath: /var/cache/eunomia
-        resources:
-          requests:
-            memory: "256Mi"
-            cpu: "250m"
-          limits:
-            memory: "1Gi"
-            cpu: "1000m"
-        livenessProbe:
-          grpc:
-            port: 8080
-          initialDelaySeconds: 10
-          periodSeconds: 10
-          timeoutSeconds: 5
-          failureThreshold: 3
-        readinessProbe:
-          grpc:
-            port: 8080
-          initialDelaySeconds: 5
-          periodSeconds: 5
-          timeoutSeconds: 3
-          failureThreshold: 3
-        securityContext:
-          allowPrivilegeEscalation: false
-          readOnlyRootFilesystem: true
-          capabilities:
-            drop:
-            - ALL
+        - name: distributor
+          image: ghcr.io/a-somniatore/eunomia:1.0.0
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: grpc
+              containerPort: 8080
+              protocol: TCP
+            - name: metrics
+              containerPort: 9090
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: eunomia-config
+            - secretRef:
+                name: eunomia-secrets
+          volumeMounts:
+            - name: tls
+              mountPath: /etc/eunomia/tls
+              readOnly: true
+            - name: cache
+              mountPath: /var/cache/eunomia
+          resources:
+            requests:
+              memory: "256Mi"
+              cpu: "250m"
+            limits:
+              memory: "1Gi"
+              cpu: "1000m"
+          livenessProbe:
+            grpc:
+              port: 8080
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            grpc:
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            failureThreshold: 3
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL
       volumes:
-      - name: tls
-        secret:
-          secretName: eunomia-tls
-      - name: cache
-        emptyDir:
-          sizeLimit: 500Mi
+        - name: tls
+          secret:
+            secretName: eunomia-tls
+        - name: cache
+          emptyDir:
+            sizeLimit: 500Mi
       affinity:
         podAntiAffinity:
           preferredDuringSchedulingIgnoredDuringExecution:
-          - weight: 100
-            podAffinityTerm:
-              labelSelector:
-                matchLabels:
-                  app.kubernetes.io/name: eunomia-distributor
-              topologyKey: kubernetes.io/hostname
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/name: eunomia-distributor
+                topologyKey: kubernetes.io/hostname
 ```
 
 ### Service
@@ -289,14 +289,14 @@ metadata:
 spec:
   type: ClusterIP
   ports:
-  - name: grpc
-    port: 8080
-    targetPort: grpc
-    protocol: TCP
-  - name: metrics
-    port: 9090
-    targetPort: metrics
-    protocol: TCP
+    - name: grpc
+      port: 8080
+      targetPort: grpc
+      protocol: TCP
+    - name: metrics
+      port: 9090
+      targetPort: metrics
+      protocol: TCP
   selector:
     app.kubernetes.io/name: eunomia-distributor
 ```
@@ -317,13 +317,13 @@ metadata:
   name: eunomia-distributor
   namespace: eunomia
 rules:
-# For Kubernetes service discovery
-- apiGroups: [""]
-  resources: ["endpoints", "services"]
-  verbs: ["get", "list", "watch"]
-- apiGroups: [""]
-  resources: ["pods"]
-  verbs: ["get", "list"]
+  # For Kubernetes service discovery
+  - apiGroups: [""]
+    resources: ["endpoints", "services"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -335,9 +335,9 @@ roleRef:
   kind: Role
   name: eunomia-distributor
 subjects:
-- kind: ServiceAccount
-  name: eunomia-distributor
-  namespace: eunomia
+  - kind: ServiceAccount
+    name: eunomia-distributor
+    namespace: eunomia
 ```
 
 ### PodDisruptionBudget
@@ -373,18 +373,18 @@ spec:
   minReplicas: 2
   maxReplicas: 5
   metrics:
-  - type: Resource
-    resource:
-      name: cpu
-      target:
-        type: Utilization
-        averageUtilization: 70
-  - type: Resource
-    resource:
-      name: memory
-      target:
-        type: Utilization
-        averageUtilization: 80
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
 ```
 
 ### Apply All Resources
@@ -414,15 +414,15 @@ For development or small deployments:
 
 ```yaml
 # docker-compose.yaml
-version: '3.8'
+version: "3.8"
 
 services:
   eunomia-distributor:
     image: ghcr.io/a-somniatore/eunomia:1.0.0
     container_name: eunomia-distributor
     ports:
-      - "8080:8080"   # gRPC
-      - "9090:9090"   # Metrics
+      - "8080:8080" # gRPC
+      - "9090:9090" # Metrics
     environment:
       EUNOMIA_LOG_LEVEL: info
       EUNOMIA_GRPC_PORT: "8080"
@@ -481,29 +481,29 @@ docker-compose down
 
 ### Environment Variables
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `EUNOMIA_LOG_LEVEL` | Log verbosity (trace, debug, info, warn, error) | `info` | No |
-| `EUNOMIA_GRPC_PORT` | gRPC server port | `8080` | No |
-| `EUNOMIA_METRICS_PORT` | Prometheus metrics port | `9090` | No |
-| `EUNOMIA_REGISTRY_URL` | OCI registry URL | - | Yes |
-| `EUNOMIA_REGISTRY_TOKEN` | Registry authentication token | - | Conditional |
-| `EUNOMIA_REGISTRY_USERNAME` | Registry username (basic auth) | - | Conditional |
-| `EUNOMIA_REGISTRY_PASSWORD` | Registry password (basic auth) | - | Conditional |
-| `EUNOMIA_SIGNING_KEY` | Ed25519 private key (base64) | - | Yes |
-| `EUNOMIA_TLS_CERT` | Path to TLS certificate | - | For TLS |
-| `EUNOMIA_TLS_KEY` | Path to TLS private key | - | For TLS |
-| `EUNOMIA_TLS_CA` | Path to CA certificate | - | For mTLS |
-| `EUNOMIA_MAX_CONCURRENT` | Max parallel push operations | `3` | No |
-| `EUNOMIA_TIMEOUT` | Default operation timeout | `30s` | No |
-| `EUNOMIA_COMPRESS` | Enable bundle compression | `false` | No |
-| `EUNOMIA_CACHE_SIZE` | Bundle cache size limit | `100MB` | No |
-| `EUNOMIA_CACHE_MAX_AGE` | Max age for cached bundles | `7d` | No |
-| `EUNOMIA_CACHE_DIR` | Cache directory path | System default | No |
-| `EUNOMIA_DISCOVERY_TYPE` | Instance discovery type (static, dns, kubernetes) | `static` | No |
-| `EUNOMIA_DISCOVERY_NAMESPACE` | K8s namespace for discovery (empty = all) | - | For K8s |
-| `EUNOMIA_DISCOVERY_LABEL_SELECTOR` | K8s label selector for filtering | - | For K8s |
-| `EUNOMIA_DISCOVERY_PORT_NAME` | K8s port name to use | `grpc` | For K8s |
+| Variable                           | Description                                       | Default        | Required    |
+| ---------------------------------- | ------------------------------------------------- | -------------- | ----------- |
+| `EUNOMIA_LOG_LEVEL`                | Log verbosity (trace, debug, info, warn, error)   | `info`         | No          |
+| `EUNOMIA_GRPC_PORT`                | gRPC server port                                  | `8080`         | No          |
+| `EUNOMIA_METRICS_PORT`             | Prometheus metrics port                           | `9090`         | No          |
+| `EUNOMIA_REGISTRY_URL`             | OCI registry URL                                  | -              | Yes         |
+| `EUNOMIA_REGISTRY_TOKEN`           | Registry authentication token                     | -              | Conditional |
+| `EUNOMIA_REGISTRY_USERNAME`        | Registry username (basic auth)                    | -              | Conditional |
+| `EUNOMIA_REGISTRY_PASSWORD`        | Registry password (basic auth)                    | -              | Conditional |
+| `EUNOMIA_SIGNING_KEY`              | Ed25519 private key (base64)                      | -              | Yes         |
+| `EUNOMIA_TLS_CERT`                 | Path to TLS certificate                           | -              | For TLS     |
+| `EUNOMIA_TLS_KEY`                  | Path to TLS private key                           | -              | For TLS     |
+| `EUNOMIA_TLS_CA`                   | Path to CA certificate                            | -              | For mTLS    |
+| `EUNOMIA_MAX_CONCURRENT`           | Max parallel push operations                      | `3`            | No          |
+| `EUNOMIA_TIMEOUT`                  | Default operation timeout                         | `30s`          | No          |
+| `EUNOMIA_COMPRESS`                 | Enable bundle compression                         | `false`        | No          |
+| `EUNOMIA_CACHE_SIZE`               | Bundle cache size limit                           | `100MB`        | No          |
+| `EUNOMIA_CACHE_MAX_AGE`            | Max age for cached bundles                        | `7d`           | No          |
+| `EUNOMIA_CACHE_DIR`                | Cache directory path                              | System default | No          |
+| `EUNOMIA_DISCOVERY_TYPE`           | Instance discovery type (static, dns, kubernetes) | `static`       | No          |
+| `EUNOMIA_DISCOVERY_NAMESPACE`      | K8s namespace for discovery (empty = all)         | -              | For K8s     |
+| `EUNOMIA_DISCOVERY_LABEL_SELECTOR` | K8s label selector for filtering                  | -              | For K8s     |
+| `EUNOMIA_DISCOVERY_PORT_NAME`      | K8s port name to use                              | `grpc`         | For K8s     |
 
 ### Instance Discovery Configuration
 
@@ -554,9 +554,9 @@ kind: Role
 metadata:
   name: eunomia-discovery
 rules:
-- apiGroups: [""]
-  resources: ["endpoints"]
-  verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["get", "list", "watch"]
 ```
 
 **Programmatic usage:**
@@ -594,16 +594,16 @@ for instance in &instances {
 
 The Kubernetes discovery automatically extracts metadata from endpoints:
 
-| Metadata Key | Description |
-|--------------|-------------|
-| `service` | Kubernetes service name |
-| `namespace` | Kubernetes namespace |
+| Metadata Key    | Description                    |
+| --------------- | ------------------------------ |
+| `service`       | Kubernetes service name        |
+| `namespace`     | Kubernetes namespace           |
 | `k8s.namespace` | Same as namespace (annotation) |
-| `k8s.endpoint` | Endpoint name |
-| `k8s.ip` | Pod IP address |
-| `k8s.port` | Port number |
-| `k8s.node` | Node name (if available) |
-| `k8s.pod_uid` | Pod UID (if available) |
+| `k8s.endpoint`  | Endpoint name                  |
+| `k8s.ip`        | Pod IP address                 |
+| `k8s.port`      | Port number                    |
+| `k8s.node`      | Node name (if available)       |
+| `k8s.pod_uid`   | Pod UID (if available)         |
 
 ### CLI Configuration File
 
@@ -743,7 +743,7 @@ type: kubernetes.io/tls
 data:
   tls.crt: <base64-encoded-server-cert>
   tls.key: <base64-encoded-server-key>
-  ca.crt: <base64-encoded-ca-cert>  # For client verification
+  ca.crt: <base64-encoded-ca-cert> # For client verification
 ```
 
 Mount in deployment:
@@ -751,34 +751,34 @@ Mount in deployment:
 ```yaml
 spec:
   containers:
-  - name: distributor
-    volumeMounts:
-    - name: tls
-      mountPath: /etc/eunomia/tls
-      readOnly: true
-    env:
-    - name: EUNOMIA_TLS_CERT
-      value: /etc/eunomia/tls/tls.crt
-    - name: EUNOMIA_TLS_KEY
-      value: /etc/eunomia/tls/tls.key
-    - name: EUNOMIA_TLS_CA
-      value: /etc/eunomia/tls/ca.crt
+    - name: distributor
+      volumeMounts:
+        - name: tls
+          mountPath: /etc/eunomia/tls
+          readOnly: true
+      env:
+        - name: EUNOMIA_TLS_CERT
+          value: /etc/eunomia/tls/tls.crt
+        - name: EUNOMIA_TLS_KEY
+          value: /etc/eunomia/tls/tls.key
+        - name: EUNOMIA_TLS_CA
+          value: /etc/eunomia/tls/ca.crt
   volumes:
-  - name: tls
-    secret:
-      secretName: eunomia-mtls
+    - name: tls
+      secret:
+        secretName: eunomia-mtls
 ```
 
 ### Certificate Validation
 
 Eunomia performs the following certificate validation:
 
-| Check | Description | Failure Mode |
-|-------|-------------|--------------|
-| Chain Validation | Certificate must chain to trusted CA | Connection rejected |
-| Expiry | Certificate must not be expired | Connection rejected |
-| Revocation | (Optional) CRL/OCSP check | Connection rejected |
-| Extended Key Usage | Client cert must have `clientAuth` | Connection rejected |
+| Check              | Description                          | Failure Mode        |
+| ------------------ | ------------------------------------ | ------------------- |
+| Chain Validation   | Certificate must chain to trusted CA | Connection rejected |
+| Expiry             | Certificate must not be expired      | Connection rejected |
+| Revocation         | (Optional) CRL/OCSP check            | Connection rejected |
+| Extended Key Usage | Client cert must have `clientAuth`   | Connection rejected |
 
 #### Testing Certificate Expiry
 
@@ -818,27 +818,30 @@ grpcurl \
 
 #### Common Errors
 
-| Error | Cause | Solution |
-|-------|-------|----------|
-| `certificate signed by unknown authority` | Client cert not signed by CA | Regenerate client cert from same CA |
-| `certificate has expired` | Certificate validity period ended | Generate new certificate |
-| `bad certificate` | Invalid certificate format | Check PEM encoding |
-| `peer didn't provide valid certificate` | Client didn't send certificate | Verify client has identity configured |
+| Error                                     | Cause                             | Solution                              |
+| ----------------------------------------- | --------------------------------- | ------------------------------------- |
+| `certificate signed by unknown authority` | Client cert not signed by CA      | Regenerate client cert from same CA   |
+| `certificate has expired`                 | Certificate validity period ended | Generate new certificate              |
+| `bad certificate`                         | Invalid certificate format        | Check PEM encoding                    |
+| `peer didn't provide valid certificate`   | Client didn't send certificate    | Verify client has identity configured |
 
 #### Debug Steps
 
 1. **Verify certificate chain**:
+
 ```bash
 openssl verify -CAfile ca.pem client.pem
 ```
 
 2. **Check certificate details**:
+
 ```bash
 openssl x509 -in client.pem -noout -text | grep -A 2 "Validity"
 openssl x509 -in client.pem -noout -text | grep -A 1 "Extended Key Usage"
 ```
 
 3. **Test TLS handshake**:
+
 ```bash
 openssl s_client -connect localhost:9090 \
   -CAfile ca.pem \
@@ -848,6 +851,7 @@ openssl s_client -connect localhost:9090 \
 ```
 
 4. **Enable verbose logging**:
+
 ```bash
 export RUST_LOG=eunomia_distributor=debug,tonic=debug
 ```
@@ -893,8 +897,8 @@ If HTTP health is needed, deploy a sidecar:
 - name: health-proxy
   image: envoyproxy/envoy:v1.28.0
   ports:
-  - name: http-health
-    containerPort: 8081
+    - name: http-health
+      containerPort: 8081
   # Configure Envoy to proxy HTTP to gRPC health
 ```
 
@@ -961,16 +965,17 @@ For global deployments:
 
 ### What to Backup
 
-| Data | Method | Frequency |
-|------|--------|-----------|
-| Signing Keys | External secrets manager | On rotation |
-| Registry Bundles | Registry replication | Continuous |
-| Configuration | Version control | On change |
-| Audit Logs | Log aggregation | Continuous |
+| Data             | Method                   | Frequency   |
+| ---------------- | ------------------------ | ----------- |
+| Signing Keys     | External secrets manager | On rotation |
+| Registry Bundles | Registry replication     | Continuous  |
+| Configuration    | Version control          | On change   |
+| Audit Logs       | Log aggregation          | Continuous  |
 
 ### Recovery Procedures
 
 **Distributor Recovery:**
+
 ```bash
 # 1. Restore secrets
 kubectl apply -f secrets.yaml
@@ -984,6 +989,7 @@ eunomia status --endpoints http://eunomia-distributor.eunomia:8080
 ```
 
 **Cache Rebuild:**
+
 ```bash
 # Cache is automatically rebuilt on cache miss
 # Or manually prime cache:
@@ -998,6 +1004,7 @@ eunomia fetch orders-service --version latest
 ### Common Operations
 
 **Deploy New Policy Version:**
+
 ```bash
 # 1. Build and sign bundle
 eunomia build --policy-dir policies/ --version 1.2.0 --output bundle.tar.gz
@@ -1014,6 +1021,7 @@ eunomia push bundle.tar.gz --strategy immediate
 ```
 
 **Emergency Rollback:**
+
 ```bash
 # Immediate rollback to previous version
 eunomia rollback --service users-service --force
@@ -1023,6 +1031,7 @@ eunomia rollback --service users-service --version 1.1.0
 ```
 
 **Check Deployment Status:**
+
 ```bash
 # Status of all services
 eunomia status
@@ -1036,13 +1045,13 @@ eunomia status --format json
 
 ### Alerts and Escalation
 
-| Alert | Severity | Action |
-|-------|----------|--------|
-| Push failure rate > 10% | Warning | Check instance health |
-| Push failure rate > 50% | Critical | Pause deployments, investigate |
-| All instances unhealthy | Critical | Trigger rollback |
-| Registry unreachable | Warning | Use cached bundles |
-| Certificate expiring < 7d | Warning | Rotate certificates |
+| Alert                     | Severity | Action                         |
+| ------------------------- | -------- | ------------------------------ |
+| Push failure rate > 10%   | Warning  | Check instance health          |
+| Push failure rate > 50%   | Critical | Pause deployments, investigate |
+| All instances unhealthy   | Critical | Trigger rollback               |
+| Registry unreachable      | Warning  | Use cached bundles             |
+| Certificate expiring < 7d | Warning  | Rotate certificates            |
 
 ### Maintenance Windows
 

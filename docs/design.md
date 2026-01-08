@@ -2571,7 +2571,7 @@ pub enum AuditEvent {
 ## 14. Security Model
 
 > **Security Audit**: Completed Week 21 (2026-01-08)
-> 
+>
 > The bundle signing implementation has been audited for security.
 > See [signing.rs](../crates/eunomia-core/src/signing.rs) for implementation.
 
@@ -2579,21 +2579,23 @@ pub enum AuditEvent {
 
 Eunomia uses **Ed25519** digital signatures to ensure bundle authenticity and integrity:
 
-| Property | Guarantee |
-|----------|-----------|
-| **Authenticity** | Bundles can only be signed by holders of the private key |
-| **Integrity** | Any modification to bundle content invalidates the signature |
-| **Non-repudiation** | Signatures are tied to specific key IDs for audit trails |
-| **Key Rotation** | Multiple key IDs supported for smooth key transitions |
+| Property            | Guarantee                                                    |
+| ------------------- | ------------------------------------------------------------ |
+| **Authenticity**    | Bundles can only be signed by holders of the private key     |
+| **Integrity**       | Any modification to bundle content invalidates the signature |
+| **Non-repudiation** | Signatures are tied to specific key IDs for audit trails     |
+| **Key Rotation**    | Multiple key IDs supported for smooth key transitions        |
 
 ### 14.2 Cryptographic Design
 
 **Algorithm Selection**:
+
 - **Signature**: Ed25519 (EdDSA over Curve25519)
 - **Hash**: SHA-256 for bundle checksums
 - **Encoding**: Base64 for serialized signatures
 
 **Why Ed25519**:
+
 - 128-bit security level
 - Small keys (32 bytes public, 32 bytes private)
 - Fast signing and verification
@@ -2614,22 +2616,23 @@ The bundle checksum covers **all security-relevant content**:
 
 fn compute_checksum(&self) -> String {
     let mut hasher = Sha256::new();
-    
+
     // Include bundle identity to prevent signature reuse
     hasher.update(b"eunomia-bundle:1\n");
     hasher.update(self.name.as_bytes());
     hasher.update(b"\n");
     hasher.update(self.version.as_bytes());
     hasher.update(b"\n");
-    
+
     // Add sorted policies and data files
     // ...
-    
+
     hex::encode(hasher.finalize())
 }
 ```
 
 **Security Properties**:
+
 - Deterministic: Same content always produces same checksum
 - Order-independent: Sorted iteration ensures reproducibility
 - Identity-bound: Bundle name and version included in hash
@@ -2649,6 +2652,7 @@ fn compute_checksum(&self) -> String {
 ```
 
 **Fields**:
+
 - `keyid`: Identifies which key signed (for key rotation)
 - `algorithm`: Always "ed25519" (informational only)
 - `value`: 64-byte Ed25519 signature, base64-encoded
@@ -2660,15 +2664,16 @@ fn compute_checksum(&self) -> String {
 
 **Recommended Practices**:
 
-| Practice | Recommendation |
-|----------|---------------|
-| **Key Generation** | Use `SigningKeyPair::generate()` with `OsRng` |
-| **Key Storage** | HSM, Vault, or K8s Secrets with encryption at rest |
-| **Key Distribution** | Out-of-band verification of public keys |
-| **Key Rotation** | Plan regular rotation, use key IDs for transition |
-| **Key Backup** | Securely backup private keys for disaster recovery |
+| Practice             | Recommendation                                     |
+| -------------------- | -------------------------------------------------- |
+| **Key Generation**   | Use `SigningKeyPair::generate()` with `OsRng`      |
+| **Key Storage**      | HSM, Vault, or K8s Secrets with encryption at rest |
+| **Key Distribution** | Out-of-band verification of public keys            |
+| **Key Rotation**     | Plan regular rotation, use key IDs for transition  |
+| **Key Backup**       | Securely backup private keys for disaster recovery |
 
 **Environment Variables for CI/CD**:
+
 ```bash
 # Private key for signing (base64-encoded)
 export EUNOMIA_SIGNING_KEY="base64-private-key"
@@ -2680,14 +2685,14 @@ export EUNOMIA_VERIFY_KEYS="prod-2026-01:base64-public-key,prod-2025-12:base64-p
 
 ### 14.6 Threat Model & Mitigations
 
-| Threat | Mitigation |
-|--------|-----------|
+| Threat                | Mitigation                                                          |
+| --------------------- | ------------------------------------------------------------------- |
 | **Signature forgery** | Ed25519's 128-bit security makes forgery computationally infeasible |
-| **Bundle tampering** | SHA-256 checksum detects any content modification |
-| **Signature reuse** | Bundle name/version in checksum prevents cross-bundle attacks |
-| **Key compromise** | Key rotation via key IDs; revoke compromised keys |
-| **Man-in-the-middle** | mTLS for all control plane communication |
-| **Replay attacks** | Version numbers prevent replay of old bundles |
+| **Bundle tampering**  | SHA-256 checksum detects any content modification                   |
+| **Signature reuse**   | Bundle name/version in checksum prevents cross-bundle attacks       |
+| **Key compromise**    | Key rotation via key IDs; revoke compromised keys                   |
+| **Man-in-the-middle** | mTLS for all control plane communication                            |
+| **Replay attacks**    | Version numbers prevent replay of old bundles                       |
 
 ### 14.7 Security Audit Test Coverage
 
@@ -2729,6 +2734,7 @@ pub struct TlsConfig {
 ```
 
 **mTLS Verification**:
+
 1. Server presents certificate signed by trusted CA
 2. Client presents certificate signed by trusted CA
 3. Server verifies client's SPIFFE ID against allowlist
@@ -2761,6 +2767,7 @@ and ensure fair resource allocation.
 #### Token Bucket Algorithm
 
 Rate limiting uses the token bucket algorithm:
+
 - Tokens are added at a fixed rate (requests per second)
 - Tokens accumulate up to the burst size
 - Each request consumes one token
@@ -2781,14 +2788,14 @@ pub struct RateLimitConfig {
 
 Different endpoints have different rate limits based on their criticality:
 
-| Endpoint | Default RPS | Burst Size | Rationale |
-|----------|-------------|------------|-----------|
-| `DeployPolicy` | 50 | 25 | Write operation, resource intensive |
-| `RollbackPolicy` | 50 | 25 | Write operation, resource intensive |
-| `GetPolicyStatus` | 200 | 100 | Read-heavy, frequently polled |
-| `ListInstances` | 200 | 100 | Read operation |
-| `HealthCheck` | 1000 | 500 | Monitoring should not be rate limited |
-| Default | 100 | 50 | Fallback for other endpoints |
+| Endpoint          | Default RPS | Burst Size | Rationale                             |
+| ----------------- | ----------- | ---------- | ------------------------------------- |
+| `DeployPolicy`    | 50          | 25         | Write operation, resource intensive   |
+| `RollbackPolicy`  | 50          | 25         | Write operation, resource intensive   |
+| `GetPolicyStatus` | 200         | 100        | Read-heavy, frequently polled         |
+| `ListInstances`   | 200         | 100        | Read operation                        |
+| `HealthCheck`     | 1000        | 500        | Monitoring should not be rate limited |
+| Default           | 100         | 50         | Fallback for other endpoints          |
 
 ```rust
 // Configure custom rate limits
@@ -2813,6 +2820,7 @@ let limits = EndpointRateLimits::disabled();
 #### Rate Limit Response
 
 When rate limited, clients receive:
+
 - gRPC Status: `RESOURCE_EXHAUSTED`
 - Message: "Rate limit exceeded. Please retry later."
 

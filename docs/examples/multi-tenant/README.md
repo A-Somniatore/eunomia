@@ -66,9 +66,7 @@ Edit `data/permissions.json`:
 {
   "tenant_roles": {
     "custom-role": {
-      "permissions": [
-        {"action": "read", "resource": "/api/custom/**"}
-      ]
+      "permissions": [{ "action": "read", "resource": "/api/custom/**" }]
     }
   }
 }

@@ -4,11 +4,11 @@ Pre-built Grafana dashboards for monitoring the Eunomia authorization platform.
 
 ## Dashboards
 
-| Dashboard | Description | UID |
-|-----------|-------------|-----|
-| [eunomia-overview.json](eunomia-overview.json) | High-level overview of all Eunomia metrics | `eunomia-overview` |
-| [eunomia-compiler.json](eunomia-compiler.json) | Detailed policy compilation metrics | `eunomia-compiler` |
-| [eunomia-distributor.json](eunomia-distributor.json) | Detailed policy distribution metrics | `eunomia-distributor` |
+| Dashboard                                            | Description                                | UID                   |
+| ---------------------------------------------------- | ------------------------------------------ | --------------------- |
+| [eunomia-overview.json](eunomia-overview.json)       | High-level overview of all Eunomia metrics | `eunomia-overview`    |
+| [eunomia-compiler.json](eunomia-compiler.json)       | Detailed policy compilation metrics        | `eunomia-compiler`    |
+| [eunomia-distributor.json](eunomia-distributor.json) | Detailed policy distribution metrics       | `eunomia-distributor` |
 
 ## Prerequisites
 
@@ -34,9 +34,9 @@ Add to your Grafana provisioning configuration:
 # /etc/grafana/provisioning/dashboards/eunomia.yaml
 apiVersion: 1
 providers:
-  - name: 'Eunomia'
+  - name: "Eunomia"
     orgId: 1
-    folder: 'Eunomia'
+    folder: "Eunomia"
     type: file
     disableDeletion: false
     updateIntervalSeconds: 30
@@ -67,6 +67,7 @@ data:
 The overview dashboard provides a single-pane view of the entire platform:
 
 **Summary Row:**
+
 - Total Compilations
 - Total Pushes
 - Total Rollbacks
@@ -75,18 +76,22 @@ The overview dashboard provides a single-pane view of the entire platform:
 - Push Latency P99
 
 **Compilation Metrics:**
+
 - Compilation rate by service (success/failure)
 - Compilation duration by service (p50/p99)
 
 **Distribution Metrics:**
+
 - Push rate by service (success/failure)
 - Push duration by service (p50/p99)
 
 **Rollback Metrics:**
+
 - Rollbacks per hour by service
 - Rollback duration distribution
 
 **Instance Health:**
+
 - Health check rate by instance
 
 ### Eunomia Compiler
@@ -94,11 +99,13 @@ The overview dashboard provides a single-pane view of the entire platform:
 Detailed compilation metrics with service filtering:
 
 **Summary Row:**
+
 - Total compilations
 - Success rate
 - P50/P99 latency
 
 **Panels:**
+
 - Compilation rate by service and status
 - Compilation duration percentiles
 - Duration distribution histogram
@@ -111,6 +118,7 @@ Detailed compilation metrics with service filtering:
 Detailed distribution metrics with service filtering:
 
 **Summary Row:**
+
 - Total pushes
 - Success rate
 - Rollback count
@@ -118,6 +126,7 @@ Detailed distribution metrics with service filtering:
 - Total deployments
 
 **Panels:**
+
 - Push rate by service and status
 - Push rate by bundle version
 - Push duration percentiles
@@ -132,33 +141,33 @@ Detailed distribution metrics with service filtering:
 
 All dashboards support these variables:
 
-| Variable | Description |
-|----------|-------------|
-| `datasource` | Prometheus data source |
-| `service` | Filter by service name (supports multi-select) |
+| Variable     | Description                                    |
+| ------------ | ---------------------------------------------- |
+| `datasource` | Prometheus data source                         |
+| `service`    | Filter by service name (supports multi-select) |
 
 ## Metrics Reference
 
 ### Compiler Metrics
 
-| Metric | Type | Labels | Description |
-|--------|------|--------|-------------|
-| `eunomia_compiler_compilations_total` | Counter | `service`, `status` | Total policy compilations |
-| `eunomia_compiler_compilation_duration_milliseconds` | Histogram | `service` | Compilation duration |
-| `eunomia_compiler_bundle_size_bytes` | Histogram | `service` | Compiled bundle size |
-| `eunomia_compiler_policies_processed_total` | Counter | `service` | Total policies processed |
+| Metric                                               | Type      | Labels              | Description               |
+| ---------------------------------------------------- | --------- | ------------------- | ------------------------- |
+| `eunomia_compiler_compilations_total`                | Counter   | `service`, `status` | Total policy compilations |
+| `eunomia_compiler_compilation_duration_milliseconds` | Histogram | `service`           | Compilation duration      |
+| `eunomia_compiler_bundle_size_bytes`                 | Histogram | `service`           | Compiled bundle size      |
+| `eunomia_compiler_policies_processed_total`          | Counter   | `service`           | Total policies processed  |
 
 ### Distributor Metrics
 
-| Metric | Type | Labels | Description |
-|--------|------|--------|-------------|
-| `eunomia_distributor_pushes_total` | Counter | `service`, `version`, `status` | Total bundle pushes |
-| `eunomia_distributor_push_duration_milliseconds` | Histogram | `service` | Push duration |
-| `eunomia_distributor_push_batch_size` | Histogram | `service` | Number of instances in push batch |
-| `eunomia_distributor_rollbacks_total` | Counter | `service`, `status` | Total rollbacks |
-| `eunomia_distributor_rollback_duration_milliseconds` | Histogram | `service` | Rollback duration |
-| `eunomia_distributor_deployments_total` | Counter | `service` | Total deployments |
-| `eunomia_distributor_health_checks_total` | Counter | `instance`, `status` | Health check results |
+| Metric                                               | Type      | Labels                         | Description                       |
+| ---------------------------------------------------- | --------- | ------------------------------ | --------------------------------- |
+| `eunomia_distributor_pushes_total`                   | Counter   | `service`, `version`, `status` | Total bundle pushes               |
+| `eunomia_distributor_push_duration_milliseconds`     | Histogram | `service`                      | Push duration                     |
+| `eunomia_distributor_push_batch_size`                | Histogram | `service`                      | Number of instances in push batch |
+| `eunomia_distributor_rollbacks_total`                | Counter   | `service`, `status`            | Total rollbacks                   |
+| `eunomia_distributor_rollback_duration_milliseconds` | Histogram | `service`                      | Rollback duration                 |
+| `eunomia_distributor_deployments_total`              | Counter   | `service`                      | Total deployments                 |
+| `eunomia_distributor_health_checks_total`            | Counter   | `instance`, `status`           | Health check results              |
 
 ## Alerting
 
@@ -249,6 +258,7 @@ Modify the default time range in the JSON:
 ### No Data Showing
 
 1. Verify Prometheus is scraping Eunomia metrics:
+
    ```bash
    curl http://eunomia:9090/metrics | grep eunomia_
    ```
@@ -260,6 +270,7 @@ Modify the default time range in the JSON:
 ### Missing Metrics
 
 Some metrics may not appear until the corresponding operation occurs:
+
 - `rollbacks_total` - Only after a rollback
 - `deployments_total` - Only after a deployment
 

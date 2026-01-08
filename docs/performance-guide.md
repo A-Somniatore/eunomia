@@ -416,24 +416,24 @@ eunomia serve --metrics-port 9090
 
 #### Compiler Metrics
 
-| Metric | Type | Labels | Description | Alert Threshold |
-|--------|------|--------|-------------|-----------------|
-| `eunomia_compiler_compilations_total` | Counter | `service`, `status` | Total policy compilations | failure rate > 10% |
-| `eunomia_compiler_compilation_duration_milliseconds` | Histogram | `service` | Compilation duration | p99 > 1000ms |
-| `eunomia_compiler_bundle_size_bytes` | Histogram | `service` | Compiled bundle size | p99 > 10MB |
-| `eunomia_compiler_policies_processed_total` | Counter | `service` | Total policies processed | - |
+| Metric                                               | Type      | Labels              | Description               | Alert Threshold    |
+| ---------------------------------------------------- | --------- | ------------------- | ------------------------- | ------------------ |
+| `eunomia_compiler_compilations_total`                | Counter   | `service`, `status` | Total policy compilations | failure rate > 10% |
+| `eunomia_compiler_compilation_duration_milliseconds` | Histogram | `service`           | Compilation duration      | p99 > 1000ms       |
+| `eunomia_compiler_bundle_size_bytes`                 | Histogram | `service`           | Compiled bundle size      | p99 > 10MB         |
+| `eunomia_compiler_policies_processed_total`          | Counter   | `service`           | Total policies processed  | -                  |
 
 #### Distributor Metrics
 
-| Metric | Type | Labels | Description | Alert Threshold |
-|--------|------|--------|-------------|-----------------|
-| `eunomia_distributor_pushes_total` | Counter | `service`, `version`, `status` | Total bundle pushes | failure rate > 5% |
-| `eunomia_distributor_push_duration_milliseconds` | Histogram | `service` | Push duration | p99 > 5000ms |
-| `eunomia_distributor_push_batch_size` | Histogram | `service` | Instances per push batch | - |
-| `eunomia_distributor_rollbacks_total` | Counter | `service`, `status` | Total rollbacks | > 5/hour |
-| `eunomia_distributor_rollback_duration_milliseconds` | Histogram | `service` | Rollback duration | p99 > 5000ms |
-| `eunomia_distributor_deployments_total` | Counter | `service` | Total deployments | - |
-| `eunomia_distributor_health_checks_total` | Counter | `instance`, `status` | Health check results | unhealthy > 0 |
+| Metric                                               | Type      | Labels                         | Description              | Alert Threshold   |
+| ---------------------------------------------------- | --------- | ------------------------------ | ------------------------ | ----------------- |
+| `eunomia_distributor_pushes_total`                   | Counter   | `service`, `version`, `status` | Total bundle pushes      | failure rate > 5% |
+| `eunomia_distributor_push_duration_milliseconds`     | Histogram | `service`                      | Push duration            | p99 > 5000ms      |
+| `eunomia_distributor_push_batch_size`                | Histogram | `service`                      | Instances per push batch | -                 |
+| `eunomia_distributor_rollbacks_total`                | Counter   | `service`, `status`            | Total rollbacks          | > 5/hour          |
+| `eunomia_distributor_rollback_duration_milliseconds` | Histogram | `service`                      | Rollback duration        | p99 > 5000ms      |
+| `eunomia_distributor_deployments_total`              | Counter   | `service`                      | Total deployments        | -                 |
+| `eunomia_distributor_health_checks_total`            | Counter   | `instance`, `status`           | Health check results     | unhealthy > 0     |
 
 ### Prometheus Queries
 
@@ -471,11 +471,11 @@ sum(rate(eunomia_distributor_health_checks_total{status="unhealthy"}[5m])) by (i
 
 Pre-built Grafana dashboards are available in [`grafana/dashboards/`](../grafana/dashboards/):
 
-| Dashboard | Description | UID |
-|-----------|-------------|-----|
-| [Eunomia Overview](../grafana/dashboards/eunomia-overview.json) | High-level overview of all metrics | `eunomia-overview` |
-| [Eunomia Compiler](../grafana/dashboards/eunomia-compiler.json) | Detailed compilation metrics | `eunomia-compiler` |
-| [Eunomia Distributor](../grafana/dashboards/eunomia-distributor.json) | Detailed distribution metrics | `eunomia-distributor` |
+| Dashboard                                                             | Description                        | UID                   |
+| --------------------------------------------------------------------- | ---------------------------------- | --------------------- |
+| [Eunomia Overview](../grafana/dashboards/eunomia-overview.json)       | High-level overview of all metrics | `eunomia-overview`    |
+| [Eunomia Compiler](../grafana/dashboards/eunomia-compiler.json)       | Detailed compilation metrics       | `eunomia-compiler`    |
+| [Eunomia Distributor](../grafana/dashboards/eunomia-distributor.json) | Detailed distribution metrics      | `eunomia-distributor` |
 
 **Installation:**
 

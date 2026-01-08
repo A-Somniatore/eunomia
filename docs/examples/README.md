@@ -18,12 +18,12 @@ examples/
 
 Select an example that matches your use case:
 
-| Example | Description | Use Case |
-|---------|-------------|----------|
-| `basic-rbac/` | Role-based access control | Simple permission systems |
-| `multi-tenant/` | Tenant-isolated policies | SaaS applications |
-| `api-gateway/` | Gateway authorization | API rate limiting, routing |
-| `microservices/` | Service mesh policies | Inter-service communication |
+| Example          | Description               | Use Case                    |
+| ---------------- | ------------------------- | --------------------------- |
+| `basic-rbac/`    | Role-based access control | Simple permission systems   |
+| `multi-tenant/`  | Tenant-isolated policies  | SaaS applications           |
+| `api-gateway/`   | Gateway authorization     | API rate limiting, routing  |
+| `microservices/` | Service mesh policies     | Inter-service communication |
 
 ### 2. Copy and Customize
 

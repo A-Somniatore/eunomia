@@ -585,11 +585,25 @@ fn find_policy_file(test_file: &Path) -> Option<PathBuf> {
 /// Finds the test file associated with a fixture.
 fn find_test_file_for_fixture(fixture: &Path) -> Option<PathBuf> {
     let parent = fixture.parent()?;
-    // TODO: Use fixture stem to find more specific test file
-    let _file_name = fixture.file_stem()?.to_str()?;
+    let fixture_stem = fixture.file_stem()?.to_str()?;
 
-    // fixtures_admin.json -> *_test.rego in same directory
-    // Or look for any _test.rego file
+    // Try to find a more specific test file based on fixture name
+    // e.g., fixtures_admin.json -> admin_test.rego or authz_test.rego
+    // Pattern: fixtures_{name}.json or {name}_fixtures.json
+    let specific_name = fixture_stem
+        .strip_prefix("fixtures_")
+        .or_else(|| fixture_stem.strip_suffix("_fixtures"))
+        .or_else(|| fixture_stem.strip_suffix("_fixture"));
+
+    // First, try to find a specific test file matching the fixture name
+    if let Some(name) = specific_name {
+        let specific_test = parent.join(format!("{name}_test.rego"));
+        if specific_test.exists() {
+            return Some(specific_test);
+        }
+    }
+
+    // Fallback: look for any _test.rego file in the same directory
     for entry in fs::read_dir(parent).ok()? {
         let entry = entry.ok()?;
         let path = entry.path();

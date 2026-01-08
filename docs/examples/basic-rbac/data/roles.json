@@ -2,28 +2,28 @@
   "admin": {
     "description": "Full administrative access",
     "permissions": [
-      {"action": "read", "resource": "/**"},
-      {"action": "write", "resource": "/**"},
-      {"action": "delete", "resource": "/**"},
-      {"action": "admin", "resource": "/**"}
+      { "action": "read", "resource": "/**" },
+      { "action": "write", "resource": "/**" },
+      { "action": "delete", "resource": "/**" },
+      { "action": "admin", "resource": "/**" }
     ]
   },
   "editor": {
     "description": "Can read and write content",
     "permissions": [
-      {"action": "read", "resource": "/api/posts/**"},
-      {"action": "write", "resource": "/api/posts/**"},
-      {"action": "read", "resource": "/api/comments/**"},
-      {"action": "write", "resource": "/api/comments/**"},
-      {"action": "read", "resource": "/api/users/me"}
+      { "action": "read", "resource": "/api/posts/**" },
+      { "action": "write", "resource": "/api/posts/**" },
+      { "action": "read", "resource": "/api/comments/**" },
+      { "action": "write", "resource": "/api/comments/**" },
+      { "action": "read", "resource": "/api/users/me" }
     ]
   },
   "viewer": {
     "description": "Read-only access to content",
     "permissions": [
-      {"action": "read", "resource": "/api/posts/**"},
-      {"action": "read", "resource": "/api/comments/**"},
-      {"action": "read", "resource": "/api/users/me"}
+      { "action": "read", "resource": "/api/posts/**" },
+      { "action": "read", "resource": "/api/comments/**" },
+      { "action": "read", "resource": "/api/users/me" }
     ]
   }
 }

@@ -12,10 +12,11 @@
 > See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed findings and recommendations.
 
 > ✅ **WEEK 21 COMPLETE (2026-01-08)**: All Pre-v1.0.0 requirements satisfied.
+>
 > - Security: Rate limiting, bundle signing audit, mTLS testing
 > - Observability: OpenTelemetry metrics, Grafana dashboards
 > - Operational: K8s discovery, cross-platform CI
-> Ready for v1.0.0 release candidate.
+>   Ready for v1.0.0 release candidate.
 
 ---
 
@@ -160,15 +161,15 @@ match caller {
 
 ### ⚠️ Partially Implemented (Gaps)
 
-| Spec Requirement                     | Gap                                                | Impact                                     |
-| ------------------------------------ | -------------------------------------------------- | ------------------------------------------ |
-| **Integration tests** (Spec §12.2)   | Uses mocks only, no real Archimedes                | **Medium** - Untested in real environment   |
+| Spec Requirement                   | Gap                                 | Impact                                    |
+| ---------------------------------- | ----------------------------------- | ----------------------------------------- |
+| **Integration tests** (Spec §12.2) | Uses mocks only, no real Archimedes | **Medium** - Untested in real environment |
 
 ### ❌ Not Implemented (Missing from Spec)
 
-| Spec Requirement                       | Priority          | Effort | Status                          |
-| -------------------------------------- | ----------------- | ------ | ------------------------------- |
-| All critical items completed           | -                 | -      | ✅ Week 21                      |
+| Spec Requirement             | Priority | Effort | Status     |
+| ---------------------------- | -------- | ------ | ---------- |
+| All critical items completed | -        | -      | ✅ Week 21 |
 
 ### ✅ Recently Completed (Week 19-21)
 
@@ -209,6 +210,7 @@ match caller {
 | -------------------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------- |
 | **OPA Bundle Format Integration Test** | Create integration test: compile bundle with `eunomia-compiler`, load with `archimedes-authz::BundleLoader` | ⏳ Backlog |
 | **Registry Topology**                  | Document whether Eunomia registry is same as Themis registry or separate                                    | ⏳ Backlog |
+| **Dev Environment Setup Script**       | Create `scripts/setup-dev.sh` for new developer onboarding (install deps, setup pre-commit hooks, etc.)     | ⏳ Backlog |
 | **Compiler warnings**                  | 14 warnings in `eunomia-distributor` (unused results) - cosmetic but should fix                             | ⏳ Low     |
 
 ### P2 - Cross-Component Items
@@ -217,6 +219,14 @@ match caller {
 | -------------------------------- | --------------------------------------------------------------------- | -------- |
 | **gRPC vs HTTP Push**            | Clarify Eunomia→Archimedes push protocol (ADR-006 says gRPC post-MVP) | Platform |
 | **Health Check Standardization** | Define standard health check pattern for K8s deployment               | Platform |
+
+### Infrastructure Considerations
+
+> Items identified during architecture review that need consideration for production deployment.
+
+| Item                    | Description                                                                                   | Priority |
+| ----------------------- | --------------------------------------------------------------------------------------------- | -------- |
+| **Registry Topology**   | Decide if Eunomia uses shared OCI registry with Themis or dedicated registry for policy bundles. Consider: access control, namespace isolation, replication strategy. | Medium   |
 
 ---
 
@@ -1135,6 +1145,7 @@ cargo doc --no-deps         # ✓ Docs build
 > **Reference**: [ARCHITECTURE.md](ARCHITECTURE.md) - Pre-v1.0.0 Requirements
 >
 > **Development Practices Reminder** (apply to ALL tasks):
+>
 > - Commit after each completed sub-task
 > - Write tests BEFORE implementing features (TDD)
 > - Update documentation immediately after implementation

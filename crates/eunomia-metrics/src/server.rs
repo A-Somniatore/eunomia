@@ -11,6 +11,9 @@ use tracing::{error, info};
 
 use crate::MetricsRegistry;
 
+/// Default metrics server address.
+const DEFAULT_METRICS_ADDRESS: &str = "0.0.0.0:9090";
+
 /// Server configuration for the metrics endpoint.
 #[derive(Debug, Clone)]
 pub struct MetricsServerConfig {
@@ -23,7 +26,10 @@ pub struct MetricsServerConfig {
 impl Default for MetricsServerConfig {
     fn default() -> Self {
         Self {
-            address: "0.0.0.0:9090".parse().expect("valid address"),
+            // SAFETY: This is a hardcoded valid address that will always parse
+            address: DEFAULT_METRICS_ADDRESS
+                .parse()
+                .expect("DEFAULT_METRICS_ADDRESS is a valid socket address"),
             path: "/metrics".to_string(),
         }
     }
@@ -78,7 +84,7 @@ pub async fn serve_metrics(
         .route(&config.path, get(metrics_handler))
         .route("/health", get(health_handler))
         .route("/ready", get(ready_handler))
-        .with_state(registry);
+        .with_state(registry.clone());
 
     let listener = tokio::net::TcpListener::bind(config.address).await?;
     info!("Metrics server listening on {}", config.address);
@@ -116,9 +122,19 @@ async fn health_handler() -> impl IntoResponse {
 }
 
 /// Handler for the `/ready` endpoint (readiness probe).
-async fn ready_handler() -> impl IntoResponse {
-    // TODO: Add actual readiness checks (registry connectivity, etc.)
-    (StatusCode::OK, "ready")
+///
+/// Verifies that the metrics registry is functional by attempting
+/// to generate Prometheus output. This ensures the service can
+/// serve metrics before accepting traffic.
+async fn ready_handler(State(registry): State<Arc<MetricsRegistry>>) -> impl IntoResponse {
+    // Verify metrics can be collected and encoded
+    match registry.prometheus_output() {
+        Ok(_) => (StatusCode::OK, "ready"),
+        Err(_) => (
+            StatusCode::SERVICE_UNAVAILABLE,
+            "metrics registry not ready",
+        ),
+    }
 }
 
 #[cfg(test)]
