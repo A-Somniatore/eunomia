@@ -1,8 +1,8 @@
 # Eunomia – Development Roadmap
 
-> **Version**: 1.8.0  
+> **Version**: 1.9.0  
 > **Created**: 2026-01-04  
-> **Last Updated**: 2026-01-08  
+> **Last Updated**: 2026-01-21  
 > **Target Completion**: Week 21 (v1.0.0 Release) ✅ **ALL REQUIREMENTS COMPLETE**
 
 > ✅ **CTO REVIEW (2026-01-05)**: Phase E0 complete. Shared types migration resolved.
@@ -17,6 +17,8 @@
 > - Observability: OpenTelemetry metrics, Grafana dashboards
 > - Operational: K8s discovery, cross-platform CI
 >   Ready for v1.0.0 release candidate.
+
+> **📊 UPDATE (2026-01-21)**: All tests passing. Deprecated local types (decision.rs, identity.rs, input.rs) should be cleaned up.
 
 ---
 
