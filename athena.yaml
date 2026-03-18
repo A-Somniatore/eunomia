@@ -1,0 +1,14 @@
+maturity: internal
+type: service
+display_name: "Eunomia"
+description: "Git-backed OPA/Rego authorization policy platform — policy authoring, testing, bundle compilation, distribution, and audit logging for the Themis ecosystem"
+owners:
+  - platform-engineering
+systems:
+  - themis
+tags:
+  - rust
+  - opa
+  - rego
+  - authorization
+  - policy-engine
