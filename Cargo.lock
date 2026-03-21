@@ -3690,8 +3690,9 @@ dependencies = [
 
 [[package]]
 name = "themis-platform-types"
-version = "0.1.0"
-source = "git+https://github.com/A-Somniatore/themis-platform-types?branch=main#88f4ea2f291a132a03c589f80d925e34cc1ec870"
+version = "0.2.0"
+source = "sparse+https://crates.somniatore.com/api/v1/crates/"
+checksum = "581d34f015e0441908cd659d781478d504b0c9a1d908a88b489289dd404eccd2"
 dependencies = [
  "chrono",
  "serde",

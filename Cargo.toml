@@ -106,8 +106,8 @@ parking_lot = "0.12"
 async-trait = "0.1"
 futures = "0.3"
 
-# Shared platform types (from Themis team)
-themis-platform-types = { git = "https://github.com/A-Somniatore/themis-platform-types", branch = "main" }
+# Shared platform types (from private somniatore registry)
+themis-platform-types = { version = "0.2.0", registry = "somniatore" }
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
